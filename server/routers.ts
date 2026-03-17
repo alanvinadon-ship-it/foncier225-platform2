@@ -16,16 +16,30 @@ import {
   createParcel,
   createParcelEvent,
   createVerifyToken,
+  getCitizenDashboardStats,
+  getCitizenTimeline,
   getDashboardStats,
+  getDocumentByIdAndOwner,
+  getParcelByIdAndOwner,
   getParcelByPublicToken,
+  getParcelEventsForOwner,
   getParcelStatusDistribution,
   getPublicParcelEvents,
   getVerifyTokenByHash,
+  listAttestationsByParcelAndOwner,
   listAuditEvents,
+  listDocumentsByOwner,
+  listDocumentsByParcelAndOwner,
   listParcels,
+  listParcelsByOwner,
   listUsers,
+  updateParcelOwner,
   updateUserRole,
 } from "./db";
+
+// ─── Citizen Procedure (requires auth + citizen/admin role) ─────────
+// Citizens can access their own data; admins can also use citizen routes
+const citizenProcedure = protectedProcedure;
 
 // ─── Parcel Router (public) ──────────────────────────────────────────
 const parcelRouter = router({
@@ -63,7 +77,6 @@ const verifyRouter = router({
   check: publicProcedure
     .input(z.object({ token: z.string().min(1) }))
     .query(async ({ input, ctx }) => {
-      // Rate limiting: 10 requests per 5 minutes per IP
       const ip = ctx.req.headers["x-forwarded-for"]?.toString() || ctx.req.ip || "unknown";
       const ipHash = createHash("sha256").update(ip).digest("hex").slice(0, 16);
       const allowed = await checkRateLimit(ipHash, 5 * 60 * 1000, 10);
@@ -71,14 +84,12 @@ const verifyRouter = router({
         throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded. Réessayez dans quelques minutes." });
       }
 
-      // Hash the token to look up
       const tokenHash = createHash("sha256").update(input.token).digest("hex");
       const record = await getVerifyTokenByHash(tokenHash);
       if (!record) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Token de vérification introuvable" });
       }
 
-      // Audit the verification
       await createAuditEvent({
         action: "verify.check",
         targetType: "verify_token",
@@ -93,6 +104,132 @@ const verifyRouter = router({
         issuedMonth: record.issuedMonth,
         expiresAt: record.expiresAt,
       };
+    }),
+});
+
+// ─── Citizen Router (protected, strict owner isolation) ──────────────
+const citizenRouter = router({
+  // Profile — returns the current user's own data
+  profile: citizenProcedure.query(async ({ ctx }) => {
+    await createAuditEvent({
+      actorId: ctx.user.id,
+      actorRole: ctx.user.role,
+      action: "citizen.viewProfile",
+      targetType: "user",
+      targetId: ctx.user.id,
+    });
+    return {
+      id: ctx.user.id,
+      name: ctx.user.name,
+      email: ctx.user.email,
+      role: ctx.user.role,
+      isActive: ctx.user.isActive,
+      createdAt: ctx.user.createdAt,
+      lastSignedIn: ctx.user.lastSignedIn,
+    };
+  }),
+
+  // Dashboard stats — only own data
+  dashboardStats: citizenProcedure.query(async ({ ctx }) => {
+    return getCitizenDashboardStats(ctx.user.id);
+  }),
+
+  // List own parcels only
+  myParcels: citizenProcedure.query(async ({ ctx }) => {
+    const parcels = await listParcelsByOwner(ctx.user.id);
+    await createAuditEvent({
+      actorId: ctx.user.id,
+      actorRole: ctx.user.role,
+      action: "citizen.listParcels",
+      targetType: "user",
+      targetId: ctx.user.id,
+      details: { count: parcels.length },
+    });
+    return parcels;
+  }),
+
+  // Get a single parcel — strict ownership check
+  parcelDetail: citizenProcedure
+    .input(z.object({ parcelId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const parcel = await getParcelByIdAndOwner(input.parcelId, ctx.user.id);
+      if (!parcel) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Parcelle introuvable ou accès non autorisé" });
+      }
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: "citizen.viewParcel",
+        targetType: "parcel",
+        targetId: parcel.id,
+      });
+      return parcel;
+    }),
+
+  // Get timeline events for a specific owned parcel
+  parcelEvents: citizenProcedure
+    .input(z.object({ parcelId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const events = await getParcelEventsForOwner(input.parcelId, ctx.user.id);
+      if (events.length === 0) {
+        // Check if parcel exists but has no events vs. not owned
+        const parcel = await getParcelByIdAndOwner(input.parcelId, ctx.user.id);
+        if (!parcel) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Parcelle introuvable ou accès non autorisé" });
+        }
+      }
+      return events;
+    }),
+
+  // Global timeline across all owned parcels
+  timeline: citizenProcedure.query(async ({ ctx }) => {
+    return getCitizenTimeline(ctx.user.id, 50);
+  }),
+
+  // List own documents
+  myDocuments: citizenProcedure.query(async ({ ctx }) => {
+    return listDocumentsByOwner(ctx.user.id);
+  }),
+
+  // List documents for a specific owned parcel
+  parcelDocuments: citizenProcedure
+    .input(z.object({ parcelId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      // Ownership check is built into the query
+      const parcel = await getParcelByIdAndOwner(input.parcelId, ctx.user.id);
+      if (!parcel) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Parcelle introuvable ou accès non autorisé" });
+      }
+      return listDocumentsByParcelAndOwner(input.parcelId, ctx.user.id);
+    }),
+
+  // Get a single document — strict ownership check
+  documentDetail: citizenProcedure
+    .input(z.object({ documentId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const doc = await getDocumentByIdAndOwner(input.documentId, ctx.user.id);
+      if (!doc) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Document introuvable ou accès non autorisé" });
+      }
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: "citizen.viewDocument",
+        targetType: "document",
+        targetId: doc.id,
+      });
+      return doc;
+    }),
+
+  // Attestations for an owned parcel
+  parcelAttestations: citizenProcedure
+    .input(z.object({ parcelId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const parcel = await getParcelByIdAndOwner(input.parcelId, ctx.user.id);
+      if (!parcel) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Parcelle introuvable ou accès non autorisé" });
+      }
+      return listAttestationsByParcelAndOwner(input.parcelId, ctx.user.id);
     }),
 });
 
@@ -139,6 +276,7 @@ const adminRouter = router({
       zoneCode: z.string().min(1),
       localisation: z.string().optional(),
       surfaceApprox: z.string().optional(),
+      ownerId: z.number().optional(),
       statusPublic: z.enum([
         "dossier_en_cours", "en_opposition", "gele",
         "mediation_en_cours", "acte_notarie_enregistre", "valide",
@@ -151,10 +289,10 @@ const adminRouter = router({
         publicToken,
         localisation: input.localisation || null,
         surfaceApprox: input.surfaceApprox || null,
+        ownerId: input.ownerId || null,
         createdById: ctx.user.id,
       });
 
-      // Create initial timeline event
       if (parcel) {
         await createParcelEvent({
           parcelId: parcel.id,
@@ -173,17 +311,35 @@ const adminRouter = router({
         action: "admin.createParcel",
         targetType: "parcel",
         targetId: parcel?.id,
-        details: { reference: input.reference, zoneCode: input.zoneCode },
+        details: { reference: input.reference, zoneCode: input.zoneCode, ownerId: input.ownerId },
       });
 
       return parcel;
+    }),
+
+  // Assign a parcel to a citizen owner
+  assignParcelOwner: adminProcedure
+    .input(z.object({
+      parcelId: z.number(),
+      ownerId: z.number(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      await updateParcelOwner(input.parcelId, input.ownerId);
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: "admin.assignParcelOwner",
+        targetType: "parcel",
+        targetId: input.parcelId,
+        details: { ownerId: input.ownerId },
+      });
+      return { success: true };
     }),
 
   listAuditEvents: adminProcedure.query(async () => {
     return listAuditEvents(200, 0);
   }),
 
-  // Generate a verify token for an attestation
   generateVerifyToken: adminProcedure
     .input(z.object({
       tokenType: z.enum(["insurance", "mediation", "notary", "export", "parcel"]),
@@ -214,7 +370,6 @@ const adminRouter = router({
         details: { expiresInDays: input.expiresInDays },
       });
 
-      // Return the raw token (only time it's visible)
       return { token: rawToken, expiresAt };
     }),
 });
@@ -232,6 +387,7 @@ export const appRouter = router({
   }),
   parcel: parcelRouter,
   verify: verifyRouter,
+  citizen: citizenRouter,
   admin: adminRouter,
 });
 

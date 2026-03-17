@@ -45,6 +45,7 @@ export const parcels = mysqlTable("parcels", {
   surfaceApprox: varchar("surfaceApprox", { length: 32 }),
   localisation: varchar("localisation", { length: 255 }),
   kpiFlagsJson: json("kpiFlagsJson").$type<Record<string, boolean>>(),
+  ownerId: int("ownerId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   createdById: int("createdById"),
@@ -80,6 +81,36 @@ export const parcelEvents = mysqlTable("parcel_events", {
 
 export type ParcelEvent = typeof parcelEvents.$inferSelect;
 export type InsertParcelEvent = typeof parcelEvents.$inferInsert;
+
+// ─── Documents (fichiers autorisés par parcelle) ─────────────────────
+export const documents = mysqlTable("documents", {
+  id: int("id").autoincrement().primaryKey(),
+  parcelId: int("parcelId").notNull(),
+  ownerId: int("ownerId").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  documentType: mysqlEnum("documentType", [
+    "attestation",
+    "titre_foncier",
+    "plan_cadastral",
+    "pv_bornage",
+    "acte_vente",
+    "certificat_propriete",
+    "rapport_expertise",
+    "autre",
+  ]).default("autre").notNull(),
+  fileUrl: varchar("fileUrl", { length: 512 }),
+  fileKey: varchar("fileKey", { length: 256 }),
+  mimeType: varchar("mimeType", { length: 64 }),
+  fileSize: int("fileSize"),
+  status: mysqlEnum("status", ["draft", "published", "archived"]).default("published").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  createdById: int("createdById"),
+});
+
+export type Document = typeof documents.$inferSelect;
+export type InsertDocument = typeof documents.$inferInsert;
 
 // ─── Verify Tokens ───────────────────────────────────────────────────
 export const verifyTokens = mysqlTable("verify_tokens", {

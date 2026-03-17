@@ -1,4 +1,4 @@
-import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
+import { eq, desc, and, sql, gte, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser, users,
@@ -8,6 +8,7 @@ import {
   attestations, InsertAttestation,
   auditEvents, InsertAuditEvent,
   verifyRateLimits,
+  documents, InsertDocument,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -60,6 +61,13 @@ export async function getUserByOpenId(openId: string) {
   const db = await getDb();
   if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -132,6 +140,39 @@ export async function listParcelsByZone(zoneCode: string, limit = 50, offset = 0
   return db.select().from(parcels).where(eq(parcels.zoneCode, zoneCode)).orderBy(desc(parcels.createdAt)).limit(limit).offset(offset);
 }
 
+// ─── Citizen-scoped Parcels (strict owner isolation) ─────────────────
+export async function listParcelsByOwner(ownerId: number, limit = 50, offset = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(parcels)
+    .where(eq(parcels.ownerId, ownerId))
+    .orderBy(desc(parcels.createdAt))
+    .limit(limit).offset(offset);
+}
+
+export async function countParcelsByOwner(ownerId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.select({ count: sql<number>`count(*)` }).from(parcels)
+    .where(eq(parcels.ownerId, ownerId));
+  return result[0]?.count ?? 0;
+}
+
+export async function getParcelByIdAndOwner(parcelId: number, ownerId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(parcels)
+    .where(and(eq(parcels.id, parcelId), eq(parcels.ownerId, ownerId)))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateParcelOwner(parcelId: number, ownerId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(parcels).set({ ownerId }).where(eq(parcels.id, parcelId));
+}
+
 // ─── Parcel Events ───────────────────────────────────────────────────
 export async function createParcelEvent(event: InsertParcelEvent) {
   const db = await getDb();
@@ -149,6 +190,92 @@ export async function getAllParcelEvents(parcelId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(parcelEvents).where(eq(parcelEvents.parcelId, parcelId)).orderBy(desc(parcelEvents.createdAt));
+}
+
+// Citizen-scoped: get events only for parcels owned by this user
+export async function getParcelEventsForOwner(parcelId: number, ownerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  // First verify ownership
+  const parcel = await getParcelByIdAndOwner(parcelId, ownerId);
+  if (!parcel) return [];
+  return db.select().from(parcelEvents)
+    .where(eq(parcelEvents.parcelId, parcelId))
+    .orderBy(desc(parcelEvents.createdAt));
+}
+
+// Get timeline across all citizen's parcels
+export async function getCitizenTimeline(ownerId: number, limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  const ownerParcels = await db.select({ id: parcels.id }).from(parcels)
+    .where(eq(parcels.ownerId, ownerId));
+  if (ownerParcels.length === 0) return [];
+  const parcelIds = ownerParcels.map(p => p.id);
+  return db.select().from(parcelEvents)
+    .where(inArray(parcelEvents.parcelId, parcelIds))
+    .orderBy(desc(parcelEvents.createdAt))
+    .limit(limit);
+}
+
+// ─── Documents ───────────────────────────────────────────────────────
+export async function createDocument(doc: InsertDocument) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(documents).values(doc);
+  const result = await db.select().from(documents)
+    .where(and(eq(documents.parcelId, doc.parcelId), eq(documents.title, doc.title)))
+    .orderBy(desc(documents.createdAt))
+    .limit(1);
+  return result[0];
+}
+
+export async function listDocumentsByOwner(ownerId: number, limit = 50, offset = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(documents)
+    .where(eq(documents.ownerId, ownerId))
+    .orderBy(desc(documents.createdAt))
+    .limit(limit).offset(offset);
+}
+
+export async function countDocumentsByOwner(ownerId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.select({ count: sql<number>`count(*)` }).from(documents)
+    .where(eq(documents.ownerId, ownerId));
+  return result[0]?.count ?? 0;
+}
+
+export async function listDocumentsByParcelAndOwner(parcelId: number, ownerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(documents)
+    .where(and(eq(documents.parcelId, parcelId), eq(documents.ownerId, ownerId)))
+    .orderBy(desc(documents.createdAt));
+}
+
+export async function getDocumentByIdAndOwner(docId: number, ownerId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(documents)
+    .where(and(eq(documents.id, docId), eq(documents.ownerId, ownerId)))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+// Admin: list all documents
+export async function listAllDocuments(limit = 50, offset = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(documents).orderBy(desc(documents.createdAt)).limit(limit).offset(offset);
+}
+
+export async function countAllDocuments() {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.select({ count: sql<number>`count(*)` }).from(documents);
+  return result[0]?.count ?? 0;
 }
 
 // ─── Verify Tokens ───────────────────────────────────────────────────
@@ -198,6 +325,17 @@ export async function countAttestations() {
   return result[0]?.count ?? 0;
 }
 
+export async function listAttestationsByParcelAndOwner(parcelId: number, ownerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  // Verify ownership first
+  const parcel = await getParcelByIdAndOwner(parcelId, ownerId);
+  if (!parcel) return [];
+  return db.select().from(attestations)
+    .where(eq(attestations.parcelId, parcelId))
+    .orderBy(desc(attestations.createdAt));
+}
+
 // ─── Audit Events ────────────────────────────────────────────────────
 export async function createAuditEvent(event: InsertAuditEvent) {
   const db = await getDb();
@@ -245,11 +383,11 @@ export async function checkRateLimit(ipHash: string, windowMs: number, maxHits: 
 // ─── Dashboard Stats ─────────────────────────────────────────────────
 export async function getDashboardStats() {
   const db = await getDb();
-  if (!db) return { users: 0, parcels: 0, attestations: 0, auditEvents: 0, verifyTokens: 0 };
-  const [u, p, a, ae, vt] = await Promise.all([
-    countUsers(), countParcels(), countAttestations(), countAuditEvents(), countVerifyTokens(),
+  if (!db) return { users: 0, parcels: 0, attestations: 0, auditEvents: 0, verifyTokens: 0, documents: 0 };
+  const [u, p, a, ae, vt, d] = await Promise.all([
+    countUsers(), countParcels(), countAttestations(), countAuditEvents(), countVerifyTokens(), countAllDocuments(),
   ]);
-  return { users: u, parcels: p, attestations: a, auditEvents: ae, verifyTokens: vt };
+  return { users: u, parcels: p, attestations: a, auditEvents: ae, verifyTokens: vt, documents: d };
 }
 
 export async function getParcelStatusDistribution() {
@@ -259,4 +397,13 @@ export async function getParcelStatusDistribution() {
     status: parcels.statusPublic,
     count: sql<number>`count(*)`,
   }).from(parcels).groupBy(parcels.statusPublic);
+}
+
+// ─── Citizen Dashboard Stats ─────────────────────────────────────────
+export async function getCitizenDashboardStats(ownerId: number) {
+  const [parcelsCount, docsCount] = await Promise.all([
+    countParcelsByOwner(ownerId),
+    countDocumentsByOwner(ownerId),
+  ]);
+  return { parcels: parcelsCount, documents: docsCount };
 }

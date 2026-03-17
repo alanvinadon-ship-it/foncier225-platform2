@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { Button } from "@/components/ui/button";
-import { MapPin, Menu, Shield, X } from "lucide-react";
+import { MapPin, Menu, Shield, User, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 
@@ -58,12 +58,22 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
           <div className="hidden md:flex items-center gap-2">
             {user ? (
-              <Link href="/admin">
-                <Button size="sm" className="bg-ci-green hover:bg-ci-green/90">
-                  <MapPin className="h-3.5 w-3.5 mr-1.5" />
-                  Tableau de bord
-                </Button>
-              </Link>
+              <>
+                <Link href="/citizen">
+                  <Button size="sm" variant="outline" className="border-ci-orange text-ci-orange hover:bg-ci-orange/10">
+                    <User className="h-3.5 w-3.5 mr-1.5" />
+                    Mon espace
+                  </Button>
+                </Link>
+                {user.role === "admin" && (
+                  <Link href="/admin">
+                    <Button size="sm" className="bg-ci-green hover:bg-ci-green/90">
+                      <MapPin className="h-3.5 w-3.5 mr-1.5" />
+                      Administration
+                    </Button>
+                  </Link>
+                )}
+              </>
             ) : (
               <Button size="sm" className="bg-ci-green hover:bg-ci-green/90" onClick={() => { window.location.href = getLoginUrl(); }}>
                 Se connecter
@@ -89,11 +99,18 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 </span>
               </Link>
             ))}
-            <div className="pt-2 border-t">
+            <div className="pt-2 border-t space-y-2">
               {user ? (
-                <Link href="/admin" onClick={() => setMobileOpen(false)}>
-                  <Button size="sm" className="w-full bg-ci-green hover:bg-ci-green/90">Tableau de bord</Button>
-                </Link>
+                <>
+                  <Link href="/citizen" onClick={() => setMobileOpen(false)}>
+                    <Button size="sm" variant="outline" className="w-full border-ci-orange text-ci-orange">Mon espace citoyen</Button>
+                  </Link>
+                  {user.role === "admin" && (
+                    <Link href="/admin" onClick={() => setMobileOpen(false)}>
+                      <Button size="sm" className="w-full bg-ci-green hover:bg-ci-green/90">Administration</Button>
+                    </Link>
+                  )}
+                </>
               ) : (
                 <Button size="sm" className="w-full bg-ci-green hover:bg-ci-green/90" onClick={() => { window.location.href = getLoginUrl(); }}>
                   Se connecter
