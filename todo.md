@@ -71,4 +71,19 @@
 - [x] Tests unitaires crédit : 27 tests credit-workflow.test.ts (transitions, complétude, isolation)
 - [x] Tests d'intégration crédit : 36 tests routers.test.ts (création, soumission, audit)
 - [x] Validation non-régression existant : 64 tests PASS, 0 erreurs TypeScript
-- [ ] Checkpoint V1.1-02
+- [x] Checkpoint V1.1-02 (fed46d39)
+
+## v1.1-03 — Fondations Crédit Habitat (Consolidation)
+
+- [x] Enrichir credit_files : publicRef, amountRequestedXof, durationMonths, lastTransitionAt
+- [x] Aligner participant roles : CITIZEN, CO_BORROWER, BANK_AGENT, AGENT_TERRAIN
+- [x] Enrichir credit_documents : sha256, documentId (FK documents), rejectedAt
+- [x] Enrichir credit_offers : apr, monthlyPaymentXof, conditionsText, createdByUserId
+- [x] Ajouter index DB sur colonnes clés (7 index créés)
+- [x] Activer feature flag guard dans les procédures crédit (assertCreditEnabled)
+- [x] Ajouter audit events : 19 types définis (4 actifs + 15 préparés)
+- [x] Implémenter submitCreditFile avec validation complétude
+- [x] Ajouter documentation technique docs/CREDIT_MODULE.md
+- [x] Tests : 47 tests credit-workflow + 36 routers + 1 auth = 84 PASS
+- [x] Validation : 0 erreur TypeScript, 84 tests verts
+- [ ] Checkpoint V1.1-03 (en cours)

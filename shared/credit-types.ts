@@ -97,16 +97,52 @@ export const CREDIT_REQUEST_TYPE_LABELS: Record<CreditRequestType, string> = {
 
 // ─── Credit File Participant Role ────────────────────────────────────
 export enum CreditFileParticipantRole {
-  INITIATOR = "initiator",
+  CITIZEN = "citizen",
   CO_BORROWER = "co_borrower",
-  GUARANTOR = "guarantor",
+  BANK_AGENT = "bank_agent",
+  AGENT_TERRAIN = "agent_terrain",
 }
 
 export const CREDIT_PARTICIPANT_ROLE_LABELS: Record<CreditFileParticipantRole, string> = {
-  [CreditFileParticipantRole.INITIATOR]: "Demandeur",
+  [CreditFileParticipantRole.CITIZEN]: "Citoyen demandeur",
   [CreditFileParticipantRole.CO_BORROWER]: "Co-emprunteur",
-  [CreditFileParticipantRole.GUARANTOR]: "Garant",
+  [CreditFileParticipantRole.BANK_AGENT]: "Agent bancaire",
+  [CreditFileParticipantRole.AGENT_TERRAIN]: "Agent terrain",
 };
+
+// ─── Credit Audit Event Actions ──────────────────────────────────────
+// Events actively triggered in this version
+export const CREDIT_AUDIT_ACTIONS = {
+  FILE_CREATED: "credit.file.created",
+  FILE_SUBMITTED: "credit.file.submitted",
+  FILE_DOC_UPLOADED: "credit.file.doc_uploaded",
+  FILE_REQUEST_DOCS: "credit.file.request_docs",
+  FILE_ERROR: "credit.file.error",
+  // Prepared for future versions — not triggered yet
+  FILE_UNDER_REVIEW: "credit.file.under_review",
+  FILE_DOC_VALIDATED: "credit.file.doc.validated",
+  FILE_DOC_REJECTED: "credit.file.doc.rejected",
+  FILE_OFFER_MADE: "credit.file.offer_made",
+  FILE_OFFER_ACCEPTED: "credit.file.offer_accepted",
+  FILE_OFFER_REJECTED: "credit.file.offer_rejected",
+  FILE_DECIDED: "credit.file.decided",
+  FILE_ATTESTATION_ISSUED: "credit.file.attestation_issued",
+  FILE_VIEWED_BANK: "credit.file.viewed_bank",
+  FILE_CONSENT_GRANTED: "credit.file.consent.granted",
+  FILE_CONSENT_REVOKED: "credit.file.consent.revoked",
+  FILE_CLOSED: "credit.file.closed",
+  OFFER_EXPIRED: "credit.offer.expired",
+  ATTESTATION_VERIFIED: "credit.attestation.verified",
+} as const;
+
+export type CreditAuditAction = (typeof CREDIT_AUDIT_ACTIONS)[keyof typeof CREDIT_AUDIT_ACTIONS];
+
+// ─── Public Reference Generator ─────────────────────────────────────
+export function generateCreditPublicRef(): string {
+  const year = new Date().getFullYear();
+  const rand = Math.random().toString(36).substring(2, 7).toUpperCase();
+  return `CF-${year}-${rand}`;
+}
 
 // ─── Workflow Events ──────────────────────────────────────────────────
 export enum CreditWorkflowEvent {
