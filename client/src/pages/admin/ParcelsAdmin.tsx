@@ -25,7 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { trpc } from "@/lib/trpc";
-import { Eye, MapPin, Plus } from "lucide-react";
+import { Eye, FilePlus2, MapPin, Plus } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
 import { toast } from "sonner";
@@ -47,6 +47,10 @@ export default function ParcelsAdmin() {
       refetch();
       setShowCreate(false);
     },
+    onError: (err: any) => toast.error(err.message),
+  });
+  const generateParcelPdf = trpc.admin.generateParcelPdf.useMutation({
+    onSuccess: () => toast.success("PDF parcelle genere"),
     onError: (err: any) => toast.error(err.message),
   });
 
@@ -152,6 +156,7 @@ export default function ParcelsAdmin() {
               <TableHead>Surface</TableHead>
               <TableHead>Statut</TableHead>
               <TableHead>Créée le</TableHead>
+              <TableHead className="w-16">PDF</TableHead>
               <TableHead className="w-16">Voir</TableHead>
             </TableRow>
           </TableHeader>
@@ -159,7 +164,7 @@ export default function ParcelsAdmin() {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 7 }).map((_, j) => (
+                  {Array.from({ length: 8 }).map((_, j) => (
                     <TableCell key={j}><Skeleton className="h-5 w-20" /></TableCell>
                   ))}
                 </TableRow>
@@ -180,6 +185,16 @@ export default function ParcelsAdmin() {
                       {new Date(p.createdAt).toLocaleDateString("fr-FR")}
                     </TableCell>
                     <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={generateParcelPdf.isPending}
+                        onClick={() => generateParcelPdf.mutate({ parcelId: p.id })}
+                      >
+                        <FilePlus2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TableCell>
+                    <TableCell>
                       <Link href={`/parcelle/${p.publicToken}`}>
                         <Button variant="ghost" size="sm">
                           <Eye className="h-3.5 w-3.5" />
@@ -191,7 +206,7 @@ export default function ParcelsAdmin() {
               })
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   Aucune parcelle enregistrée
                 </TableCell>
               </TableRow>

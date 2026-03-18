@@ -10,6 +10,7 @@ import {
   createAttestation,
   createAuditEvent,
   createDocument,
+  createGeneratedDocument,
   createVerifyToken,
   getCreditAttestationByDecision,
   getCreditFileById,
@@ -26,6 +27,7 @@ import {
   listCreditOffersByFile,
   listCreditRequestsByFile,
   updateAttestation,
+  updateGeneratedDocument,
   updateCreditOffer,
   updateCreditFileStatus,
 } from "./db";
@@ -640,16 +642,34 @@ export const bankCreditRouter = router({
         createdById: ctx.user.id,
       });
 
+      const generatedDocument = await createGeneratedDocument({
+        documentType: "FINAL_CREDIT_ATTESTATION",
+        reference: documentRef,
+        parcelId: file.parcelId ?? null,
+        creditFileId: file.id,
+        attestationId: attestation.id,
+        generatedByUserId: ctx.user.id,
+        verifyTokenId: null,
+        checksumSha256: pdf.checksumSha256,
+        fileUrl: uploaded.url,
+        fileKey: uploaded.key,
+        metadataJson: {
+          decisionType: decision.decisionType,
+          linkedDocumentId: linkedDocument?.id ?? null,
+        },
+      });
+
       const verifyToken = await createVerifyToken({
         tokenHash: CreditAttestationService.hashVerifyCode(verifyCode),
         tokenType: "document",
-        targetId: attestation.id,
+        targetId: generatedDocument.id,
         status: "active",
         issuedMonth: issuedAt.toISOString().slice(0, 7),
         createdById: ctx.user.id,
       });
 
       await updateAttestation(attestation.id, { tokenId: verifyToken.id });
+      await updateGeneratedDocument(generatedDocument.id, { verifyTokenId: verifyToken.id });
 
       await createAuditEvent({
         actorId: ctx.user.id,
@@ -659,6 +679,7 @@ export const bankCreditRouter = router({
         targetId: file.id,
         details: {
           attestationId: attestation.id,
+          generatedDocumentId: generatedDocument.id,
           decisionId: decision.id,
           documentRef,
           finalDecisionType: decision.decisionType,

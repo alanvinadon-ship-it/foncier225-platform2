@@ -12,6 +12,7 @@ import ParcelPublic from "./pages/ParcelPublic";
 import Verify from "./pages/Verify";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AuditAdmin from "./pages/admin/AuditAdmin";
+import DocumentsAdmin from "./pages/admin/DocumentsAdmin";
 import ParcelsAdmin from "./pages/admin/ParcelsAdmin";
 import UsersAdmin from "./pages/admin/UsersAdmin";
 import BankCreditFileDetailPage from "./pages/bank/BankCreditFileDetailPage";
@@ -102,6 +103,11 @@ function Router() {
       <Route path="/admin/parcels">
         <DashboardLayout>
           <ParcelsAdmin />
+        </DashboardLayout>
+      </Route>
+      <Route path="/admin/documents">
+        <DashboardLayout>
+          <DocumentsAdmin />
         </DashboardLayout>
       </Route>
       <Route path="/admin/users">

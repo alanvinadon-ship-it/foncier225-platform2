@@ -168,6 +168,38 @@ export const attestations = mysqlTable(
 export type Attestation = typeof attestations.$inferSelect;
 export type InsertAttestation = typeof attestations.$inferInsert;
 
+export const generatedDocuments = mysqlTable(
+  "generated_documents",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    documentType: mysqlEnum("documentType", [
+      "PARCEL_PDF",
+      "DOSSIER_PDF",
+      "FINAL_CREDIT_ATTESTATION",
+    ]).notNull(),
+    reference: varchar("reference", { length: 64 }).notNull().unique(),
+    parcelId: int("parcelId").references(() => parcels.id, { onDelete: "set null" }),
+    creditFileId: int("creditFileId").references(() => creditFiles.id, { onDelete: "set null" }),
+    attestationId: int("attestationId").references(() => attestations.id, { onDelete: "set null" }),
+    generatedByUserId: int("generatedByUserId").references(() => users.id, { onDelete: "set null" }),
+    verifyTokenId: int("verifyTokenId").references(() => verifyTokens.id, { onDelete: "set null" }),
+    checksumSha256: varchar("checksumSha256", { length: 64 }).notNull(),
+    fileUrl: varchar("fileUrl", { length: 512 }).notNull(),
+    fileKey: varchar("fileKey", { length: 256 }).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    metadataJson: json("metadataJson").$type<Record<string, unknown>>(),
+  },
+  table => ({
+    typeIdx: index("idx_generated_documents_type").on(table.documentType),
+    parcelIdx: index("idx_generated_documents_parcel").on(table.parcelId),
+    creditFileIdx: index("idx_generated_documents_credit_file").on(table.creditFileId),
+    verifyIdx: index("idx_generated_documents_verify").on(table.verifyTokenId),
+  })
+);
+
+export type GeneratedDocument = typeof generatedDocuments.$inferSelect;
+export type InsertGeneratedDocument = typeof generatedDocuments.$inferInsert;
+
 export const auditEvents = mysqlTable("audit_events", {
   id: int("id").autoincrement().primaryKey(),
   actorId: int("actorId"),

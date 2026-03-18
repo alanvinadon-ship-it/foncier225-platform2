@@ -5,6 +5,7 @@ vi.mock("./db", () => ({
   createAttestation: vi.fn(),
   createAuditEvent: vi.fn(),
   createDocument: vi.fn(),
+  createGeneratedDocument: vi.fn(),
   createVerifyToken: vi.fn(),
   getCreditAttestationByDecision: vi.fn(),
   getCreditFileById: vi.fn(),
@@ -23,6 +24,7 @@ vi.mock("./db", () => ({
   updateAttestation: vi.fn(),
   updateCreditOffer: vi.fn(),
   updateCreditFileStatus: vi.fn(),
+  updateGeneratedDocument: vi.fn(),
 }));
 
 vi.mock("./storage", () => ({
@@ -262,8 +264,10 @@ describe("bank credit router", () => {
     });
     mockDb.createDocument.mockResolvedValue({ id: 801 } as any);
     mockDb.createAttestation.mockResolvedValue({ id: 901 } as any);
+    mockDb.createGeneratedDocument.mockResolvedValue({ id: 905 } as any);
     mockDb.createVerifyToken.mockResolvedValue({ id: 902 } as any);
     mockDb.updateAttestation.mockResolvedValue(undefined);
+    mockDb.updateGeneratedDocument.mockResolvedValue(undefined);
     mockDb.createAuditEvent.mockResolvedValue(undefined);
 
     const caller = bankCreditRouter.createCaller(createBankContext());
@@ -274,7 +278,7 @@ describe("bank credit router", () => {
     expect(mockDb.createVerifyToken).toHaveBeenCalledWith(
       expect.objectContaining({
         tokenType: "document",
-        targetId: 901,
+        targetId: 905,
       })
     );
     expect(mockDb.createAuditEvent).toHaveBeenCalledWith(

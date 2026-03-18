@@ -25,6 +25,7 @@ vi.mock("./db", () => ({
   countAuditEvents: vi.fn(),
   countVerifyTokens: vi.fn(),
   updateParcelOwner: vi.fn(),
+  createGeneratedDocument: vi.fn(),
   // Citizen helpers
   getCitizenDashboardStats: vi.fn(),
   listParcelsByOwner: vi.fn(),
@@ -45,6 +46,7 @@ vi.mock("./db", () => ({
   getCreditFileById: vi.fn(),
   getCreditAttestationByDecision: vi.fn(),
   getCreditFileByIdAndOwner: vi.fn(),
+  getGeneratedDocumentById: vi.fn(),
   getCreditOfferById: vi.fn(),
   getLatestCreditAttestationByFile: vi.fn(),
   getLatestCreditDecisionByFile: vi.fn(),
@@ -65,14 +67,24 @@ vi.mock("./db", () => ({
   updateCreditOffer: vi.fn(),
   listCreditDocumentsByFile: vi.fn(),
   updateCreditFileStatus: vi.fn(),
+  updateGeneratedDocument: vi.fn(),
   updateAttestation: vi.fn(),
   insertCreditRequest: vi.fn(),
   insertCreditOffer: vi.fn(),
   insertCreditDecision: vi.fn(),
+  listGeneratedDocuments: vi.fn(),
+}));
+
+vi.mock("./storage", () => ({
+  storagePut: vi.fn(),
+  storageGet: vi.fn(),
 }));
 
 import * as db from "./db";
+import { storageGet, storagePut } from "./storage";
 const mockDb = vi.mocked(db);
+const mockStorageGet = vi.mocked(storageGet);
+const mockStoragePut = vi.mocked(storagePut);
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 function createPublicContext(): TrpcContext {
@@ -254,13 +266,53 @@ describe("verify.check", () => {
     const result = await caller.verify.check({ token: "credit-final-token" });
 
     expect(result.valid).toBe(true);
-    expect(result.documentType).toBe("credit_final_attestation");
+    expect(result.documentType).toBe("FINAL_CREDIT_ATTESTATION");
     expect(result.documentReference).toBe("CAF-2026-AB12CD");
     expect(result.decisionType).toBe("APPROVED");
     expect(mockDb.createAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "credit.attestation.verified",
         targetId: 44,
+      })
+    );
+  });
+
+  it("returns minimal metadata for a generated parcel document without PII", async () => {
+    mockDb.checkRateLimit.mockResolvedValue(true);
+    mockDb.getVerifyTokenByHash.mockResolvedValue({
+      id: 13,
+      tokenHash: "hashed-generated-doc",
+      tokenType: "document" as const,
+      targetId: 88,
+      status: "active" as const,
+      issuedMonth: "2026-03",
+      expiresAt: null,
+      createdAt: new Date(),
+      createdById: null,
+    });
+    mockDb.getGeneratedDocumentById.mockResolvedValue({
+      id: 88,
+      documentType: "PARCEL_PDF",
+      reference: "PAR-2026-AB12CD",
+      parcelId: 10,
+      creditFileId: null,
+      createdAt: new Date("2026-03-18T12:00:00Z"),
+      metadataJson: { parcelReference: "PAR-010" },
+    } as any);
+    mockDb.createAuditEvent.mockResolvedValue(undefined);
+
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.verify.check({ token: "generated-doc-token" });
+
+    expect(result.valid).toBe(true);
+    expect(result.documentType).toBe("PARCEL_PDF");
+    expect(result.documentReference).toBe("PAR-2026-AB12CD");
+    expect(result).not.toHaveProperty("ownerId");
+    expect(result).not.toHaveProperty("email");
+    expect(mockDb.createAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "document.verify.checked",
+        targetId: 88,
       })
     );
   });
@@ -649,6 +701,123 @@ describe("admin.generateVerifyToken", () => {
     expect(result.expiresAt).toBeInstanceOf(Date);
     expect(mockDb.createVerifyToken).toHaveBeenCalledOnce();
     expect(mockDb.createAuditEvent).toHaveBeenCalledOnce();
+  });
+});
+
+describe("admin generated documents", () => {
+  it("generates a parcel PDF and persists a generated document", async () => {
+    mockDb.getParcelById.mockResolvedValue({
+      id: 10,
+      reference: "PAR-010",
+      publicToken: "public-10",
+      statusPublic: "valide",
+    } as any);
+    mockStoragePut.mockResolvedValue({
+      key: "generated-documents/parcels/10/PAR-2026-AB12CD.pdf",
+      url: "https://cdn.example.com/generated-documents/parcels/10/PAR-2026-AB12CD.pdf",
+    });
+    mockDb.createGeneratedDocument.mockResolvedValue({ id: 201, createdAt: new Date() } as any);
+    mockDb.createVerifyToken.mockResolvedValue({ id: 301 } as any);
+    mockDb.updateGeneratedDocument.mockResolvedValue(undefined);
+    mockDb.createAuditEvent.mockResolvedValue(undefined);
+
+    const caller = appRouter.createCaller(createAdminContext());
+    const result = await caller.admin.generateParcelPdf({ parcelId: 10 });
+
+    expect(result.id).toBe(201);
+    expect(mockDb.createGeneratedDocument).toHaveBeenCalledWith(
+      expect.objectContaining({
+        documentType: "PARCEL_PDF",
+        parcelId: 10,
+      })
+    );
+    expect(mockDb.createVerifyToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tokenType: "document",
+        targetId: 201,
+      })
+    );
+  });
+
+  it("generates a dossier PDF and persists a generated document", async () => {
+    mockDb.getCreditFileById.mockResolvedValue({
+      id: 77,
+      publicRef: "CF-2026-DOS01",
+      parcelId: 10,
+      status: "UNDER_REVIEW",
+      productType: "STANDARD",
+    } as any);
+    mockStoragePut.mockResolvedValue({
+      key: "generated-documents/dossiers/77/DOS-2026-AB12CD.pdf",
+      url: "https://cdn.example.com/generated-documents/dossiers/77/DOS-2026-AB12CD.pdf",
+    });
+    mockDb.createGeneratedDocument.mockResolvedValue({ id: 202, createdAt: new Date() } as any);
+    mockDb.createVerifyToken.mockResolvedValue({ id: 302 } as any);
+    mockDb.updateGeneratedDocument.mockResolvedValue(undefined);
+    mockDb.createAuditEvent.mockResolvedValue(undefined);
+
+    const caller = appRouter.createCaller(createAdminContext());
+    const result = await caller.admin.generateDossierPdf({ creditFileId: 77 });
+
+    expect(result.id).toBe(202);
+    expect(mockDb.createGeneratedDocument).toHaveBeenCalledWith(
+      expect.objectContaining({
+        documentType: "DOSSIER_PDF",
+        creditFileId: 77,
+      })
+    );
+  });
+
+  it("lists generated documents", async () => {
+    mockDb.listGeneratedDocuments.mockResolvedValue([
+      {
+        id: 401,
+        documentType: "PARCEL_PDF",
+        reference: "PAR-2026-AB12CD",
+        parcelId: 10,
+        creditFileId: null,
+        generatedByUserId: 1,
+        verifyTokenId: 9,
+        checksumSha256: "abc",
+        fileUrl: "https://cdn.example.com/doc.pdf",
+        fileKey: "generated/doc.pdf",
+        createdAt: new Date(),
+        metadataJson: {},
+      },
+    ] as any);
+    mockDb.getParcelById.mockResolvedValue({ id: 10, reference: "PAR-010" } as any);
+    mockDb.getUserById.mockResolvedValue({ id: 1, name: "Admin", email: "admin@example.com" } as any);
+
+    const caller = appRouter.createCaller(createAdminContext());
+    const result = await caller.admin.listGeneratedDocuments({ limit: 50, offset: 0 });
+
+    expect(result).toHaveLength(1);
+    expect(result[0].reference).toBe("PAR-2026-AB12CD");
+  });
+
+  it("returns a protected download URL for a generated document", async () => {
+    mockDb.getGeneratedDocumentById.mockResolvedValue({
+      id: 501,
+      reference: "DOS-2026-AB12CD",
+      documentType: "DOSSIER_PDF",
+      fileKey: "generated-documents/dossiers/77/DOS-2026-AB12CD.pdf",
+    } as any);
+    mockStorageGet.mockResolvedValue({
+      key: "generated-documents/dossiers/77/DOS-2026-AB12CD.pdf",
+      url: "https://signed.example.com/download.pdf",
+    });
+    mockDb.createAuditEvent.mockResolvedValue(undefined);
+
+    const caller = appRouter.createCaller(createAdminContext());
+    const result = await caller.admin.getGeneratedDocumentDownloadUrl({ documentId: 501 });
+
+    expect(result.url).toBe("https://signed.example.com/download.pdf");
+    expect(mockDb.createAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "document.downloaded",
+        targetId: 501,
+      })
+    );
   });
 });
 

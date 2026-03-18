@@ -6,6 +6,7 @@ import {
   parcelEvents, InsertParcelEvent,
   verifyTokens, InsertVerifyToken,
   attestations, InsertAttestation,
+  generatedDocuments, InsertGeneratedDocument,
   auditEvents, InsertAuditEvent,
   verifyRateLimits,
   documents, InsertDocument,
@@ -386,6 +387,56 @@ export async function updateAttestation(attestationId: number, values: Partial<I
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(attestations).set(values).where(eq(attestations.id, attestationId));
+}
+
+export async function createGeneratedDocument(document: InsertGeneratedDocument) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(generatedDocuments).values(document);
+  const generatedDocumentId = Number((result as { insertId?: number }).insertId);
+  const created = await db.select().from(generatedDocuments).where(eq(generatedDocuments.id, generatedDocumentId)).limit(1);
+  return created[0];
+}
+
+export async function updateGeneratedDocument(documentId: number, values: Partial<InsertGeneratedDocument>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(generatedDocuments).set(values).where(eq(generatedDocuments.id, documentId));
+}
+
+export async function getGeneratedDocumentById(documentId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(generatedDocuments).where(eq(generatedDocuments.id, documentId)).limit(1);
+  return result[0];
+}
+
+export async function getGeneratedDocumentByVerifyTokenId(verifyTokenId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(generatedDocuments)
+    .where(eq(generatedDocuments.verifyTokenId, verifyTokenId))
+    .limit(1);
+  return result[0];
+}
+
+export async function getLatestGeneratedDocumentByAttestation(attestationId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(generatedDocuments)
+    .where(eq(generatedDocuments.attestationId, attestationId))
+    .orderBy(desc(generatedDocuments.createdAt))
+    .limit(1);
+  return result[0];
+}
+
+export async function listGeneratedDocuments(limit = 50, offset = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(generatedDocuments)
+    .orderBy(desc(generatedDocuments.createdAt))
+    .limit(limit)
+    .offset(offset);
 }
 
 // ─── Audit Events ────────────────────────────────────────────────────

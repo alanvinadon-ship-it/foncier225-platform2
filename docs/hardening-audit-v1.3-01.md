@@ -9,15 +9,12 @@
 - Alignement de `admin.generateVerifyToken` avec l'enum `verify_tokens` pour accepter aussi `document`.
 
 ## Ecarts reels constates
-- `generated_documents` n'existe pas dans le depot; seule la roadmap en parle.
-- Aucun ecran `/admin/documents` reel n'est route dans `client/src/App.tsx`.
-- Le journal Drizzle `drizzle/meta/_journal.json` n'inclut pas encore `0004` ni `0005`.
+- Le journal Drizzle `drizzle/meta/_journal.json` n'incluait pas encore `0004` ni `0005` au moment de l'audit; une realignation a ensuite ete engagee avec l'ajout du lot documentaire.
 - La validation finale `pnpm check`, `pnpm test`, `pnpm build` n'a pas pu etre executee dans cet environnement car `node`, `npm` et `pnpm` ne sont pas installes.
 - Quelques chaines UI/serveur conservent un encodage degrade visible.
 
 ## Checklist avant fusion
 - Installer un runtime Node avec `pnpm`.
 - Executer `pnpm check`, `pnpm test`, `pnpm build`.
-- Regenerer / aligner le journal Drizzle et les snapshots si la pipeline l'exige.
-- Decider explicitement si le module documentaire attendu doit rester base sur `attestations`/`documents` ou si `generated_documents` doit exister pour de vrai.
+- Regenerer / aligner les snapshots Drizzle si la pipeline l'exige.
 - Nettoyer les textes mal encodes avant release publique.

@@ -7,6 +7,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { bankCreditRouter } from "./bank-credit-router";
 import { creditRouter } from "./credit-router";
+import { GeneratedDocumentService } from "./generated-document.service";
 import {
   checkRateLimit,
   countAttestations,
@@ -15,34 +16,51 @@ import {
   countUsers,
   countVerifyTokens,
   createAuditEvent,
+  createGeneratedDocument,
   createParcel,
   createParcelEvent,
   createVerifyToken,
   getCitizenDashboardStats,
   getCitizenTimeline,
+  getCreditFileById,
   getDashboardStats,
   getAttestationById,
+  getGeneratedDocumentById,
   getDocumentByIdAndOwner,
+  getParcelById,
   getParcelByIdAndOwner,
   getParcelByPublicToken,
   getParcelEventsForOwner,
   getParcelStatusDistribution,
   getPublicParcelEvents,
+  getUserById,
   getVerifyTokenByHash,
   listAttestationsByParcelAndOwner,
   listAuditEvents,
   listDocumentsByOwner,
   listDocumentsByParcelAndOwner,
+  listGeneratedDocuments as listPersistedGeneratedDocuments,
   listParcels,
   listParcelsByOwner,
   listUsers,
+  updateGeneratedDocument,
   updateParcelOwner,
   updateUserRole,
 } from "./db";
+import { storageGet, storagePut } from "./storage";
 
 // ─── Citizen Procedure (requires auth + citizen/admin role) ─────────
 // Citizens can access their own data; admins can also use citizen routes
 const citizenProcedure = protectedProcedure;
+
+function getBaseUrlFromRequest(req: { protocol?: string; get?: (name: string) => string | undefined; headers: Record<string, unknown> }) {
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  const proto = typeof forwardedProto === "string"
+    ? forwardedProto.split(",")[0]
+    : req.protocol || "https";
+  const host = req.get?.("host") || String(req.headers.host || "");
+  return host ? `${proto}://${host}` : "http://localhost:3000";
+}
 
 // ─── Parcel Router (public) ──────────────────────────────────────────
 const parcelRouter = router({
@@ -108,8 +126,14 @@ const verifyRouter = router({
         details: { tokenType: record.tokenType },
       });
 
+      const generatedDocument =
+        record.tokenType === "document" ? await getGeneratedDocumentById(record.targetId) : null;
       const attestation =
-        record.tokenType === "document" ? await getAttestationById(record.targetId) : null;
+        generatedDocument?.attestationId
+          ? await getAttestationById(generatedDocument.attestationId)
+          : record.tokenType === "document"
+            ? await getAttestationById(record.targetId)
+            : null;
 
       if (attestation?.attestationType === "credit") {
         await createAuditEvent({
@@ -125,17 +149,42 @@ const verifyRouter = router({
         });
       }
 
+      if (generatedDocument) {
+        await createAuditEvent({
+          action: "document.verify.checked",
+          targetType: "generated_document",
+          targetId: generatedDocument.id,
+          ipHash,
+          details: {
+            documentType: generatedDocument.documentType,
+            reference: generatedDocument.reference,
+          },
+        });
+      }
+
       return {
         valid: true,
         status: record.status,
         tokenType: record.tokenType,
         issuedMonth: record.issuedMonth,
         expiresAt: record.expiresAt,
-        documentType: attestation?.attestationType === "credit" ? "credit_final_attestation" : null,
+        documentType:
+          generatedDocument?.documentType
+            ?? (attestation?.attestationType === "credit" ? "FINAL_CREDIT_ATTESTATION" : null),
         documentStatus: attestation?.status ?? null,
-        documentReference: attestation?.documentRef ?? null,
+        reference: generatedDocument?.reference ?? attestation?.documentRef ?? null,
+        documentReference: generatedDocument?.reference ?? attestation?.documentRef ?? null,
         decisionType: attestation?.finalDecisionType ?? null,
-        issuedAt: attestation?.issuedAt ?? null,
+        issuedAt: generatedDocument?.createdAt ?? attestation?.issuedAt ?? null,
+        metadata: generatedDocument?.metadataJson
+          ? {
+              target: generatedDocument.parcelId
+                ? "parcel"
+                : generatedDocument.creditFileId
+                  ? "credit_file"
+                  : "document",
+            }
+          : null,
       };
     }),
 });
@@ -372,6 +421,196 @@ const adminRouter = router({
   listAuditEvents: adminProcedure.query(async () => {
     return listAuditEvents(200, 0);
   }),
+
+  generateParcelPdf: adminProcedure
+    .input(z.object({ parcelId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const parcel = await getParcelById(input.parcelId);
+      if (!parcel) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Parcelle introuvable." });
+      }
+
+      const generatedAt = new Date();
+      const reference = GeneratedDocumentService.generateReference("PARCEL_PDF");
+      const verifyCode = GeneratedDocumentService.generateVerifyCode();
+      const verifyUrl = GeneratedDocumentService.buildVerifyUrl(getBaseUrlFromRequest(ctx.req), verifyCode);
+      const pdf = GeneratedDocumentService.buildParcelPdf({
+        reference,
+        parcelReference: parcel.reference,
+        publicToken: parcel.publicToken,
+        statusPublic: parcel.statusPublic,
+        generatedAt,
+        verifyCode,
+        verifyUrl,
+      });
+
+      const uploaded = await storagePut(`generated-documents/parcels/${parcel.id}/${reference}.pdf`, pdf.buffer, "application/pdf");
+      const generatedDocument = await createGeneratedDocument({
+        documentType: "PARCEL_PDF",
+        reference,
+        parcelId: parcel.id,
+        creditFileId: null,
+        attestationId: null,
+        generatedByUserId: ctx.user.id,
+        verifyTokenId: null,
+        checksumSha256: pdf.checksumSha256,
+        fileUrl: uploaded.url,
+        fileKey: uploaded.key,
+        metadataJson: {
+          parcelReference: parcel.reference,
+          statusPublic: parcel.statusPublic,
+        },
+      });
+
+      const verifyToken = await createVerifyToken({
+        tokenHash: GeneratedDocumentService.hashVerifyCode(verifyCode),
+        tokenType: "document",
+        targetId: generatedDocument.id,
+        status: "active",
+        issuedMonth: generatedAt.toISOString().slice(0, 7),
+        createdById: ctx.user.id,
+      });
+
+      await updateGeneratedDocument(generatedDocument.id, { verifyTokenId: verifyToken.id });
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: "document.generated",
+        targetType: "generated_document",
+        targetId: generatedDocument.id,
+        details: { documentType: "PARCEL_PDF", parcelId: parcel.id, reference },
+      });
+
+      return {
+        id: generatedDocument.id,
+        reference,
+        verifyUrl,
+        createdAt: generatedDocument.createdAt,
+      };
+    }),
+
+  generateDossierPdf: adminProcedure
+    .input(z.object({ creditFileId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const creditFile = await getCreditFileById(input.creditFileId);
+      if (!creditFile) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Dossier introuvable." });
+      }
+
+      const generatedAt = new Date();
+      const reference = GeneratedDocumentService.generateReference("DOSSIER_PDF");
+      const verifyCode = GeneratedDocumentService.generateVerifyCode();
+      const verifyUrl = GeneratedDocumentService.buildVerifyUrl(getBaseUrlFromRequest(ctx.req), verifyCode);
+      const pdf = GeneratedDocumentService.buildDossierPdf({
+        reference,
+        creditPublicRef: creditFile.publicRef ?? `CF-${creditFile.id}`,
+        status: creditFile.status,
+        productType: creditFile.productType,
+        generatedAt,
+        verifyCode,
+        verifyUrl,
+      });
+
+      const uploaded = await storagePut(`generated-documents/dossiers/${creditFile.id}/${reference}.pdf`, pdf.buffer, "application/pdf");
+      const generatedDocument = await createGeneratedDocument({
+        documentType: "DOSSIER_PDF",
+        reference,
+        parcelId: creditFile.parcelId ?? null,
+        creditFileId: creditFile.id,
+        attestationId: null,
+        generatedByUserId: ctx.user.id,
+        verifyTokenId: null,
+        checksumSha256: pdf.checksumSha256,
+        fileUrl: uploaded.url,
+        fileKey: uploaded.key,
+        metadataJson: {
+          creditPublicRef: creditFile.publicRef,
+          status: creditFile.status,
+          productType: creditFile.productType,
+        },
+      });
+
+      const verifyToken = await createVerifyToken({
+        tokenHash: GeneratedDocumentService.hashVerifyCode(verifyCode),
+        tokenType: "document",
+        targetId: generatedDocument.id,
+        status: "active",
+        issuedMonth: generatedAt.toISOString().slice(0, 7),
+        createdById: ctx.user.id,
+      });
+
+      await updateGeneratedDocument(generatedDocument.id, { verifyTokenId: verifyToken.id });
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: "document.generated",
+        targetType: "generated_document",
+        targetId: generatedDocument.id,
+        details: { documentType: "DOSSIER_PDF", creditFileId: creditFile.id, reference },
+      });
+
+      return {
+        id: generatedDocument.id,
+        reference,
+        verifyUrl,
+        createdAt: generatedDocument.createdAt,
+      };
+    }),
+
+  listGeneratedDocuments: adminProcedure
+    .input(z.object({
+      limit: z.number().int().min(1).max(200).default(100),
+      offset: z.number().int().min(0).default(0),
+    }).optional())
+    .query(async ({ input }) => {
+      const params = input ?? { limit: 100, offset: 0 };
+      const documents = await listPersistedGeneratedDocuments(params.limit, params.offset);
+      return Promise.all(documents.map(async document => {
+        const [parcel, creditFile, generatedBy] = await Promise.all([
+          document.parcelId ? getParcelById(document.parcelId) : Promise.resolve(null),
+          document.creditFileId ? getCreditFileById(document.creditFileId) : Promise.resolve(null),
+          document.generatedByUserId ? getUserById(document.generatedByUserId) : Promise.resolve(null),
+        ]);
+
+        return {
+          id: document.id,
+          documentType: document.documentType,
+          reference: document.reference,
+          parcelId: document.parcelId,
+          parcelReference: parcel?.reference ?? null,
+          creditFileId: document.creditFileId,
+          creditFileReference: creditFile?.publicRef ?? (creditFile ? `CF-${creditFile.id}` : null),
+          verifyTokenId: document.verifyTokenId,
+          checksumSha256: document.checksumSha256,
+          fileUrl: document.fileUrl,
+          fileKey: document.fileKey,
+          createdAt: document.createdAt,
+          metadataJson: document.metadataJson,
+          generatedBy: generatedBy ? { id: generatedBy.id, name: generatedBy.name, email: generatedBy.email } : null,
+        };
+      }));
+    }),
+
+  getGeneratedDocumentDownloadUrl: adminProcedure
+    .input(z.object({ documentId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const document = await getGeneratedDocumentById(input.documentId);
+      if (!document) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Document genere introuvable." });
+      }
+
+      const download = await storageGet(document.fileKey);
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: "document.downloaded",
+        targetType: "generated_document",
+        targetId: document.id,
+        details: { reference: document.reference, documentType: document.documentType },
+      });
+
+      return { url: download.url, reference: document.reference };
+    }),
 
   generateVerifyToken: adminProcedure
     .input(z.object({
