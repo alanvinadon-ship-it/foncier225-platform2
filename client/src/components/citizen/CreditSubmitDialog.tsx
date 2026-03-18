@@ -70,8 +70,7 @@ export function CreditSubmitDialog({
           <AlertDialogAction
             className="bg-ci-orange hover:bg-ci-orange/90"
             disabled={isPending || isLocked}
-            onClick={event => {
-              event.preventDefault();
+            onClick={() => {
               if (!isPending && !isLocked) {
                 void onConfirm();
               }

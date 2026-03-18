@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import CitizenLayout from "./components/CitizenLayout";
 import DashboardLayout from "./components/DashboardLayout";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { BankLayout } from "./components/bank/BankLayout";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import ParcelPublic from "./pages/ParcelPublic";
@@ -13,6 +14,8 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AuditAdmin from "./pages/admin/AuditAdmin";
 import ParcelsAdmin from "./pages/admin/ParcelsAdmin";
 import UsersAdmin from "./pages/admin/UsersAdmin";
+import BankCreditFileDetailPage from "./pages/bank/BankCreditFileDetailPage";
+import BankCreditFilesPage from "./pages/bank/BankCreditFilesPage";
 import CitizenDashboard from "./pages/citizen/CitizenDashboard";
 import CitizenCreditFileCreate from "./pages/citizen/CitizenCreditFileCreate";
 import CitizenCreditFileDetail from "./pages/citizen/CitizenCreditFileDetail";
@@ -76,6 +79,18 @@ function Router() {
         <CitizenLayout>
           <CitizenProfile />
         </CitizenLayout>
+      </Route>
+
+      {/* Bank routes */}
+      <Route path="/bank/credit-files">
+        <BankLayout>
+          <BankCreditFilesPage />
+        </BankLayout>
+      </Route>
+      <Route path="/bank/credit-files/:id">
+        <BankLayout>
+          <BankCreditFileDetailPage />
+        </BankLayout>
       </Route>
 
       {/* Admin routes */}

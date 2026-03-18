@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { bankCreditRouter } from "./bank-credit-router";
 import { creditRouter } from "./credit-router";
 import {
   checkRateLimit,
@@ -397,6 +398,7 @@ export const appRouter = router({
   verify: verifyRouter,
   citizen: citizenRouter,
   credit: creditRouter,
+  bankCredit: bankCreditRouter,
   admin: adminRouter,
 });
 

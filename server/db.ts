@@ -453,6 +453,22 @@ export async function listCreditFilesByOwner(ownerId: number, limit = 10, offset
     .offset(offset);
 }
 
+export async function listCreditFilesByStatuses(
+  statuses: Array<"SUBMITTED" | "UNDER_REVIEW">,
+  limit = 20,
+  offset = 0
+) {
+  const db = await getDb();
+  if (!db || statuses.length === 0) return [];
+  return db
+    .select()
+    .from(creditFiles)
+    .where(inArray(creditFiles.status, statuses))
+    .orderBy(desc(creditFiles.submittedAt), desc(creditFiles.createdAt))
+    .limit(limit)
+    .offset(offset);
+}
+
 export async function insertCreditFileParticipant(participant: InsertCreditFileParticipant) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
