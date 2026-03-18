@@ -56,3 +56,19 @@
 - [x] Audit trail sur accès citoyen
 - [x] Tests vitest espace citoyen — 37 tests passent (36 routers + 1 auth)
 - [x] Routing App.tsx mis à jour
+
+
+## v1.1-02 — Fondations Crédit Habitat
+
+- [x] Schéma DB crédit : tables credit_files, credit_file_participants, credit_documents, credit_requests, credit_offers, credit_decisions
+- [x] Enums crédit : CreditFileStatus, CreditDocumentType, CreditDocumentStatus, CreditProductType, CreditDecisionType, CreditRequestType
+- [x] Machine d'états crédit : CreditWorkflowService avec transitions valides
+- [x] Règles de complétude dossier : STANDARD vs SIMPLIFIED
+- [x] Services crédit : credit-files.service.ts, credit-checklist.service.ts, credit-workflow.service.ts
+- [x] API tRPC crédit : createCreditFile, listMyCreditFiles, getMyCreditFile, listCreditFileDocuments, getCreditFileChecklist
+- [x] Audit trail crédit : événements crédit.file.created avec timestamp et détails
+- [x] Feature flag CREDIT_WORKFLOW_ENABLED (shared/featureFlags.ts)
+- [x] Tests unitaires crédit : 27 tests credit-workflow.test.ts (transitions, complétude, isolation)
+- [x] Tests d'intégration crédit : 36 tests routers.test.ts (création, soumission, audit)
+- [x] Validation non-régression existant : 64 tests PASS, 0 erreurs TypeScript
+- [ ] Checkpoint V1.1-02

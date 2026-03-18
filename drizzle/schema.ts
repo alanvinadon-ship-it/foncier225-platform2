@@ -182,3 +182,126 @@ export const verifyRateLimits = mysqlTable("verify_rate_limits", {
 });
 
 export type VerifyRateLimit = typeof verifyRateLimits.$inferSelect;
+
+// ─── Credit Files (Dossiers de crédit habitat) ──────────────────────────
+export const creditFiles = mysqlTable("credit_files", {
+  id: int("id").autoincrement().primaryKey(),
+  initiatorId: int("initiatorId").notNull(), // Citoyen qui crée le dossier
+  parcelId: int("parcelId"), // Parcelle optionnelle
+  productType: mysqlEnum("productType", ["STANDARD", "SIMPLIFIED"]).default("STANDARD").notNull(),
+  status: mysqlEnum("status", [
+    "DRAFT",
+    "DOCS_PENDING",
+    "SUBMITTED",
+    "UNDER_REVIEW",
+    "OFFERED",
+    "ACCEPTED",
+    "APPROVED",
+    "REJECTED",
+    "CLOSED",
+  ]).default("DRAFT").notNull(),
+  metadata: json("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  submittedAt: timestamp("submittedAt"),
+  closedAt: timestamp("closedAt"),
+});
+
+export type CreditFile = typeof creditFiles.$inferSelect;
+export type InsertCreditFile = typeof creditFiles.$inferInsert;
+
+// ─── Credit File Participants ────────────────────────────────────────────
+export const creditFileParticipants = mysqlTable("credit_file_participants", {
+  id: int("id").autoincrement().primaryKey(),
+  creditFileId: int("creditFileId").notNull(),
+  userId: int("userId").notNull(),
+  role: mysqlEnum("role", ["initiator", "co_borrower", "guarantor"]).notNull(),
+  consentGiven: boolean("consentGiven").default(false).notNull(),
+  consentGivenAt: timestamp("consentGivenAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CreditFileParticipant = typeof creditFileParticipants.$inferSelect;
+export type InsertCreditFileParticipant = typeof creditFileParticipants.$inferInsert;
+
+// ─── Credit Documents (Pièces du dossier crédit) ──────────────────────────
+export const creditDocuments = mysqlTable("credit_documents", {
+  id: int("id").autoincrement().primaryKey(),
+  creditFileId: int("creditFileId").notNull(),
+  documentType: mysqlEnum("documentType", [
+    "ID_CARD",
+    "PROOF_INCOME",
+    "PROOF_RESIDENCE",
+    "LAND_TITLE_DEED",
+    "BUILDING_PERMIT",
+    "INSURANCE_QUOTE",
+  ]).notNull(),
+  status: mysqlEnum("status", ["PENDING", "UPLOADED", "VALIDATED", "REJECTED"]).default("PENDING").notNull(),
+  fileUrl: varchar("fileUrl", { length: 512 }),
+  fileKey: varchar("fileKey", { length: 256 }),
+  mimeType: varchar("mimeType", { length: 64 }),
+  fileSize: int("fileSize"),
+  rejectionReason: text("rejectionReason"),
+  uploadedAt: timestamp("uploadedAt"),
+  validatedAt: timestamp("validatedAt"),
+  validatedById: int("validatedById"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CreditDocument = typeof creditDocuments.$inferSelect;
+export type InsertCreditDocument = typeof creditDocuments.$inferInsert;
+
+// ─── Credit Requests (Demandes d'informations/documents) ─────────────────
+export const creditRequests = mysqlTable("credit_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  creditFileId: int("creditFileId").notNull(),
+  requestType: mysqlEnum("requestType", ["DOCUMENT_REQUEST", "INFORMATION_REQUEST"]).notNull(),
+  description: text("description").notNull(),
+  requestedDocumentTypes: json("requestedDocumentTypes").$type<string[]>(),
+  status: mysqlEnum("status", ["pending", "fulfilled", "expired"]).default("pending").notNull(),
+  dueDate: timestamp("dueDate"),
+  fulfilledAt: timestamp("fulfilledAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  createdById: int("createdById"),
+});
+
+export type CreditRequest = typeof creditRequests.$inferSelect;
+export type InsertCreditRequest = typeof creditRequests.$inferInsert;
+
+// ─── Credit Offers (Offres bancaires) ────────────────────────────────────
+export const creditOffers = mysqlTable("credit_offers", {
+  id: int("id").autoincrement().primaryKey(),
+  creditFileId: int("creditFileId").notNull(),
+  bankId: int("bankId").notNull(),
+  amount: int("amount").notNull(), // En cents
+  interestRate: varchar("interestRate", { length: 32 }).notNull(),
+  duration: int("duration").notNull(), // En mois
+  monthlyPayment: int("monthlyPayment"), // En cents
+  status: mysqlEnum("status", ["pending", "accepted", "rejected", "expired"]).default("pending").notNull(),
+  expiresAt: timestamp("expiresAt"),
+  acceptedAt: timestamp("acceptedAt"),
+  rejectedAt: timestamp("rejectedAt"),
+  metadata: json("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CreditOffer = typeof creditOffers.$inferSelect;
+export type InsertCreditOffer = typeof creditOffers.$inferInsert;
+
+// ─── Credit Decisions (Décisions finales) ────────────────────────────────
+export const creditDecisions = mysqlTable("credit_decisions", {
+  id: int("id").autoincrement().primaryKey(),
+  creditFileId: int("creditFileId").notNull(),
+  decisionType: mysqlEnum("decisionType", ["APPROVED", "REJECTED"]).notNull(),
+  reason: text("reason"),
+  approvedAmount: int("approvedAmount"), // En cents
+  decisionDetails: json("decisionDetails").$type<Record<string, unknown>>(),
+  decidedAt: timestamp("decidedAt").defaultNow().notNull(),
+  decidedById: int("decidedById"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type CreditDecision = typeof creditDecisions.$inferSelect;
+export type InsertCreditDecision = typeof creditDecisions.$inferInsert;
