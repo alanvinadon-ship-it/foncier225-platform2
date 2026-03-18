@@ -102,20 +102,20 @@ const verifyRouter = router({
       const ipHash = createHash("sha256").update(ip).digest("hex").slice(0, 16);
       const allowed = await checkRateLimit(ipHash, 5 * 60 * 1000, 10);
       if (!allowed) {
-        throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded. Réessayez dans quelques minutes." });
+        throw new TRPCError({ code: "TOO_MANY_REQUESTS", message: "Rate limit exceeded. Reessayez dans quelques minutes." });
       }
 
       const tokenHash = createHash("sha256").update(input.token).digest("hex");
       const record = await getVerifyTokenByHash(tokenHash);
       if (!record) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Token de vérification introuvable" });
+        throw new TRPCError({ code: "NOT_FOUND", message: "Token de verification introuvable" });
       }
 
       if (record.status !== "active") {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Token de vÃ©rification introuvable" });
+        throw new TRPCError({ code: "NOT_FOUND", message: "Token de verification introuvable" });
       }
       if (record.expiresAt && record.expiresAt.getTime() <= Date.now()) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Token de vÃ©rification introuvable" });
+        throw new TRPCError({ code: "NOT_FOUND", message: "Token de verification introuvable" });
       }
 
       await createAuditEvent({
@@ -666,3 +666,4 @@ export const appRouter = router({
 });
 
 export type AppRouter = typeof appRouter;
+

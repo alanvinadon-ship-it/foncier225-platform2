@@ -1,7 +1,9 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
+import AnalyticsScript from "./components/AnalyticsScript";
 import CitizenLayout from "./components/CitizenLayout";
 import DashboardLayout from "./components/DashboardLayout";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -9,23 +11,38 @@ import { BankLayout } from "./components/bank/BankLayout";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import ParcelPublic from "./pages/ParcelPublic";
-import Verify from "./pages/Verify";
-import AdminDashboard from "./pages/admin/Dashboard";
-import AuditAdmin from "./pages/admin/AuditAdmin";
-import DocumentsAdmin from "./pages/admin/DocumentsAdmin";
-import ParcelsAdmin from "./pages/admin/ParcelsAdmin";
-import UsersAdmin from "./pages/admin/UsersAdmin";
-import BankCreditFileDetailPage from "./pages/bank/BankCreditFileDetailPage";
-import BankCreditFilesPage from "./pages/bank/BankCreditFilesPage";
-import CitizenDashboard from "./pages/citizen/CitizenDashboard";
-import CitizenCreditFileCreate from "./pages/citizen/CitizenCreditFileCreate";
-import CitizenCreditFileDetail from "./pages/citizen/CitizenCreditFileDetail";
-import CitizenCreditFiles from "./pages/citizen/CitizenCreditFiles";
-import CitizenDocuments from "./pages/citizen/CitizenDocuments";
-import CitizenParcelDetail from "./pages/citizen/CitizenParcelDetail";
-import CitizenParcels from "./pages/citizen/CitizenParcels";
-import CitizenProfile from "./pages/citizen/CitizenProfile";
-import CitizenTimeline from "./pages/citizen/CitizenTimeline";
+
+const Verify = lazy(() => import("./pages/Verify"));
+const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
+const AuditAdmin = lazy(() => import("./pages/admin/AuditAdmin"));
+const DocumentsAdmin = lazy(() => import("./pages/admin/DocumentsAdmin"));
+const ParcelsAdmin = lazy(() => import("./pages/admin/ParcelsAdmin"));
+const UsersAdmin = lazy(() => import("./pages/admin/UsersAdmin"));
+const BankCreditFileDetailPage = lazy(() => import("./pages/bank/BankCreditFileDetailPage"));
+const BankCreditFilesPage = lazy(() => import("./pages/bank/BankCreditFilesPage"));
+const CitizenDashboard = lazy(() => import("./pages/citizen/CitizenDashboard"));
+const CitizenCreditFileCreate = lazy(() => import("./pages/citizen/CitizenCreditFileCreate"));
+const CitizenCreditFileDetail = lazy(() => import("./pages/citizen/CitizenCreditFileDetail"));
+const CitizenCreditFiles = lazy(() => import("./pages/citizen/CitizenCreditFiles"));
+const CitizenDocuments = lazy(() => import("./pages/citizen/CitizenDocuments"));
+const CitizenParcelDetail = lazy(() => import("./pages/citizen/CitizenParcelDetail"));
+const CitizenParcels = lazy(() => import("./pages/citizen/CitizenParcels"));
+const CitizenProfile = lazy(() => import("./pages/citizen/CitizenProfile"));
+const CitizenTimeline = lazy(() => import("./pages/citizen/CitizenTimeline"));
+
+function RouteFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-6">
+      <div className="w-full max-w-md rounded-3xl border bg-card p-8 text-center shadow-sm">
+        <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-ci-green border-t-transparent" />
+        <h1 className="text-lg font-semibold text-foreground">Chargement de l'espace Foncier225</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Nous preparons la page demandee.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 function Router() {
   return (
@@ -132,8 +149,11 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
+          <AnalyticsScript />
           <Toaster />
-          <Router />
+          <Suspense fallback={<RouteFallback />}>
+            <Router />
+          </Suspense>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
