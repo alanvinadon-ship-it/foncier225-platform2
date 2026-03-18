@@ -14,6 +14,9 @@ import AuditAdmin from "./pages/admin/AuditAdmin";
 import ParcelsAdmin from "./pages/admin/ParcelsAdmin";
 import UsersAdmin from "./pages/admin/UsersAdmin";
 import CitizenDashboard from "./pages/citizen/CitizenDashboard";
+import CitizenCreditFileCreate from "./pages/citizen/CitizenCreditFileCreate";
+import CitizenCreditFileDetail from "./pages/citizen/CitizenCreditFileDetail";
+import CitizenCreditFiles from "./pages/citizen/CitizenCreditFiles";
 import CitizenDocuments from "./pages/citizen/CitizenDocuments";
 import CitizenParcelDetail from "./pages/citizen/CitizenParcelDetail";
 import CitizenParcels from "./pages/citizen/CitizenParcels";
@@ -52,6 +55,21 @@ function Router() {
       <Route path="/citizen/documents">
         <CitizenLayout>
           <CitizenDocuments />
+        </CitizenLayout>
+      </Route>
+      <Route path="/citizen/credit-habitat">
+        <CitizenLayout>
+          <CitizenCreditFiles />
+        </CitizenLayout>
+      </Route>
+      <Route path="/citizen/credit-habitat/new">
+        <CitizenLayout>
+          <CitizenCreditFileCreate />
+        </CitizenLayout>
+      </Route>
+      <Route path="/citizen/credit-habitat/:id">
+        <CitizenLayout>
+          <CitizenCreditFileDetail />
         </CitizenLayout>
       </Route>
       <Route path="/citizen/profile">

@@ -82,7 +82,7 @@ const createOAuthHttpClient = (): AxiosInstance =>
     timeout: AXIOS_TIMEOUT_MS,
   });
 
-class SDKServer {
+export class SDKServer {
   private readonly client: AxiosInstance;
   private readonly oauthService: OAuthService;
 
@@ -156,7 +156,18 @@ class SDKServer {
 
   private getSessionSecret() {
     const secret = ENV.cookieSecret;
+    if (!secret.trim()) {
+      throw new Error("JWT_SECRET is required for session signing and verification");
+    }
     return new TextEncoder().encode(secret);
+  }
+
+  private getRequiredAppId() {
+    const appId = ENV.appId;
+    if (!appId.trim()) {
+      throw new Error("VITE_APP_ID is required for session binding");
+    }
+    return appId;
   }
 
   /**
@@ -168,10 +179,11 @@ class SDKServer {
     openId: string,
     options: { expiresInMs?: number; name?: string } = {}
   ): Promise<string> {
+    const appId = this.getRequiredAppId();
     return this.signSession(
       {
         openId,
-        appId: ENV.appId,
+        appId,
         name: options.name || "",
       },
       options
@@ -207,6 +219,7 @@ class SDKServer {
 
     try {
       const secretKey = this.getSessionSecret();
+      const expectedAppId = this.getRequiredAppId();
       const { payload } = await jwtVerify(cookieValue, secretKey, {
         algorithms: ["HS256"],
       });
@@ -218,6 +231,11 @@ class SDKServer {
         !isNonEmptyString(name)
       ) {
         console.warn("[Auth] Session payload missing required fields");
+        return null;
+      }
+
+      if (appId !== expectedAppId) {
+        console.warn("[Auth] Session appId mismatch");
         return null;
       }
 

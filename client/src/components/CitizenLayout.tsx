@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { FileText, Home, LayoutDashboard, LogOut, MapPin, PanelLeft, Clock, User } from "lucide-react";
+import { Banknote, FileText, Home, LayoutDashboard, LogOut, MapPin, PanelLeft, Clock, User } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
@@ -34,6 +34,7 @@ const menuItems = [
   { icon: MapPin, label: "Mes parcelles", path: "/citizen/parcels" },
   { icon: Clock, label: "Timeline", path: "/citizen/timeline" },
   { icon: FileText, label: "Mes documents", path: "/citizen/documents" },
+  { icon: Banknote, label: "Credit habitat", path: "/citizen/credit-habitat" },
   { icon: User, label: "Mon profil", path: "/citizen/profile" },
 ];
 
@@ -114,7 +115,7 @@ function CitizenLayoutContent({
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const activeMenuItem = menuItems.find(item => item.path === location);
+  const activeMenuItem = menuItems.find(item => location === item.path || location.startsWith(`${item.path}/`));
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -171,7 +172,7 @@ function CitizenLayoutContent({
           <SidebarContent className="gap-0">
             <SidebarMenu className="px-2 py-1">
               {menuItems.map(item => {
-                const isActive = location === item.path;
+                const isActive = location === item.path || location.startsWith(`${item.path}/`);
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton

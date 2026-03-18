@@ -91,6 +91,13 @@ const verifyRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Token de vérification introuvable" });
       }
 
+      if (record.status !== "active") {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Token de vÃ©rification introuvable" });
+      }
+      if (record.expiresAt && record.expiresAt.getTime() <= Date.now()) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Token de vÃ©rification introuvable" });
+      }
+
       await createAuditEvent({
         action: "verify.check",
         targetType: "verify_token",

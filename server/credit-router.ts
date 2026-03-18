@@ -1,107 +1,111 @@
-/**
- * Credit Router — V1.1-03
- * tRPC procedures for credit file management
- * Feature-flagged, owner-isolated, audit-trailed
- */
-
+import { CREDIT_AUDIT_ACTIONS, CreditFileParticipantRole, CreditFileStatus, CreditProductType, generateCreditPublicRef } from "@shared/credit-types";
+import { isFeatureEnabled } from "@shared/featureFlags";
 import { TRPCError } from "@trpc/server";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { protectedProcedure, router } from "./_core/trpc";
-import { getDb } from "./db";
-import { createAuditEvent } from "./db";
-import { creditFiles, creditDocuments, creditFileParticipants } from "../drizzle/schema";
-import { eq, and } from "drizzle-orm";
-import {
-  CreditFileStatus,
-  CreditProductType,
-  CreditFileParticipantRole,
-  CREDIT_AUDIT_ACTIONS,
-  generateCreditPublicRef,
-} from "@shared/credit-types";
-import { CreditWorkflowService } from "./credit-workflow.service";
 import { CreditChecklistService } from "./credit-checklist.service";
-import { FEATURE_FLAGS } from "@shared/featureFlags";
+import { CreditWorkflowService } from "./credit-workflow.service";
+import {
+  createAuditEvent,
+  getCreditDocumentByFileAndType,
+  getCreditFileByIdAndOwner,
+  getParcelById,
+  insertCreditDocument,
+  insertCreditFile,
+  insertCreditFileParticipant,
+  listCreditDocumentsByFile,
+  listCreditFileParticipants,
+  listCreditFilesByOwner,
+  updateCreditDocument,
+  updateCreditFileStatus,
+} from "./db";
+import { storagePut } from "./storage";
 
-// ─── Feature Flag Guard ──────────────────────────────────────────────
 function assertCreditEnabled() {
-  if (!FEATURE_FLAGS.CREDIT_WORKFLOW_ENABLED) {
+  if (!isFeatureEnabled("CREDIT_WORKFLOW_ENABLED")) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message: "Le module crédit habitat n'est pas encore activé.",
+      message: "Le module credit habitat n'est pas encore active.",
     });
   }
 }
 
-// ─── Ownership verification helper ──────────────────────────────────
 async function verifyCreditFileOwnership(creditFileId: number, userId: number) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not initialized");
-
-  const file = await db
-    .select()
-    .from(creditFiles)
-    .where(and(eq(creditFiles.id, creditFileId), eq(creditFiles.initiatorId, userId)))
-    .then((rows) => rows[0]);
-
+  const file = await getCreditFileByIdAndOwner(creditFileId, userId);
   if (!file) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: "Dossier crédit introuvable ou accès non autorisé",
+      message: "Dossier credit introuvable ou acces non autorise",
     });
   }
   return file;
 }
 
+const creditDocumentTypeSchema = z.enum([
+  "ID_CARD",
+  "PROOF_INCOME",
+  "PROOF_RESIDENCE",
+  "LAND_TITLE_DEED",
+  "BUILDING_PERMIT",
+  "INSURANCE_QUOTE",
+]);
+
+const allowedUploadMimeTypes = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+]);
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+function sanitizeFileName(fileName: string) {
+  return fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
 export const creditRouter = router({
-  /**
-   * Create a new credit file (DRAFT status)
-   * Generates a unique publicRef (CF-YYYY-XXXXX)
-   */
   createCreditFile: protectedProcedure
     .input(
       z.object({
         productType: z.enum(["STANDARD", "SIMPLIFIED"]),
-        parcelId: z.number().optional(),
+        parcelId: z.number().int().positive().optional(),
         amountRequestedXof: z.number().int().positive().optional(),
         durationMonths: z.number().int().min(6).max(360).optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
       assertCreditEnabled();
-      const db = await getDb();
-      if (!db) throw new Error("Database not initialized");
 
       const publicRef = generateCreditPublicRef();
-
-      const result = await db.insert(creditFiles).values({
+      const created = await insertCreditFile({
         publicRef,
         initiatorId: ctx.user.id,
-        parcelId: input.parcelId || null,
-        amountRequestedXof: input.amountRequestedXof || null,
-        durationMonths: input.durationMonths || null,
+        parcelId: input.parcelId ?? null,
+        amountRequestedXof: input.amountRequestedXof ?? null,
+        durationMonths: input.durationMonths ?? null,
         productType: input.productType as CreditProductType,
         status: CreditFileStatus.DRAFT,
         lastTransitionAt: new Date(),
         metadata: {},
       });
 
-      const creditFileId = Number((result as any).insertId);
+      if (!created) {
+        throw new Error("Credit file creation failed");
+      }
 
-      // Add initiator as citizen participant
-      await db.insert(creditFileParticipants).values({
-        creditFileId,
+      await insertCreditFileParticipant({
+        creditFileId: created.id,
         userId: ctx.user.id,
         role: CreditFileParticipantRole.CITIZEN,
         consentGiven: false,
       });
 
-      // Audit: credit.file.created
       await createAuditEvent({
         actorId: ctx.user.id,
         actorRole: ctx.user.role,
         action: CREDIT_AUDIT_ACTIONS.FILE_CREATED,
         targetType: "credit_file",
-        targetId: creditFileId,
+        targetId: created.id,
         details: {
           publicRef,
           productType: input.productType,
@@ -113,52 +117,52 @@ export const creditRouter = router({
         },
       });
 
-      return { creditFileId, publicRef, status: CreditFileStatus.DRAFT };
+      return { creditFileId: created.id, publicRef, status: CreditFileStatus.DRAFT };
     }),
 
-  /**
-   * List my credit files (owner-only)
-   */
   listMyCreditFiles: protectedProcedure
     .input(
       z.object({
-        limit: z.number().default(10),
-        offset: z.number().default(0),
+        limit: z.number().int().min(1).max(100).default(10),
+        offset: z.number().int().min(0).default(0),
       })
     )
     .query(async ({ input, ctx }) => {
       assertCreditEnabled();
-      const db = await getDb();
-      if (!db) throw new Error("Database not initialized");
+      const files = await listCreditFilesByOwner(ctx.user.id, input.limit, input.offset);
 
-      const files = await db
-        .select()
-        .from(creditFiles)
-        .where(eq(creditFiles.initiatorId, ctx.user.id))
-        .limit(input.limit)
-        .offset(input.offset);
+      return Promise.all(files.map(async file => {
+        const checklist = await CreditChecklistService.getChecklistStatus(
+          file.id,
+          file.productType as CreditProductType
+        );
 
-      return files.map((f) => ({
-        id: f.id,
-        publicRef: f.publicRef,
-        productType: f.productType,
-        status: f.status,
-        amountRequestedXof: f.amountRequestedXof,
-        durationMonths: f.durationMonths,
-        createdAt: f.createdAt,
-        submittedAt: f.submittedAt,
-        lastTransitionAt: f.lastTransitionAt,
+        return {
+          id: file.id,
+          publicRef: file.publicRef,
+          productType: file.productType,
+          status: file.status,
+          amountRequestedXof: file.amountRequestedXof,
+          durationMonths: file.durationMonths,
+          createdAt: file.createdAt,
+          submittedAt: file.submittedAt,
+          lastTransitionAt: file.lastTransitionAt,
+          progress: {
+            requiredUploaded: checklist.requiredDocuments.uploaded,
+            requiredTotal: checklist.requiredDocuments.total,
+            completionPercentage: checklist.completionPercentage,
+            isComplete: checklist.isComplete,
+          },
+        };
       }));
     }),
 
-  /**
-   * Get a specific credit file (owner-only)
-   */
   getMyCreditFile: protectedProcedure
-    .input(z.object({ creditFileId: z.number() }))
+    .input(z.object({ creditFileId: z.number().int().positive() }))
     .query(async ({ input, ctx }) => {
       assertCreditEnabled();
       const file = await verifyCreditFileOwnership(input.creditFileId, ctx.user.id);
+      const linkedParcel = file.parcelId ? await getParcelById(file.parcelId) : null;
 
       return {
         id: file.id,
@@ -172,24 +176,19 @@ export const creditRouter = router({
         lastTransitionAt: file.lastTransitionAt,
         closedAt: file.closedAt,
         parcelId: file.parcelId,
+        parcelReference: linkedParcel?.reference ?? null,
       };
     }),
 
-  /**
-   * Submit a credit file (DRAFT/DOCS_PENDING → SUBMITTED)
-   * Validates completeness before submission
-   */
   submitCreditFile: protectedProcedure
-    .input(z.object({ creditFileId: z.number() }))
+    .input(z.object({ creditFileId: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
       assertCreditEnabled();
       const file = await verifyCreditFileOwnership(input.creditFileId, ctx.user.id);
-
-      // Validate workflow transition
       const currentStatus = file.status as CreditFileStatus;
+
       CreditWorkflowService.assertTransition(currentStatus, "SUBMIT" as any);
 
-      // Check document completeness
       const isComplete = await CreditChecklistService.isCreditFileComplete(
         input.creditFileId,
         file.productType as CreditProductType
@@ -201,7 +200,6 @@ export const creditRouter = router({
           file.productType as CreditProductType
         );
 
-        // Audit: error
         await createAuditEvent({
           actorId: ctx.user.id,
           actorRole: ctx.user.role,
@@ -222,25 +220,13 @@ export const creditRouter = router({
         });
       }
 
-      // Apply transition
-      const newStatus = CreditWorkflowService.applyTransition(
-        currentStatus,
-        "SUBMIT" as any
-      );
+      const newStatus = CreditWorkflowService.applyTransition(currentStatus, "SUBMIT" as any);
+      await updateCreditFileStatus(input.creditFileId, {
+        status: newStatus,
+        submittedAt: new Date(),
+        lastTransitionAt: new Date(),
+      });
 
-      const db = await getDb();
-      if (!db) throw new Error("Database not initialized");
-
-      await db
-        .update(creditFiles)
-        .set({
-          status: newStatus,
-          submittedAt: new Date(),
-          lastTransitionAt: new Date(),
-        })
-        .where(eq(creditFiles.id, input.creditFileId));
-
-      // Audit: credit.file.submitted
       await createAuditEvent({
         actorId: ctx.user.id,
         actorRole: ctx.user.role,
@@ -259,165 +245,228 @@ export const creditRouter = router({
       return { creditFileId: input.creditFileId, status: newStatus };
     }),
 
-  /**
-   * Upload a document for a credit file (owner-only)
-   */
   uploadCreditDocument: protectedProcedure
     .input(
       z.object({
-        creditFileId: z.number(),
-        documentType: z.enum([
-          "ID_CARD",
-          "PROOF_INCOME",
-          "PROOF_RESIDENCE",
-          "LAND_TITLE_DEED",
-          "BUILDING_PERMIT",
-          "INSURANCE_QUOTE",
-        ]),
+        creditFileId: z.number().int().positive(),
+        documentType: creditDocumentTypeSchema,
         fileUrl: z.string().url(),
-        fileKey: z.string(),
-        mimeType: z.string().optional(),
-        fileSize: z.number().int().optional(),
-        sha256: z.string().optional(),
+        fileKey: z.string().min(1),
+        mimeType: z.string().min(1).optional(),
+        fileSize: z.number().int().positive().optional(),
+        sha256: z.string().min(32).optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
       assertCreditEnabled();
       const file = await verifyCreditFileOwnership(input.creditFileId, ctx.user.id);
-
-      // Only allow upload in DRAFT or DOCS_PENDING
       const currentStatus = file.status as CreditFileStatus;
-      if (
-        currentStatus !== CreditFileStatus.DRAFT &&
-        currentStatus !== CreditFileStatus.DOCS_PENDING
-      ) {
+
+      if (currentStatus !== CreditFileStatus.DRAFT && currentStatus !== CreditFileStatus.DOCS_PENDING) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `Impossible d'ajouter un document dans l'état ${currentStatus}`,
+          message: `Impossible d'ajouter un document dans l'etat ${currentStatus}`,
         });
       }
 
-      const db = await getDb();
-      if (!db) throw new Error("Database not initialized");
-
-      // Check if document type already exists for this file
-      const existing = await db
-        .select()
-        .from(creditDocuments)
-        .where(
-          and(
-            eq(creditDocuments.creditFileId, input.creditFileId),
-            eq(creditDocuments.documentType, input.documentType)
-          )
-        )
-        .then((rows) => rows[0]);
-
-      let docId: number;
+      const existing = await getCreditDocumentByFileAndType(input.creditFileId, input.documentType);
+      let documentId: number;
 
       if (existing) {
-        // Update existing document
-        await db
-          .update(creditDocuments)
-          .set({
-            fileUrl: input.fileUrl,
-            fileKey: input.fileKey,
-            mimeType: input.mimeType || null,
-            fileSize: input.fileSize || null,
-            sha256: input.sha256 || null,
-            status: "UPLOADED",
-            uploadedAt: new Date(),
-            rejectionReason: null,
-            rejectedAt: null,
-          })
-          .where(eq(creditDocuments.id, existing.id));
-        docId = existing.id;
+        await updateCreditDocument(existing.id, {
+          fileUrl: input.fileUrl,
+          fileKey: input.fileKey,
+          mimeType: input.mimeType ?? null,
+          fileSize: input.fileSize ?? null,
+          sha256: input.sha256 ?? null,
+          status: "UPLOADED",
+          uploadedAt: new Date(),
+          rejectionReason: null,
+          rejectedAt: null,
+        });
+        documentId = existing.id;
       } else {
-        // Insert new document
-        const result = await db.insert(creditDocuments).values({
+        const created = await insertCreditDocument({
           creditFileId: input.creditFileId,
           documentType: input.documentType,
           fileUrl: input.fileUrl,
           fileKey: input.fileKey,
-          mimeType: input.mimeType || null,
-          fileSize: input.fileSize || null,
-          sha256: input.sha256 || null,
+          mimeType: input.mimeType ?? null,
+          fileSize: input.fileSize ?? null,
+          sha256: input.sha256 ?? null,
           status: "UPLOADED",
           uploadedAt: new Date(),
         });
-        docId = Number((result as any).insertId);
+        if (!created) {
+          throw new Error("Credit document creation failed");
+        }
+        documentId = created.id;
       }
 
-      // Transition to DOCS_PENDING if still DRAFT
       if (currentStatus === CreditFileStatus.DRAFT) {
-        await db
-          .update(creditFiles)
-          .set({
-            status: CreditFileStatus.DOCS_PENDING,
-            lastTransitionAt: new Date(),
-          })
-          .where(eq(creditFiles.id, input.creditFileId));
+        await updateCreditFileStatus(input.creditFileId, {
+          status: CreditFileStatus.DOCS_PENDING,
+          lastTransitionAt: new Date(),
+        });
       }
 
-      // Audit: credit.file.doc_uploaded
       await createAuditEvent({
         actorId: ctx.user.id,
         actorRole: ctx.user.role,
         action: CREDIT_AUDIT_ACTIONS.FILE_DOC_UPLOADED,
         targetType: "credit_document",
-        targetId: docId,
+        targetId: documentId,
         details: {
           creditFileId: input.creditFileId,
           documentType: input.documentType,
           sha256: input.sha256,
-          replaced: !!existing,
+          replaced: Boolean(existing),
           timestamp: new Date().toISOString(),
         },
       });
 
-      return { documentId: docId, status: "UPLOADED" };
+      return { documentId, status: "UPLOADED" as const };
     }),
 
-  /**
-   * List documents for a credit file (owner-only)
-   */
+  addCreditDocument: protectedProcedure
+    .input(
+      z.object({
+        creditFileId: z.number().int().positive(),
+        documentType: creditDocumentTypeSchema,
+        fileName: z.string().min(1),
+        contentType: z.string().min(1),
+        fileBase64: z.string().min(1),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      assertCreditEnabled();
+      const file = await verifyCreditFileOwnership(input.creditFileId, ctx.user.id);
+      const currentStatus = file.status as CreditFileStatus;
+
+      if (currentStatus !== CreditFileStatus.DRAFT && currentStatus !== CreditFileStatus.DOCS_PENDING) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Impossible d'ajouter un document dans l'etat ${currentStatus}`,
+        });
+      }
+
+      if (!allowedUploadMimeTypes.has(input.contentType)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Format de fichier non autorise. Utilisez PDF, JPG, JPEG ou PNG.",
+        });
+      }
+
+      const buffer = Buffer.from(input.fileBase64, "base64");
+      if (buffer.length === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Le fichier transmis est vide.",
+        });
+      }
+
+      if (buffer.length > MAX_UPLOAD_BYTES) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Le fichier depasse la taille maximale autorisee de 10 Mo.",
+        });
+      }
+
+      const extension = sanitizeFileName(input.fileName).split(".").pop() || "bin";
+      const key = `credit-files/${ctx.user.id}/${input.creditFileId}/${input.documentType}-${randomUUID()}.${extension}`;
+      const uploaded = await storagePut(key, buffer, input.contentType);
+
+      const existing = await getCreditDocumentByFileAndType(input.creditFileId, input.documentType);
+      let documentId: number;
+
+      if (existing) {
+        await updateCreditDocument(existing.id, {
+          fileUrl: uploaded.url,
+          fileKey: uploaded.key,
+          mimeType: input.contentType,
+          fileSize: buffer.length,
+          status: "UPLOADED",
+          uploadedAt: new Date(),
+          rejectionReason: null,
+          rejectedAt: null,
+        });
+        documentId = existing.id;
+      } else {
+        const created = await insertCreditDocument({
+          creditFileId: input.creditFileId,
+          documentType: input.documentType,
+          fileUrl: uploaded.url,
+          fileKey: uploaded.key,
+          mimeType: input.contentType,
+          fileSize: buffer.length,
+          status: "UPLOADED",
+          uploadedAt: new Date(),
+        });
+        if (!created) {
+          throw new Error("Credit document creation failed");
+        }
+        documentId = created.id;
+      }
+
+      if (currentStatus === CreditFileStatus.DRAFT) {
+        await updateCreditFileStatus(input.creditFileId, {
+          status: CreditFileStatus.DOCS_PENDING,
+          lastTransitionAt: new Date(),
+        });
+      }
+
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: CREDIT_AUDIT_ACTIONS.FILE_DOC_UPLOADED,
+        targetType: "credit_document",
+        targetId: documentId,
+        details: {
+          creditFileId: input.creditFileId,
+          documentType: input.documentType,
+          fileName: input.fileName,
+          mimeType: input.contentType,
+          fileSize: buffer.length,
+          replaced: Boolean(existing),
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      return {
+        documentId,
+        fileUrl: uploaded.url,
+        fileKey: uploaded.key,
+        status: "UPLOADED" as const,
+      };
+    }),
+
   listCreditFileDocuments: protectedProcedure
-    .input(z.object({ creditFileId: z.number() }))
+    .input(z.object({ creditFileId: z.number().int().positive() }))
     .query(async ({ input, ctx }) => {
       assertCreditEnabled();
       await verifyCreditFileOwnership(input.creditFileId, ctx.user.id);
+      const documents = await listCreditDocumentsByFile(input.creditFileId);
 
-      const db = await getDb();
-      if (!db) throw new Error("Database not initialized");
-
-      const docs = await db
-        .select()
-        .from(creditDocuments)
-        .where(eq(creditDocuments.creditFileId, input.creditFileId));
-
-      return docs.map((d) => ({
-        id: d.id,
-        documentType: d.documentType,
-        status: d.status,
-        fileUrl: d.fileUrl,
-        sha256: d.sha256,
-        mimeType: d.mimeType,
-        fileSize: d.fileSize,
-        uploadedAt: d.uploadedAt,
-        validatedAt: d.validatedAt,
-        rejectedAt: d.rejectedAt,
-        rejectionReason: d.rejectionReason,
+      return documents.map(document => ({
+        id: document.id,
+        documentType: document.documentType,
+        status: document.status,
+        fileUrl: document.fileUrl,
+        sha256: document.sha256,
+        mimeType: document.mimeType,
+        fileSize: document.fileSize,
+        uploadedAt: document.uploadedAt,
+        validatedAt: document.validatedAt,
+        rejectedAt: document.rejectedAt,
+        rejectionReason: document.rejectionReason,
       }));
     }),
 
-  /**
-   * Get checklist status for a credit file (owner-only)
-   */
   getCreditFileChecklist: protectedProcedure
-    .input(z.object({ creditFileId: z.number() }))
+    .input(z.object({ creditFileId: z.number().int().positive() }))
     .query(async ({ input, ctx }) => {
       assertCreditEnabled();
       const file = await verifyCreditFileOwnership(input.creditFileId, ctx.user.id);
-
       const checklist = await CreditChecklistService.getChecklistStatus(
         input.creditFileId,
         file.productType as CreditProductType
@@ -430,30 +479,20 @@ export const creditRouter = router({
       };
     }),
 
-  /**
-   * Get participants for a credit file (owner-only)
-   */
   getCreditFileParticipants: protectedProcedure
-    .input(z.object({ creditFileId: z.number() }))
+    .input(z.object({ creditFileId: z.number().int().positive() }))
     .query(async ({ input, ctx }) => {
       assertCreditEnabled();
       await verifyCreditFileOwnership(input.creditFileId, ctx.user.id);
+      const participants = await listCreditFileParticipants(input.creditFileId);
 
-      const db = await getDb();
-      if (!db) throw new Error("Database not initialized");
-
-      const participants = await db
-        .select()
-        .from(creditFileParticipants)
-        .where(eq(creditFileParticipants.creditFileId, input.creditFileId));
-
-      return participants.map((p) => ({
-        id: p.id,
-        userId: p.userId,
-        role: p.role,
-        displayName: p.displayName,
-        consentGiven: p.consentGiven,
-        consentGivenAt: p.consentGivenAt,
+      return participants.map(participant => ({
+        id: participant.id,
+        userId: participant.userId,
+        role: participant.role,
+        displayName: participant.displayName,
+        consentGiven: participant.consentGiven,
+        consentGivenAt: participant.consentGivenAt,
       }));
     }),
 });

@@ -9,6 +9,12 @@ import {
   auditEvents, InsertAuditEvent,
   verifyRateLimits,
   documents, InsertDocument,
+  creditFiles, InsertCreditFile,
+  creditFileParticipants, InsertCreditFileParticipant,
+  creditDocuments, InsertCreditDocument,
+  creditRequests, InsertCreditRequest,
+  creditOffers, InsertCreditOffer,
+  creditDecisions, InsertCreditDecision,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -406,4 +412,114 @@ export async function getCitizenDashboardStats(ownerId: number) {
     countDocumentsByOwner(ownerId),
   ]);
   return { parcels: parcelsCount, documents: docsCount };
+}
+
+// Credit module helpers
+export async function insertCreditFile(file: InsertCreditFile) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(creditFiles).values(file);
+  const creditFileId = Number((result as { insertId?: number }).insertId);
+  const created = await db.select().from(creditFiles).where(eq(creditFiles.id, creditFileId)).limit(1);
+  return created[0];
+}
+
+export async function getCreditFileById(creditFileId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(creditFiles).where(eq(creditFiles.id, creditFileId)).limit(1);
+  return result[0];
+}
+
+export async function getCreditFileByIdAndOwner(creditFileId: number, ownerId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(creditFiles)
+    .where(and(eq(creditFiles.id, creditFileId), eq(creditFiles.initiatorId, ownerId)))
+    .limit(1);
+  return result[0];
+}
+
+export async function listCreditFilesByOwner(ownerId: number, limit = 10, offset = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(creditFiles)
+    .where(eq(creditFiles.initiatorId, ownerId))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function insertCreditFileParticipant(participant: InsertCreditFileParticipant) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(creditFileParticipants).values(participant);
+}
+
+export async function listCreditFileParticipants(creditFileId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(creditFileParticipants).where(eq(creditFileParticipants.creditFileId, creditFileId));
+}
+
+export async function getCreditDocumentByFileAndType(creditFileId: number, documentType: InsertCreditDocument["documentType"]) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(creditDocuments)
+    .where(and(eq(creditDocuments.creditFileId, creditFileId), eq(creditDocuments.documentType, documentType)))
+    .limit(1);
+  return result[0];
+}
+
+export async function insertCreditDocument(document: InsertCreditDocument) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(creditDocuments).values(document);
+  const documentId = Number((result as { insertId?: number }).insertId);
+  const created = await db.select().from(creditDocuments).where(eq(creditDocuments.id, documentId)).limit(1);
+  return created[0];
+}
+
+export async function updateCreditDocument(documentId: number, values: Partial<InsertCreditDocument>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(creditDocuments).set(values).where(eq(creditDocuments.id, documentId));
+}
+
+export async function listCreditDocumentsByFile(creditFileId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(creditDocuments).where(eq(creditDocuments.creditFileId, creditFileId));
+}
+
+export async function updateCreditFileStatus(
+  creditFileId: number,
+  values: Partial<InsertCreditFile>
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(creditFiles).set(values).where(eq(creditFiles.id, creditFileId));
+}
+
+export async function insertCreditRequest(request: InsertCreditRequest) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(creditRequests).values(request);
+}
+
+export async function insertCreditOffer(offer: InsertCreditOffer) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(creditOffers).values(offer);
+}
+
+export async function insertCreditDecision(decision: InsertCreditDecision) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(creditDecisions).values(decision);
 }

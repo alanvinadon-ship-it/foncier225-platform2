@@ -38,6 +38,20 @@ vi.mock("./db", () => ({
   listAttestationsByParcelAndOwner: vi.fn(),
   listAllDocuments: vi.fn(),
   countAllDocuments: vi.fn(),
+  insertCreditFile: vi.fn(),
+  getCreditFileById: vi.fn(),
+  getCreditFileByIdAndOwner: vi.fn(),
+  listCreditFilesByOwner: vi.fn(),
+  insertCreditFileParticipant: vi.fn(),
+  listCreditFileParticipants: vi.fn(),
+  getCreditDocumentByFileAndType: vi.fn(),
+  insertCreditDocument: vi.fn(),
+  updateCreditDocument: vi.fn(),
+  listCreditDocumentsByFile: vi.fn(),
+  updateCreditFileStatus: vi.fn(),
+  insertCreditRequest: vi.fn(),
+  insertCreditOffer: vi.fn(),
+  insertCreditDecision: vi.fn(),
 }));
 
 import * as db from "./db";
