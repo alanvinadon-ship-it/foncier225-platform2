@@ -63,6 +63,27 @@ function sanitizeFileName(fileName: string) {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
+async function auditCreditFileError(args: {
+  actorId: number;
+  actorRole: string;
+  creditFileId: number;
+  reason: string;
+  details?: Record<string, unknown>;
+}) {
+  await createAuditEvent({
+    actorId: args.actorId,
+    actorRole: args.actorRole,
+    action: CREDIT_AUDIT_ACTIONS.FILE_ERROR,
+    targetType: "credit_file",
+    targetId: args.creditFileId,
+    details: {
+      reason: args.reason,
+      timestamp: new Date().toISOString(),
+      ...args.details,
+    },
+  });
+}
+
 export const creditRouter = router({
   createCreditFile: protectedProcedure
     .input(
@@ -187,6 +208,20 @@ export const creditRouter = router({
       const file = await verifyCreditFileOwnership(input.creditFileId, ctx.user.id);
       const currentStatus = file.status as CreditFileStatus;
 
+      if (currentStatus === CreditFileStatus.SUBMITTED) {
+        await auditCreditFileError({
+          actorId: ctx.user.id,
+          actorRole: ctx.user.role,
+          creditFileId: input.creditFileId,
+          reason: "already_submitted",
+          details: { currentStatus },
+        });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Ce dossier a deja ete soumis et ne peut plus etre modifie.",
+        });
+      }
+
       CreditWorkflowService.assertTransition(currentStatus, "SUBMIT" as any);
 
       const isComplete = await CreditChecklistService.isCreditFileComplete(
@@ -200,17 +235,14 @@ export const creditRouter = router({
           file.productType as CreditProductType
         );
 
-        await createAuditEvent({
+        await auditCreditFileError({
           actorId: ctx.user.id,
           actorRole: ctx.user.role,
-          action: CREDIT_AUDIT_ACTIONS.FILE_ERROR,
-          targetType: "credit_file",
-          targetId: input.creditFileId,
+          creditFileId: input.creditFileId,
+          reason: "incomplete_documents",
           details: {
-            reason: "incomplete_documents",
             missing: checklist.requiredDocuments.missing,
             completionPercentage: checklist.completionPercentage,
-            timestamp: new Date().toISOString(),
           },
         });
 
@@ -263,9 +295,21 @@ export const creditRouter = router({
       const currentStatus = file.status as CreditFileStatus;
 
       if (currentStatus !== CreditFileStatus.DRAFT && currentStatus !== CreditFileStatus.DOCS_PENDING) {
+        await auditCreditFileError({
+          actorId: ctx.user.id,
+          actorRole: ctx.user.role,
+          creditFileId: input.creditFileId,
+          reason: "document_upload_locked",
+          details: {
+            currentStatus,
+            documentType: input.documentType,
+          },
+        });
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `Impossible d'ajouter un document dans l'etat ${currentStatus}`,
+          message: currentStatus === CreditFileStatus.SUBMITTED
+            ? "Le dossier a deja ete soumis. Les modifications sont verrouillees."
+            : `Impossible d'ajouter un document dans l'etat ${currentStatus}`,
         });
       }
 
@@ -344,9 +388,21 @@ export const creditRouter = router({
       const currentStatus = file.status as CreditFileStatus;
 
       if (currentStatus !== CreditFileStatus.DRAFT && currentStatus !== CreditFileStatus.DOCS_PENDING) {
+        await auditCreditFileError({
+          actorId: ctx.user.id,
+          actorRole: ctx.user.role,
+          creditFileId: input.creditFileId,
+          reason: "document_upload_locked",
+          details: {
+            currentStatus,
+            documentType: input.documentType,
+          },
+        });
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `Impossible d'ajouter un document dans l'etat ${currentStatus}`,
+          message: currentStatus === CreditFileStatus.SUBMITTED
+            ? "Le dossier a deja ete soumis. Les modifications sont verrouillees."
+            : `Impossible d'ajouter un document dans l'etat ${currentStatus}`,
         });
       }
 
@@ -452,6 +508,7 @@ export const creditRouter = router({
         documentType: document.documentType,
         status: document.status,
         fileUrl: document.fileUrl,
+        fileKey: document.fileKey,
         sha256: document.sha256,
         mimeType: document.mimeType,
         fileSize: document.fileSize,
@@ -459,6 +516,7 @@ export const creditRouter = router({
         validatedAt: document.validatedAt,
         rejectedAt: document.rejectedAt,
         rejectionReason: document.rejectionReason,
+        updatedAt: document.updatedAt,
       }));
     }),
 

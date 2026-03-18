@@ -133,14 +133,17 @@ export function CreditDocumentUploader({
   creditFileId,
   mutation,
   onUploaded,
+  existingDocumentTypes = [],
 }: {
   creditFileId: number;
   mutation: UploadMutation;
   onUploaded?: () => void | Promise<void>;
+  existingDocumentTypes?: string[];
 }) {
   const [documentType, setDocumentType] = useState<CreditDocumentType | "">("");
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const willReplaceExisting = Boolean(documentType && existingDocumentTypes.includes(documentType));
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -166,19 +169,23 @@ export function CreditDocumentUploader({
       return;
     }
 
-    const fileBase64 = await fileToBase64(file);
+    try {
+      const fileBase64 = await fileToBase64(file);
 
-    await mutation.mutateAsync({
-      creditFileId,
-      documentType,
-      fileName: file.name,
-      contentType: file.type,
-      fileBase64,
-    });
+      await mutation.mutateAsync({
+        creditFileId,
+        documentType,
+        fileName: file.name,
+        contentType: file.type,
+        fileBase64,
+      });
 
-    setDocumentType("");
-    setFile(null);
-    await onUploaded?.();
+      setDocumentType("");
+      setFile(null);
+      await onUploaded?.();
+    } catch (uploadError) {
+      setError((uploadError as Error).message || "Une erreur est survenue pendant l'import.");
+    }
   };
 
   return (
@@ -216,6 +223,11 @@ export function CreditDocumentUploader({
                 ))}
               </SelectContent>
             </Select>
+            {willReplaceExisting ? (
+              <p className="text-xs text-amber-700">
+                Un document existe deja pour ce type. Le nouvel import remplacera la version precedente.
+              </p>
+            ) : null}
           </div>
 
           <div className="grid gap-2">

@@ -1,10 +1,15 @@
-import { CreditChecklist, CreditDocumentStatusBadge, CreditDocumentUploader, CreditStatusBadge, CreditSummaryCard, formatCreditDocumentType, formatCreditProduct } from "@/components/citizen/credit-ui";
+import { CreditDocumentUploader, CreditStatusBadge, CreditSummaryCard, formatCreditProduct } from "@/components/citizen/credit-ui";
+import { CreditCompletenessPanel } from "@/components/citizen/CreditCompletenessPanel";
+import { CreditDocumentsList } from "@/components/citizen/CreditDocumentsList";
+import { CreditSubmissionBanner } from "@/components/citizen/CreditSubmissionBanner";
+import { CreditSubmitDialog } from "@/components/citizen/CreditSubmitDialog";
+import { CreditTimeline, type CreditTimelineEvent } from "@/components/citizen/CreditTimeline";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { REQUIRED_DOCUMENTS_BY_PRODUCT, CreditProductType } from "@shared/credit-types";
 import { trpc } from "@/lib/trpc";
-import { AlertCircle, ArrowLeft, ExternalLink, FileText, FolderSearch, Send } from "lucide-react";
+import { AlertCircle, ArrowLeft, Info, ShieldCheck } from "lucide-react";
+import { useState } from "react";
 import { Link, useParams } from "wouter";
 
 const OPTIONAL_DOCUMENTS_BY_PRODUCT: Record<CreditProductType, string[]> = {
@@ -16,6 +21,7 @@ export default function CitizenCreditFileDetail() {
   const params = useParams<{ id: string }>();
   const creditFileId = Number(params.id ?? "0");
   const utils = trpc.useUtils();
+  const [uploadFeedback, setUploadFeedback] = useState<string | null>(null);
 
   const creditFileQuery = trpc.credit.getMyCreditFile.useQuery(
     { creditFileId },
@@ -31,15 +37,18 @@ export default function CitizenCreditFileDetail() {
   );
   const submitMutation = trpc.credit.submitCreditFile.useMutation({
     onSuccess: async () => {
+      setUploadFeedback(null);
       await Promise.all([
         creditFileQuery.refetch(),
         checklistQuery.refetch(),
         documentsQuery.refetch(),
+        utils.credit.listMyCreditFiles.invalidate(),
       ]);
     },
   });
   const addDocumentMutation = trpc.credit.addCreditDocument.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (_result, variables) => {
+      setUploadFeedback(`Le document ${variables.documentType} a ete rattache au dossier.`);
       await Promise.all([
         creditFileQuery.refetch(),
         checklistQuery.refetch(),
@@ -93,6 +102,35 @@ export default function CitizenCreditFileDetail() {
   const optionalDocumentTypes = OPTIONAL_DOCUMENTS_BY_PRODUCT[productType];
   const canSubmit = checklist.isComplete && (file.status === "DRAFT" || file.status === "DOCS_PENDING");
   const canUploadDocuments = file.status === "DRAFT" || file.status === "DOCS_PENDING";
+  const timelineEvents: CreditTimelineEvent[] = [
+    {
+      id: `created-${file.id}`,
+      title: "Dossier cree",
+      description: "Le dossier de credit habitat a ete initialise dans votre espace citoyen.",
+      at: file.createdAt,
+    },
+    ...documents
+      .filter(document => document.uploadedAt)
+      .map(document => ({
+        id: `document-${document.id}`,
+        title: "Document ajoute",
+        description: `${document.documentType} ajoute au dossier.`,
+        at: document.uploadedAt,
+      })),
+    ...(file.submittedAt
+      ? [{
+          id: `submitted-${file.id}`,
+          title: "Dossier soumis",
+          description: "Le dossier a ete transmis a la banque pour revue.",
+          at: file.submittedAt,
+          tone: "success" as const,
+        }]
+      : []),
+  ].sort((left, right) => {
+    const leftTime = left.at ? new Date(left.at).getTime() : 0;
+    const rightTime = right.at ? new Date(right.at).getTime() : 0;
+    return rightTime - leftTime;
+  });
 
   return (
     <div className="space-y-6">
@@ -110,24 +148,23 @@ export default function CitizenCreditFileDetail() {
             Suivez l&apos;avancement de votre dossier et rattachez vos pieces justificatives.
           </p>
         </div>
-
-        {canSubmit ? (
-          <Button
-            className="bg-ci-orange hover:bg-ci-orange/90"
-            disabled={submitMutation.isPending}
-            onClick={() => submitMutation.mutate({ creditFileId })}
-          >
-            <Send className="h-4 w-4" />
-            {submitMutation.isPending ? "Soumission..." : "Soumettre le dossier"}
-          </Button>
-        ) : null}
       </div>
+
+      <CreditSubmissionBanner status={file.status} submittedAt={file.submittedAt} />
 
       {submitMutation.error ? (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Soumission impossible</AlertTitle>
           <AlertDescription>{submitMutation.error.message}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {uploadFeedback ? (
+        <Alert className="border-green-200 bg-green-50 text-green-950">
+          <ShieldCheck className="h-4 w-4 text-green-700" />
+          <AlertTitle>Document ajoute</AlertTitle>
+          <AlertDescription>{uploadFeedback}</AlertDescription>
         </Alert>
       ) : null}
 
@@ -140,97 +177,90 @@ export default function CitizenCreditFileDetail() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <CreditChecklist
+        <CreditCompletenessPanel
           checklist={checklist}
+          status={file.status}
           requiredDocumentTypes={requiredDocumentTypes}
           optionalDocumentTypes={optionalDocumentTypes}
           uploadedDocumentTypes={uploadedDocumentTypes}
         />
 
-        {canUploadDocuments ? (
-          <CreditDocumentUploader
-            creditFileId={creditFileId}
-            mutation={addDocumentMutation}
-            onUploaded={async () => {
-              await Promise.all([
-                creditFileQuery.refetch(),
-                checklistQuery.refetch(),
-                documentsQuery.refetch(),
-              ]);
-            }}
-          />
-        ) : (
+        <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Ajout de pieces verrouille</CardTitle>
+              <CardTitle>Aide a la soumission</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Ce dossier est dans un statut qui ne permet plus l&apos;ajout de nouvelles pieces justificatives.
+            <CardContent className="space-y-4">
+              <div className="rounded-xl border bg-muted/20 p-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 font-medium text-foreground">
+                  <Info className="h-4 w-4 text-ci-orange" />
+                  Conditions de soumission
+                </div>
+                <p className="mt-2">
+                  Avant soumission, tous les documents requis doivent etre presents. Apres soumission, le dossier
+                  passe en lecture seule pour preparer la future revue bancaire.
+                </p>
+              </div>
+
+              {file.status === "SUBMITTED" ? (
+                <Alert className="border-blue-200 bg-blue-50 text-blue-950">
+                  <ShieldCheck className="h-4 w-4 text-blue-700" />
+                  <AlertTitle>Dossier transmis</AlertTitle>
+                  <AlertDescription>
+                    Les modifications sont verrouillees. Vous pouvez encore consulter les documents deja rattaches.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <div className="space-y-3">
+                  {!canSubmit ? (
+                    <p className="text-sm text-muted-foreground">
+                      La soumission sera disponible des que les documents requis manquants seront ajoutes.
+                    </p>
+                  ) : (
+                    <CreditSubmitDialog
+                      canSubmit={canSubmit}
+                      status={file.status}
+                      isPending={submitMutation.isPending}
+                      missingDocuments={checklist.requiredDocuments.missing}
+                      onConfirm={async () => {
+                        await submitMutation.mutateAsync({ creditFileId });
+                      }}
+                    />
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
-        )}
+
+          {canUploadDocuments ? (
+            <CreditDocumentUploader
+              creditFileId={creditFileId}
+              mutation={addDocumentMutation}
+              existingDocumentTypes={uploadedDocumentTypes}
+              onUploaded={async () => {
+                await Promise.all([
+                  creditFileQuery.refetch(),
+                  checklistQuery.refetch(),
+                  documentsQuery.refetch(),
+                ]);
+              }}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Ajout de pieces verrouille</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                Le dossier a deja ete soumis. Les modifications sont verrouillees en attente de traitement bancaire.
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-ci-orange" />
-            Documents deja rattaches
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {documents.length === 0 ? (
-            <div className="rounded-xl border border-dashed p-8 text-center">
-              <FolderSearch className="mx-auto mb-3 h-10 w-10 text-muted-foreground/30" />
-              <h2 className="font-semibold">Aucune piece pour le moment</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Ajoutez vos premiers documents pour alimenter la checklist et preparer la soumission.
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-xl border">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b bg-muted/30">
-                    <th className="p-4 text-left text-sm font-medium text-muted-foreground">Type</th>
-                    <th className="p-4 text-left text-sm font-medium text-muted-foreground">Statut</th>
-                    <th className="p-4 text-left text-sm font-medium text-muted-foreground">Ajoute le</th>
-                    <th className="p-4 text-left text-sm font-medium text-muted-foreground">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {documents.map(document => (
-                    <tr key={document.id} className="border-b last:border-b-0">
-                      <td className="p-4 text-sm font-medium">{formatCreditDocumentType(document.documentType)}</td>
-                      <td className="p-4">
-                        <CreditDocumentStatusBadge status={document.status} />
-                      </td>
-                      <td className="p-4 text-sm text-muted-foreground">
-                        {document.uploadedAt ? new Date(document.uploadedAt).toLocaleDateString("fr-FR") : "Non renseigne"}
-                      </td>
-                      <td className="p-4">
-                        {document.fileUrl ? (
-                          <a
-                            className="inline-flex items-center gap-1 text-sm text-ci-orange hover:underline"
-                            href={document.fileUrl}
-                            rel="noreferrer"
-                            target="_blank"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            Ouvrir
-                          </a>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">Indisponible</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <CreditDocumentsList documents={documents} isLocked={!canUploadDocuments} />
+
+      <CreditTimeline events={timelineEvents} />
     </div>
   );
 }

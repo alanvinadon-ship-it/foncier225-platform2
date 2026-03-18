@@ -172,6 +172,41 @@ describe("credit router", () => {
     );
   });
 
+  it("rejects submission when the file is already submitted", async () => {
+    mockDb.getCreditFileByIdAndOwner.mockResolvedValue({
+      id: 18,
+      publicRef: "CF-2026-SUB01",
+      initiatorId: 2,
+      parcelId: null,
+      amountRequestedXof: 4_200_000,
+      durationMonths: 48,
+      productType: "STANDARD",
+      status: "SUBMITTED",
+      metadata: {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      submittedAt: new Date(),
+      lastTransitionAt: new Date(),
+      closedAt: null,
+    } as any);
+    mockDb.createAuditEvent.mockResolvedValue(undefined);
+
+    const caller = creditRouter.createCaller(createCitizenContext());
+    await expect(caller.submitCreditFile({ creditFileId: 18 }))
+      .rejects.toThrow("Ce dossier a deja ete soumis");
+
+    expect(mockDb.createAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "credit.file.error",
+        targetType: "credit_file",
+        targetId: 18,
+        details: expect.objectContaining({
+          reason: "already_submitted",
+        }),
+      })
+    );
+  });
+
   it("uploads and attaches a document to the authenticated citizen credit file", async () => {
     mockDb.getCreditFileByIdAndOwner.mockResolvedValue({
       id: 44,
@@ -256,5 +291,47 @@ describe("credit router", () => {
         fileBase64: Buffer.from("hello").toString("base64"),
       })
     ).rejects.toThrow("Format de fichier non autorise");
+  });
+
+  it("rejects addCreditDocument when the file is already submitted", async () => {
+    mockDb.getCreditFileByIdAndOwner.mockResolvedValue({
+      id: 54,
+      publicRef: "CF-2026-UPL03",
+      initiatorId: 2,
+      parcelId: null,
+      amountRequestedXof: null,
+      durationMonths: null,
+      productType: "STANDARD",
+      status: "SUBMITTED",
+      metadata: {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      submittedAt: new Date(),
+      lastTransitionAt: new Date(),
+      closedAt: null,
+    } as any);
+    mockDb.createAuditEvent.mockResolvedValue(undefined);
+
+    const caller = creditRouter.createCaller(createCitizenContext());
+    await expect(
+      caller.addCreditDocument({
+        creditFileId: 54,
+        documentType: "ID_CARD",
+        fileName: "identity.pdf",
+        contentType: "application/pdf",
+        fileBase64: Buffer.from("fake-pdf").toString("base64"),
+      })
+    ).rejects.toThrow("Le dossier a deja ete soumis");
+
+    expect(mockDb.createAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "credit.file.error",
+        targetType: "credit_file",
+        targetId: 54,
+        details: expect.objectContaining({
+          reason: "document_upload_locked",
+        }),
+      })
+    );
   });
 });
