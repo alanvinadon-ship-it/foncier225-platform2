@@ -8,6 +8,7 @@ vi.mock("./db", () => ({
   getPublicParcelEvents: vi.fn(),
   checkRateLimit: vi.fn(),
   getVerifyTokenByHash: vi.fn(),
+  getAttestationById: vi.fn(),
   createAuditEvent: vi.fn(),
   getDashboardStats: vi.fn(),
   getParcelStatusDistribution: vi.fn(),
@@ -39,9 +40,13 @@ vi.mock("./db", () => ({
   listAllDocuments: vi.fn(),
   countAllDocuments: vi.fn(),
   insertCreditFile: vi.fn(),
+  createAttestation: vi.fn(),
+  createDocument: vi.fn(),
   getCreditFileById: vi.fn(),
+  getCreditAttestationByDecision: vi.fn(),
   getCreditFileByIdAndOwner: vi.fn(),
   getCreditOfferById: vi.fn(),
+  getLatestCreditAttestationByFile: vi.fn(),
   getLatestCreditDecisionByFile: vi.fn(),
   getLatestCreditOfferByFile: vi.fn(),
   getParcelById: vi.fn(),
@@ -60,6 +65,7 @@ vi.mock("./db", () => ({
   updateCreditOffer: vi.fn(),
   listCreditDocumentsByFile: vi.fn(),
   updateCreditFileStatus: vi.fn(),
+  updateAttestation: vi.fn(),
   insertCreditRequest: vi.fn(),
   insertCreditOffer: vi.fn(),
   insertCreditDecision: vi.fn(),
@@ -219,6 +225,44 @@ describe("verify.check", () => {
     expect(result.status).toBe("active");
     expect(result.tokenType).toBe("insurance");
     expect(mockDb.createAuditEvent).toHaveBeenCalledOnce();
+  });
+
+  it("returns minimal metadata for a final credit attestation token", async () => {
+    mockDb.checkRateLimit.mockResolvedValue(true);
+    mockDb.getVerifyTokenByHash.mockResolvedValue({
+      id: 12,
+      tokenHash: "hashed-credit",
+      tokenType: "document" as const,
+      targetId: 44,
+      status: "active" as const,
+      issuedMonth: "2026-03",
+      expiresAt: null,
+      createdAt: new Date(),
+      createdById: null,
+    });
+    mockDb.getAttestationById.mockResolvedValue({
+      id: 44,
+      attestationType: "credit",
+      creditFileId: 77,
+      documentRef: "CAF-2026-AB12CD",
+      finalDecisionType: "APPROVED",
+      issuedAt: new Date("2026-03-18T12:00:00Z"),
+    } as any);
+    mockDb.createAuditEvent.mockResolvedValue(undefined);
+
+    const caller = appRouter.createCaller(createPublicContext());
+    const result = await caller.verify.check({ token: "credit-final-token" });
+
+    expect(result.valid).toBe(true);
+    expect(result.documentType).toBe("credit_final_attestation");
+    expect(result.documentReference).toBe("CAF-2026-AB12CD");
+    expect(result.decisionType).toBe("APPROVED");
+    expect(mockDb.createAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "credit.attestation.verified",
+        targetId: 44,
+      })
+    );
   });
 
   it("throws when rate limited", async () => {

@@ -6,6 +6,7 @@ vi.mock("./db", () => ({
   getCreditOfferById: vi.fn(),
   getCreditDocumentByFileAndType: vi.fn(),
   getCreditFileByIdAndOwner: vi.fn(),
+  getLatestCreditAttestationByFile: vi.fn(),
   getLatestCreditDecisionByFile: vi.fn(),
   getLatestCreditOfferByFile: vi.fn(),
   getParcelById: vi.fn(),

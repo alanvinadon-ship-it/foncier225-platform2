@@ -1,6 +1,7 @@
 import { CreditDocumentUploader, CreditStatusBadge, CreditSummaryCard, formatCreditProduct } from "@/components/citizen/credit-ui";
 import { CreditCompletenessPanel } from "@/components/citizen/CreditCompletenessPanel";
 import { CreditDocumentsList } from "@/components/citizen/CreditDocumentsList";
+import { CreditFinalAttestationPanel } from "@/components/citizen/CreditFinalAttestationPanel";
 import { CreditOfferPanel } from "@/components/citizen/CreditOfferPanel";
 import { CreditRequestsPanel } from "@/components/citizen/CreditRequestsPanel";
 import { CreditSubmissionBanner } from "@/components/citizen/CreditSubmissionBanner";
@@ -171,6 +172,15 @@ export default function CitizenCreditFileDetail() {
           tone: "success" as const,
         }]
       : []),
+    ...(file.finalAttestation
+      ? [{
+          id: `attestation-${file.finalAttestation.id}`,
+          title: "Attestation finale disponible",
+          description: `Document ${file.finalAttestation.documentRef ?? "final"} emis.`,
+          at: file.finalAttestation.issuedAt ?? file.lastTransitionAt ?? file.createdAt,
+          tone: "success" as const,
+        }]
+      : []),
   ].sort((left, right) => {
     const leftTime = left.at ? new Date(left.at).getTime() : 0;
     const rightTime = right.at ? new Date(right.at).getTime() : 0;
@@ -327,6 +337,7 @@ export default function CitizenCreditFileDetail() {
           await rejectOfferMutation.mutateAsync({ creditFileId, offerId });
         }}
       />
+      <CreditFinalAttestationPanel status={file.status} finalAttestation={file.finalAttestation} />
 
       <CreditTimeline events={timelineEvents} />
     </div>

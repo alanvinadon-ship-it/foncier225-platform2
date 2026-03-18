@@ -12,7 +12,7 @@ import {
   Shield,
   XCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const STATUS_MAP: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   active: { label: "Valide", icon: CheckCircle2, color: "text-green-600" },
@@ -21,8 +21,16 @@ const STATUS_MAP: Record<string, { label: string; icon: React.ElementType; color
 };
 
 export default function Verify() {
-  const [tokenInput, setTokenInput] = useState("");
-  const [searchToken, setSearchToken] = useState("");
+  const initialToken =
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("token") ?? "" : "";
+  const [tokenInput, setTokenInput] = useState(initialToken);
+  const [searchToken, setSearchToken] = useState(initialToken);
+
+  useEffect(() => {
+    if (!initialToken) return;
+    setTokenInput(initialToken);
+    setSearchToken(initialToken);
+  }, [initialToken]);
 
   const { data, isLoading, error } = trpc.verify.check.useQuery(
     { token: searchToken },
@@ -111,7 +119,14 @@ export default function Verify() {
               <div className="p-6 space-y-3">
                 <InfoRow label="Type de document" value={data.tokenType} />
                 <InfoRow label="Statut" value={STATUS_MAP[data.status]?.label || data.status} />
+                {data.documentType && <InfoRow label="Categorie" value={data.documentType} />}
+                {data.documentStatus && <InfoRow label="Statut du document" value={data.documentStatus} />}
+                {data.documentReference && <InfoRow label="Reference document" value={data.documentReference} />}
+                {data.decisionType && <InfoRow label="Decision finale" value={data.decisionType} />}
                 {data.issuedMonth && <InfoRow label="Émis" value={data.issuedMonth} />}
+                {data.issuedAt && (
+                  <InfoRow label="Date d'emission" value={new Date(data.issuedAt).toLocaleDateString("fr-FR")} />
+                )}
                 {data.expiresAt && (
                   <InfoRow label="Expire le" value={new Date(data.expiresAt).toLocaleDateString("fr-FR")} />
                 )}

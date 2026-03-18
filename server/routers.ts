@@ -21,6 +21,7 @@ import {
   getCitizenDashboardStats,
   getCitizenTimeline,
   getDashboardStats,
+  getAttestationById,
   getDocumentByIdAndOwner,
   getParcelByIdAndOwner,
   getParcelByPublicToken,
@@ -107,11 +108,34 @@ const verifyRouter = router({
         details: { tokenType: record.tokenType },
       });
 
+      const attestation =
+        record.tokenType === "document" ? await getAttestationById(record.targetId) : null;
+
+      if (attestation?.attestationType === "credit") {
+        await createAuditEvent({
+          action: "credit.attestation.verified",
+          targetType: "attestation",
+          targetId: attestation.id,
+          ipHash,
+          details: {
+            creditFileId: attestation.creditFileId,
+            decisionType: attestation.finalDecisionType,
+            documentRef: attestation.documentRef,
+          },
+        });
+      }
+
       return {
+        valid: true,
         status: record.status,
         tokenType: record.tokenType,
         issuedMonth: record.issuedMonth,
         expiresAt: record.expiresAt,
+        documentType: attestation?.attestationType === "credit" ? "credit_final_attestation" : null,
+        documentStatus: attestation?.status ?? null,
+        documentReference: attestation?.documentRef ?? null,
+        decisionType: attestation?.finalDecisionType ?? null,
+        issuedAt: attestation?.issuedAt ?? null,
       };
     }),
 });

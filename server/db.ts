@@ -288,13 +288,23 @@ export async function countAllDocuments() {
 export async function createVerifyToken(token: InsertVerifyToken) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.insert(verifyTokens).values(token);
+  const result = await db.insert(verifyTokens).values(token);
+  const tokenId = Number((result as { insertId?: number }).insertId);
+  const created = await db.select().from(verifyTokens).where(eq(verifyTokens.id, tokenId)).limit(1);
+  return created[0];
 }
 
 export async function getVerifyTokenByHash(tokenHash: string) {
   const db = await getDb();
   if (!db) return undefined;
   const result = await db.select().from(verifyTokens).where(eq(verifyTokens.tokenHash, tokenHash)).limit(1);
+  return result[0];
+}
+
+export async function getVerifyTokenById(tokenId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(verifyTokens).where(eq(verifyTokens.id, tokenId)).limit(1);
   return result[0];
 }
 
@@ -315,7 +325,10 @@ export async function countVerifyTokens() {
 export async function createAttestation(att: InsertAttestation) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.insert(attestations).values(att);
+  const result = await db.insert(attestations).values(att);
+  const attestationId = Number((result as { insertId?: number }).insertId);
+  const created = await db.select().from(attestations).where(eq(attestations.id, attestationId)).limit(1);
+  return created[0];
 }
 
 export async function listAttestations(limit = 50, offset = 0) {
@@ -340,6 +353,39 @@ export async function listAttestationsByParcelAndOwner(parcelId: number, ownerId
   return db.select().from(attestations)
     .where(eq(attestations.parcelId, parcelId))
     .orderBy(desc(attestations.createdAt));
+}
+
+export async function getAttestationById(attestationId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(attestations).where(eq(attestations.id, attestationId)).limit(1);
+  return result[0];
+}
+
+export async function getLatestCreditAttestationByFile(creditFileId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(attestations)
+    .where(and(eq(attestations.creditFileId, creditFileId), eq(attestations.attestationType, "credit")))
+    .orderBy(desc(attestations.createdAt))
+    .limit(1);
+  return result[0];
+}
+
+export async function getCreditAttestationByDecision(decisionId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(attestations)
+    .where(and(eq(attestations.decisionId, decisionId), eq(attestations.attestationType, "credit")))
+    .orderBy(desc(attestations.createdAt))
+    .limit(1);
+  return result[0];
+}
+
+export async function updateAttestation(attestationId: number, values: Partial<InsertAttestation>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(attestations).set(values).where(eq(attestations.id, attestationId));
 }
 
 // ─── Audit Events ────────────────────────────────────────────────────

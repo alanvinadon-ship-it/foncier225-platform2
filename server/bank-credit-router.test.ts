@@ -2,8 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
 
 vi.mock("./db", () => ({
+  createAttestation: vi.fn(),
   createAuditEvent: vi.fn(),
+  createDocument: vi.fn(),
+  createVerifyToken: vi.fn(),
+  getCreditAttestationByDecision: vi.fn(),
   getCreditFileById: vi.fn(),
+  getLatestCreditAttestationByFile: vi.fn(),
   getLatestCreditDecisionByFile: vi.fn(),
   getLatestCreditOfferByFile: vi.fn(),
   getParcelById: vi.fn(),
@@ -15,8 +20,13 @@ vi.mock("./db", () => ({
   listCreditFilesByStatuses: vi.fn(),
   listCreditOffersByFile: vi.fn(),
   listCreditRequestsByFile: vi.fn(),
+  updateAttestation: vi.fn(),
   updateCreditOffer: vi.fn(),
   updateCreditFileStatus: vi.fn(),
+}));
+
+vi.mock("./storage", () => ({
+  storagePut: vi.fn(),
 }));
 
 vi.mock("./credit-checklist.service", () => ({
@@ -28,9 +38,11 @@ vi.mock("./credit-checklist.service", () => ({
 import * as db from "./db";
 import { CreditChecklistService } from "./credit-checklist.service";
 import { bankCreditRouter } from "./bank-credit-router";
+import { storagePut } from "./storage";
 
 const mockDb = vi.mocked(db);
 const mockChecklistService = vi.mocked(CreditChecklistService);
+const mockStoragePut = vi.mocked(storagePut);
 
 function createBankContext(): TrpcContext {
   return {
@@ -47,7 +59,11 @@ function createBankContext(): TrpcContext {
       updatedAt: new Date(),
       lastSignedIn: new Date(),
     },
-    req: {} as TrpcContext["req"],
+    req: {
+      protocol: "https",
+      headers: { host: "foncier225.example" },
+      get: (name: string) => (name === "host" ? "foncier225.example" : undefined),
+    } as TrpcContext["req"],
     res: {} as TrpcContext["res"],
   };
 }
@@ -169,6 +185,7 @@ describe("bank credit router", () => {
       optionalDocuments: { total: 3, uploaded: 0, missing: [] },
       completionPercentage: 100,
     });
+    mockDb.getLatestCreditAttestationByFile.mockResolvedValue(undefined);
     mockDb.createAuditEvent.mockResolvedValue(undefined);
 
     const caller = bankCreditRouter.createCaller(createBankContext());
@@ -218,6 +235,52 @@ describe("bank credit router", () => {
       expect.objectContaining({
         action: "credit.file.under_review",
         targetId: 41,
+      })
+    );
+  });
+
+  it("issues a final attestation only after a persisted final decision", async () => {
+    mockDb.getCreditFileById.mockResolvedValue({
+      id: 61,
+      publicRef: "CF-2026-FINAL1",
+      initiatorId: 2,
+      parcelId: 10,
+      status: "APPROVED",
+    } as any);
+    mockDb.getLatestCreditDecisionByFile.mockResolvedValue({
+      id: 701,
+      creditFileId: 61,
+      decisionType: "APPROVED",
+      reason: "Eligible",
+      decidedAt: new Date("2026-03-18T10:00:00Z"),
+    } as any);
+    mockDb.getCreditAttestationByDecision.mockResolvedValue(undefined);
+    mockDb.getParcelById.mockResolvedValue({ id: 10, reference: "PAR-010" } as any);
+    mockStoragePut.mockResolvedValue({
+      key: "credit-attestations/2/61/CAF-2026-AB12CD.pdf",
+      url: "https://cdn.example.com/credit-attestations/2/61/CAF-2026-AB12CD.pdf",
+    });
+    mockDb.createDocument.mockResolvedValue({ id: 801 } as any);
+    mockDb.createAttestation.mockResolvedValue({ id: 901 } as any);
+    mockDb.createVerifyToken.mockResolvedValue({ id: 902 } as any);
+    mockDb.updateAttestation.mockResolvedValue(undefined);
+    mockDb.createAuditEvent.mockResolvedValue(undefined);
+
+    const caller = bankCreditRouter.createCaller(createBankContext());
+    const result = await caller.issueFinalCreditAttestation({ creditFileId: 61 });
+
+    expect(result.attestationId).toBe(901);
+    expect(mockStoragePut).toHaveBeenCalledOnce();
+    expect(mockDb.createVerifyToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tokenType: "document",
+        targetId: 901,
+      })
+    );
+    expect(mockDb.createAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "credit.file.attestation_issued",
+        targetId: 61,
       })
     );
   });

@@ -4,6 +4,7 @@ import { CreditTimeline, type CreditTimelineEvent } from "@/components/citizen/C
 import { BankCreditDocumentsPanel } from "@/components/bank/BankCreditDocumentsPanel";
 import { BankCreditFileSummary } from "@/components/bank/BankCreditFileSummary";
 import { BankDecisionCard } from "@/components/bank/BankDecisionCard";
+import { BankFinalAttestationCard } from "@/components/bank/BankFinalAttestationCard";
 import { BankOfferCard } from "@/components/bank/BankOfferCard";
 import { BankRequestDocsCard } from "@/components/bank/BankRequestDocsCard";
 import { BankReviewActionCard } from "@/components/bank/BankReviewActionCard";
@@ -47,6 +48,11 @@ export default function BankCreditFileDetailPage() {
     },
   });
   const decideMutation = trpc.bankCredit.decideCreditFile.useMutation({
+    onSuccess: async () => {
+      await Promise.all([detailQuery.refetch(), utils.bankCredit.listBankCreditFiles.invalidate()]);
+    },
+  });
+  const issueAttestationMutation = trpc.bankCredit.issueFinalCreditAttestation.useMutation({
     onSuccess: async () => {
       await Promise.all([detailQuery.refetch(), utils.bankCredit.listBankCreditFiles.invalidate()]);
     },
@@ -117,6 +123,15 @@ export default function BankCreditFileDetailPage() {
           title: "Dossier pris en revue",
           description: "La revue bancaire a ete demarree.",
           at: file.lastTransitionAt ?? file.submittedAt ?? file.createdAt,
+          tone: "success" as const,
+        }]
+      : []),
+    ...(file.finalAttestation
+      ? [{
+          id: `attestation-${file.finalAttestation.id}`,
+          title: "Attestation finale emise",
+          description: `Document ${file.finalAttestation.documentRef ?? "final"} disponible.`,
+          at: file.finalAttestation.issuedAt ?? file.lastTransitionAt ?? file.createdAt,
           tone: "success" as const,
         }]
       : []),
@@ -210,6 +225,14 @@ export default function BankCreditFileDetailPage() {
                 decisionType: input.decisionType,
                 reason: input.reason,
               });
+            }}
+          />
+          <BankFinalAttestationCard
+            status={file.status}
+            finalAttestation={file.finalAttestation}
+            isPending={issueAttestationMutation.isPending}
+            onIssue={async () => {
+              await issueAttestationMutation.mutateAsync({ creditFileId });
             }}
           />
         </div>

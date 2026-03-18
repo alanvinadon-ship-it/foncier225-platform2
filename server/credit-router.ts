@@ -11,6 +11,7 @@ import {
   getCreditOfferById,
   getCreditDocumentByFileAndType,
   getCreditFileByIdAndOwner,
+  getLatestCreditAttestationByFile,
   getLatestCreditDecisionByFile,
   getLatestCreditOfferByFile,
   getParcelById,
@@ -189,11 +190,12 @@ export const creditRouter = router({
     .query(async ({ input, ctx }) => {
       assertCreditEnabled();
       const file = await verifyCreditFileOwnership(input.creditFileId, ctx.user.id);
-      const [linkedParcel, requests, latestOffer, latestDecision] = await Promise.all([
+      const [linkedParcel, requests, latestOffer, latestDecision, finalAttestation] = await Promise.all([
         file.parcelId ? getParcelById(file.parcelId) : Promise.resolve(null),
         listCreditRequestsByFile(file.id),
         getLatestCreditOfferByFile(file.id),
         getLatestCreditDecisionByFile(file.id),
+        getLatestCreditAttestationByFile(file.id),
       ]);
 
       return {
@@ -235,6 +237,20 @@ export const creditRouter = router({
               decisionType: latestDecision.decisionType,
               reason: latestDecision.reason,
               decidedAt: latestDecision.decidedAt,
+            }
+          : null,
+        finalAttestation: finalAttestation
+          ? {
+              id: finalAttestation.id,
+              status: finalAttestation.status,
+              documentRef: finalAttestation.documentRef,
+              finalDecisionType: finalAttestation.finalDecisionType,
+              issuedAt: finalAttestation.issuedAt,
+              verifyCode: finalAttestation.verifyCode,
+              verifyUrl: finalAttestation.verifyCode
+                ? `/verify?token=${encodeURIComponent(finalAttestation.verifyCode)}`
+                : null,
+              fileUrl: finalAttestation.fileUrl,
             }
           : null,
       };

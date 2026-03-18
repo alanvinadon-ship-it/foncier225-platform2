@@ -3,11 +3,17 @@ import { isFeatureEnabled } from "@shared/featureFlags";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { bankProcedure, router } from "./_core/trpc";
+import { CreditAttestationService } from "./credit-attestation.service";
 import { CreditChecklistService } from "./credit-checklist.service";
 import { CreditWorkflowService } from "./credit-workflow.service";
 import {
+  createAttestation,
   createAuditEvent,
+  createDocument,
+  createVerifyToken,
+  getCreditAttestationByDecision,
   getCreditFileById,
+  getLatestCreditAttestationByFile,
   getLatestCreditDecisionByFile,
   getLatestCreditOfferByFile,
   getParcelById,
@@ -19,9 +25,11 @@ import {
   listCreditFilesByStatuses,
   listCreditOffersByFile,
   listCreditRequestsByFile,
+  updateAttestation,
   updateCreditOffer,
   updateCreditFileStatus,
 } from "./db";
+import { storagePut } from "./storage";
 import type { CreditFile } from "../drizzle/schema";
 
 function assertCreditEnabled() {
@@ -65,11 +73,20 @@ async function getReadableBankCreditFile(creditFileId: number) {
   return file;
 }
 
+function getBaseUrlFromRequest(req: { protocol?: string; get?: (name: string) => string | undefined; headers: Record<string, unknown> }) {
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  const proto = typeof forwardedProto === "string"
+    ? forwardedProto.split(",")[0]
+    : req.protocol || "https";
+  const host = req.get?.("host") || String(req.headers.host || "");
+  return host ? `${proto}://${host}` : "http://localhost:3000";
+}
+
 export const bankCreditRouter = router({
   listBankCreditFiles: bankProcedure
     .input(
       z.object({
-        statuses: z.array(z.enum(["SUBMITTED", "UNDER_REVIEW", "DOCS_PENDING", "OFFERED", "ACCEPTED"])).default(["SUBMITTED"]),
+        statuses: z.array(z.enum(["SUBMITTED", "UNDER_REVIEW", "DOCS_PENDING", "OFFERED", "ACCEPTED", "APPROVED", "REJECTED"])).default(["SUBMITTED"]),
         limit: z.number().int().min(1).max(100).default(20),
         offset: z.number().int().min(0).default(0),
       })
@@ -115,7 +132,7 @@ export const bankCreditRouter = router({
       assertCreditEnabled();
 
       const file = await getReadableBankCreditFile(input.creditFileId);
-      const [parcel, applicant, checklist, documents, requests, latestOffer, latestDecision] = await Promise.all([
+      const [parcel, applicant, checklist, documents, requests, latestOffer, latestDecision, finalAttestation] = await Promise.all([
         file.parcelId ? getParcelById(file.parcelId) : Promise.resolve(null),
         getUserById(file.initiatorId),
         CreditChecklistService.getChecklistStatus(
@@ -126,6 +143,7 @@ export const bankCreditRouter = router({
         listCreditRequestsByFile(file.id),
         getLatestCreditOfferByFile(file.id),
         getLatestCreditDecisionByFile(file.id),
+        getLatestCreditAttestationByFile(file.id),
       ]);
 
       await createAuditEvent({
@@ -187,6 +205,21 @@ export const bankCreditRouter = router({
               decisionType: latestDecision.decisionType,
               reason: latestDecision.reason,
               decidedAt: latestDecision.decidedAt,
+            }
+          : null,
+        finalAttestation: finalAttestation
+          ? {
+              id: finalAttestation.id,
+              status: finalAttestation.status,
+              documentRef: finalAttestation.documentRef,
+              finalDecisionType: finalAttestation.finalDecisionType,
+              issuedAt: finalAttestation.issuedAt,
+              verifyCode: finalAttestation.verifyCode,
+              verifyUrl: finalAttestation.verifyCode
+                ? CreditAttestationService.buildVerifyUrl(getBaseUrlFromRequest(ctx.req), finalAttestation.verifyCode)
+                : null,
+              fileUrl: finalAttestation.fileUrl,
+              fileKey: finalAttestation.fileKey,
             }
           : null,
         documents: documents.map(document => ({
@@ -482,6 +515,163 @@ export const bankCreditRouter = router({
         creditFileId: file.id,
         decisionId: createdDecision?.id,
         status: newStatus,
+      };
+    }),
+
+  issueFinalCreditAttestation: bankProcedure
+    .input(z.object({ creditFileId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      assertCreditEnabled();
+      const file = await getCreditFileById(input.creditFileId);
+      if (!file) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Dossier credit introuvable." });
+      }
+
+      const currentStatus = file.status as CreditFileStatus;
+      if (currentStatus !== CreditFileStatus.APPROVED && currentStatus !== CreditFileStatus.REJECTED) {
+        await auditBankCreditError({
+          actorId: ctx.user.id,
+          actorRole: ctx.user.role,
+          creditFileId: file.id,
+          reason: "invalid_attestation_issue_status",
+          details: { currentStatus },
+        });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "L'attestation finale ne peut etre emise qu'apres une decision finale.",
+        });
+      }
+
+      const decision = await getLatestCreditDecisionByFile(file.id);
+      if (!decision) {
+        await auditBankCreditError({
+          actorId: ctx.user.id,
+          actorRole: ctx.user.role,
+          creditFileId: file.id,
+          reason: "missing_final_decision",
+        });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Aucune decision finale persistante n'est disponible pour ce dossier.",
+        });
+      }
+      if (decision.decisionType !== currentStatus) {
+        await auditBankCreditError({
+          actorId: ctx.user.id,
+          actorRole: ctx.user.role,
+          creditFileId: file.id,
+          reason: "decision_status_mismatch",
+          details: {
+            currentStatus,
+            decisionType: decision.decisionType,
+          },
+        });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "La decision finale persistante ne correspond pas a l'etat courant du dossier.",
+        });
+      }
+
+      const existing = await getCreditAttestationByDecision(decision.id);
+      if (existing) {
+        return {
+          creditFileId: file.id,
+          attestationId: existing.id,
+          issuedAt: existing.issuedAt,
+          documentRef: existing.documentRef,
+          status: existing.status,
+        };
+      }
+
+      const issuedAt = new Date();
+      const documentRef = CreditAttestationService.generateDocumentRef();
+      const verifyCode = CreditAttestationService.generateVerifyCode();
+      const verifyUrl = CreditAttestationService.buildVerifyUrl(getBaseUrlFromRequest(ctx.req), verifyCode);
+      const pdf = CreditAttestationService.buildFinalAttestationPdf({
+        documentRef,
+        creditPublicRef: file.publicRef ?? `CF-${file.id}`,
+        decisionType: decision.decisionType,
+        decidedAt: decision.decidedAt,
+        issuedAt,
+        verifyCode,
+        verifyUrl,
+        parcelReference: file.parcelId ? (await getParcelById(file.parcelId))?.reference ?? null : null,
+        summary: decision.reason,
+      });
+
+      const fileKey = `credit-attestations/${file.initiatorId}/${file.id}/${documentRef}.pdf`;
+      const uploaded = await storagePut(fileKey, pdf.buffer, "application/pdf");
+
+      const linkedDocument = file.parcelId
+        ? await createDocument({
+            parcelId: file.parcelId,
+            ownerId: file.initiatorId,
+            title: `Attestation finale credit ${file.publicRef ?? file.id}`,
+            description: `Decision ${decision.decisionType} - ${documentRef}`,
+            documentType: "attestation",
+            fileUrl: uploaded.url,
+            fileKey: uploaded.key,
+            mimeType: "application/pdf",
+            fileSize: pdf.buffer.length,
+            status: "published",
+            createdById: ctx.user.id,
+          })
+        : null;
+
+      const attestation = await createAttestation({
+        parcelId: file.parcelId ?? null,
+        creditFileId: file.id,
+        decisionId: decision.id,
+        documentId: linkedDocument?.id ?? null,
+        attestationType: "credit",
+        tokenId: null,
+        status: "issued",
+        documentRef,
+        finalDecisionType: decision.decisionType,
+        verifyCode,
+        checksumSha256: pdf.checksumSha256,
+        fileUrl: uploaded.url,
+        fileKey: uploaded.key,
+        issuedAt,
+        metadata: {
+          creditFilePublicRef: file.publicRef,
+          linkedDocumentId: linkedDocument?.id ?? null,
+        },
+        createdById: ctx.user.id,
+      });
+
+      const verifyToken = await createVerifyToken({
+        tokenHash: CreditAttestationService.hashVerifyCode(verifyCode),
+        tokenType: "document",
+        targetId: attestation.id,
+        status: "active",
+        issuedMonth: issuedAt.toISOString().slice(0, 7),
+        createdById: ctx.user.id,
+      });
+
+      await updateAttestation(attestation.id, { tokenId: verifyToken.id });
+
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: CREDIT_AUDIT_ACTIONS.FILE_ATTESTATION_ISSUED,
+        targetType: "credit_file",
+        targetId: file.id,
+        details: {
+          attestationId: attestation.id,
+          decisionId: decision.id,
+          documentRef,
+          finalDecisionType: decision.decisionType,
+          timestamp: issuedAt.toISOString(),
+        },
+      });
+
+      return {
+        creditFileId: file.id,
+        attestationId: attestation.id,
+        issuedAt,
+        documentRef,
+        status: "issued" as const,
       };
     }),
 });

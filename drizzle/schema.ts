@@ -118,6 +118,7 @@ export const verifyTokens = mysqlTable("verify_tokens", {
     "notary",
     "export",
     "parcel",
+    "document",
   ]).notNull(),
   targetId: int("targetId").notNull(),
   status: mysqlEnum("status", ["active", "rotated", "revoked"]).default("active").notNull(),
@@ -130,23 +131,39 @@ export const verifyTokens = mysqlTable("verify_tokens", {
 export type VerifyToken = typeof verifyTokens.$inferSelect;
 export type InsertVerifyToken = typeof verifyTokens.$inferInsert;
 
-export const attestations = mysqlTable("attestations", {
-  id: int("id").autoincrement().primaryKey(),
-  parcelId: int("parcelId").notNull().references(() => parcels.id, { onDelete: "restrict" }),
-  attestationType: mysqlEnum("attestationType", [
-    "insurance",
-    "mediation_pv",
-    "notary_act",
-    "terrain_report",
-    "credit",
-  ]).notNull(),
-  tokenId: int("tokenId").references(() => verifyTokens.id, { onDelete: "set null" }),
-  status: mysqlEnum("status", ["draft", "issued", "revoked"]).default("draft").notNull(),
-  issuedAt: timestamp("issuedAt"),
-  metadata: json("metadata").$type<Record<string, unknown>>(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  createdById: int("createdById").references(() => users.id, { onDelete: "set null" }),
-});
+export const attestations = mysqlTable(
+  "attestations",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    parcelId: int("parcelId").references(() => parcels.id, { onDelete: "restrict" }),
+    creditFileId: int("creditFileId").references(() => creditFiles.id, { onDelete: "set null" }),
+    decisionId: int("decisionId").references(() => creditDecisions.id, { onDelete: "set null" }),
+    documentId: int("documentId").references(() => documents.id, { onDelete: "set null" }),
+    attestationType: mysqlEnum("attestationType", [
+      "insurance",
+      "mediation_pv",
+      "notary_act",
+      "terrain_report",
+      "credit",
+    ]).notNull(),
+    tokenId: int("tokenId").references(() => verifyTokens.id, { onDelete: "set null" }),
+    status: mysqlEnum("status", ["draft", "issued", "revoked"]).default("draft").notNull(),
+    documentRef: varchar("documentRef", { length: 64 }),
+    finalDecisionType: mysqlEnum("finalDecisionType", ["APPROVED", "REJECTED"]),
+    verifyCode: varchar("verifyCode", { length: 128 }),
+    checksumSha256: varchar("checksumSha256", { length: 64 }),
+    fileUrl: varchar("fileUrl", { length: 512 }),
+    fileKey: varchar("fileKey", { length: 256 }),
+    issuedAt: timestamp("issuedAt"),
+    metadata: json("metadata").$type<Record<string, unknown>>(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    createdById: int("createdById").references(() => users.id, { onDelete: "set null" }),
+  },
+  table => ({
+    creditFileIdx: index("idx_attestations_credit_file").on(table.creditFileId),
+    decisionIdx: index("idx_attestations_decision").on(table.decisionId),
+  })
+);
 
 export type Attestation = typeof attestations.$inferSelect;
 export type InsertAttestation = typeof attestations.$inferInsert;
