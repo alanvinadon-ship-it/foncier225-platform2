@@ -375,7 +375,7 @@ const adminRouter = router({
 
   generateVerifyToken: adminProcedure
     .input(z.object({
-      tokenType: z.enum(["insurance", "mediation", "notary", "export", "parcel"]),
+      tokenType: z.enum(["insurance", "mediation", "notary", "export", "parcel", "document"]),
       targetId: z.number(),
       expiresInDays: z.number().default(90),
     }))
