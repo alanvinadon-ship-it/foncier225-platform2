@@ -9,7 +9,7 @@ import {
   auditEvents, InsertAuditEvent,
   verifyRateLimits,
   documents, InsertDocument,
-  creditFiles, InsertCreditFile,
+  creditFiles, CreditFile, InsertCreditFile,
   creditFileParticipants, InsertCreditFileParticipant,
   creditDocuments, InsertCreditDocument,
   creditRequests, InsertCreditRequest,
@@ -454,7 +454,7 @@ export async function listCreditFilesByOwner(ownerId: number, limit = 10, offset
 }
 
 export async function listCreditFilesByStatuses(
-  statuses: Array<"SUBMITTED" | "UNDER_REVIEW">,
+  statuses: CreditFile["status"][],
   limit = 20,
   offset = 0
 ) {
@@ -525,17 +525,106 @@ export async function updateCreditFileStatus(
 export async function insertCreditRequest(request: InsertCreditRequest) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.insert(creditRequests).values(request);
+  const result = await db.insert(creditRequests).values(request);
+  const requestId = Number((result as { insertId?: number }).insertId);
+  const created = await db.select().from(creditRequests).where(eq(creditRequests.id, requestId)).limit(1);
+  return created[0];
 }
 
 export async function insertCreditOffer(offer: InsertCreditOffer) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.insert(creditOffers).values(offer);
+  const result = await db.insert(creditOffers).values(offer);
+  const offerId = Number((result as { insertId?: number }).insertId);
+  const created = await db.select().from(creditOffers).where(eq(creditOffers.id, offerId)).limit(1);
+  return created[0];
 }
 
 export async function insertCreditDecision(decision: InsertCreditDecision) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  await db.insert(creditDecisions).values(decision);
+  const result = await db.insert(creditDecisions).values(decision);
+  const decisionId = Number((result as { insertId?: number }).insertId);
+  const created = await db.select().from(creditDecisions).where(eq(creditDecisions.id, decisionId)).limit(1);
+  return created[0];
+}
+
+export async function listCreditRequestsByFile(creditFileId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(creditRequests)
+    .where(eq(creditRequests.creditFileId, creditFileId))
+    .orderBy(desc(creditRequests.createdAt));
+}
+
+export async function updateCreditRequestsByFile(
+  creditFileId: number,
+  values: Partial<InsertCreditRequest>,
+  onlyStatus?: "pending" | "fulfilled" | "expired"
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const whereClause = onlyStatus
+    ? and(eq(creditRequests.creditFileId, creditFileId), eq(creditRequests.status, onlyStatus))
+    : eq(creditRequests.creditFileId, creditFileId);
+  await db.update(creditRequests).set(values).where(whereClause);
+}
+
+export async function listCreditOffersByFile(creditFileId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(creditOffers)
+    .where(eq(creditOffers.creditFileId, creditFileId))
+    .orderBy(desc(creditOffers.createdAt));
+}
+
+export async function getLatestCreditOfferByFile(creditFileId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(creditOffers)
+    .where(eq(creditOffers.creditFileId, creditFileId))
+    .orderBy(desc(creditOffers.createdAt))
+    .limit(1);
+  return result[0];
+}
+
+export async function getCreditOfferById(offerId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(creditOffers).where(eq(creditOffers.id, offerId)).limit(1);
+  return result[0];
+}
+
+export async function updateCreditOffer(offerId: number, values: Partial<InsertCreditOffer>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(creditOffers).set(values).where(eq(creditOffers.id, offerId));
+}
+
+export async function listCreditDecisionsByFile(creditFileId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(creditDecisions)
+    .where(eq(creditDecisions.creditFileId, creditFileId))
+    .orderBy(desc(creditDecisions.createdAt));
+}
+
+export async function getLatestCreditDecisionByFile(creditFileId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(creditDecisions)
+    .where(eq(creditDecisions.creditFileId, creditFileId))
+    .orderBy(desc(creditDecisions.createdAt))
+    .limit(1);
+  return result[0];
 }

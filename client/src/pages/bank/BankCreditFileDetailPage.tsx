@@ -1,11 +1,15 @@
 import { CreditCompletenessPanel } from "@/components/citizen/CreditCompletenessPanel";
+import { CreditRequestsPanel } from "@/components/citizen/CreditRequestsPanel";
 import { CreditTimeline, type CreditTimelineEvent } from "@/components/citizen/CreditTimeline";
 import { BankCreditDocumentsPanel } from "@/components/bank/BankCreditDocumentsPanel";
 import { BankCreditFileSummary } from "@/components/bank/BankCreditFileSummary";
+import { BankDecisionCard } from "@/components/bank/BankDecisionCard";
+import { BankOfferCard } from "@/components/bank/BankOfferCard";
+import { BankRequestDocsCard } from "@/components/bank/BankRequestDocsCard";
 import { BankReviewActionCard } from "@/components/bank/BankReviewActionCard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { REQUIRED_DOCUMENTS_BY_PRODUCT, type CreditProductType } from "@shared/credit-types";
+import { REQUIRED_DOCUMENTS_BY_PRODUCT, type CreditDocumentType, type CreditProductType } from "@shared/credit-types";
 import { trpc } from "@/lib/trpc";
 import { AlertCircle, ArrowLeft, UserRound } from "lucide-react";
 import { Link, useParams } from "wouter";
@@ -30,6 +34,21 @@ export default function BankCreditFileDetailPage() {
         detailQuery.refetch(),
         utils.bankCredit.listBankCreditFiles.invalidate(),
       ]);
+    },
+  });
+  const requestDocsMutation = trpc.bankCredit.requestDocsForCreditFile.useMutation({
+    onSuccess: async () => {
+      await Promise.all([detailQuery.refetch(), utils.bankCredit.listBankCreditFiles.invalidate()]);
+    },
+  });
+  const makeOfferMutation = trpc.bankCredit.makeCreditOffer.useMutation({
+    onSuccess: async () => {
+      await Promise.all([detailQuery.refetch(), utils.bankCredit.listBankCreditFiles.invalidate()]);
+    },
+  });
+  const decideMutation = trpc.bankCredit.decideCreditFile.useMutation({
+    onSuccess: async () => {
+      await Promise.all([detailQuery.refetch(), utils.bankCredit.listBankCreditFiles.invalidate()]);
     },
   });
 
@@ -125,6 +144,7 @@ export default function BankCreditFileDetailPage() {
             optionalDocumentTypes={optionalDocumentTypes}
             uploadedDocumentTypes={uploadedDocumentTypes}
           />
+          <CreditRequestsPanel requests={file.requests} />
           <BankCreditDocumentsPanel documents={file.documents} />
           <CreditTimeline events={timelineEvents} />
         </div>
@@ -152,6 +172,44 @@ export default function BankCreditFileDetailPage() {
             errorMessage={reviewMutation.error?.message ?? null}
             onConfirm={async () => {
               await reviewMutation.mutateAsync({ creditFileId });
+            }}
+          />
+          <BankRequestDocsCard
+            status={file.status}
+            isPending={requestDocsMutation.isPending}
+            onSubmit={async input => {
+              await requestDocsMutation.mutateAsync({
+                creditFileId,
+                requestType: "DOCUMENT_REQUEST",
+                message: input.message,
+                requestedDocumentTypes: input.requestedDocumentTypes as CreditDocumentType[],
+              });
+            }}
+          />
+          <BankOfferCard
+            status={file.status}
+            currentOffer={file.latestOffer}
+            isPending={makeOfferMutation.isPending}
+            onSubmit={async input => {
+              await makeOfferMutation.mutateAsync({
+                creditFileId,
+                apr: input.apr,
+                monthlyPaymentXof: input.monthlyPaymentXof,
+                conditionsText: input.conditionsText,
+                expiresAt: input.expiresAt,
+              });
+            }}
+          />
+          <BankDecisionCard
+            status={file.status}
+            latestDecision={file.latestDecision}
+            isPending={decideMutation.isPending}
+            onDecide={async input => {
+              await decideMutation.mutateAsync({
+                creditFileId,
+                decisionType: input.decisionType,
+                reason: input.reason,
+              });
             }}
           />
         </div>

@@ -3,8 +3,11 @@ import type { TrpcContext } from "./_core/context";
 
 vi.mock("./db", () => ({
   createAuditEvent: vi.fn(),
+  getCreditOfferById: vi.fn(),
   getCreditDocumentByFileAndType: vi.fn(),
   getCreditFileByIdAndOwner: vi.fn(),
+  getLatestCreditDecisionByFile: vi.fn(),
+  getLatestCreditOfferByFile: vi.fn(),
   getParcelById: vi.fn(),
   insertCreditDocument: vi.fn(),
   insertCreditFile: vi.fn(),
@@ -12,6 +15,9 @@ vi.mock("./db", () => ({
   listCreditDocumentsByFile: vi.fn(),
   listCreditFileParticipants: vi.fn(),
   listCreditFilesByOwner: vi.fn(),
+  listCreditRequestsByFile: vi.fn(),
+  updateCreditRequestsByFile: vi.fn(),
+  updateCreditOffer: vi.fn(),
   updateCreditDocument: vi.fn(),
   updateCreditFileStatus: vi.fn(),
 }));
@@ -332,6 +338,58 @@ describe("credit router", () => {
           reason: "document_upload_locked",
         }),
       })
+    );
+  });
+
+  it("accepts an offer for the owner and moves file to accepted", async () => {
+    mockDb.getCreditFileByIdAndOwner.mockResolvedValue({
+      id: 60,
+      status: "OFFERED",
+      productType: "STANDARD",
+    } as any);
+    mockDb.getCreditOfferById.mockResolvedValue({
+      id: 600,
+      creditFileId: 60,
+      status: "pending",
+      expiresAt: new Date(Date.now() + 86_400_000),
+    } as any);
+    mockDb.updateCreditOffer.mockResolvedValue(undefined);
+    mockDb.updateCreditFileStatus.mockResolvedValue(undefined);
+    mockDb.createAuditEvent.mockResolvedValue(undefined);
+
+    const caller = creditRouter.createCaller(createCitizenContext());
+    const result = await caller.acceptCreditOffer({ creditFileId: 60, offerId: 600 });
+
+    expect(result.status).toBe("ACCEPTED");
+    expect(mockDb.updateCreditOffer).toHaveBeenCalledWith(
+      600,
+      expect.objectContaining({ status: "accepted" })
+    );
+  });
+
+  it("rejects an offer for the owner and closes file", async () => {
+    mockDb.getCreditFileByIdAndOwner.mockResolvedValue({
+      id: 61,
+      status: "OFFERED",
+      productType: "STANDARD",
+    } as any);
+    mockDb.getCreditOfferById.mockResolvedValue({
+      id: 610,
+      creditFileId: 61,
+      status: "pending",
+      expiresAt: new Date(Date.now() + 86_400_000),
+    } as any);
+    mockDb.updateCreditOffer.mockResolvedValue(undefined);
+    mockDb.updateCreditFileStatus.mockResolvedValue(undefined);
+    mockDb.createAuditEvent.mockResolvedValue(undefined);
+
+    const caller = creditRouter.createCaller(createCitizenContext());
+    const result = await caller.rejectCreditOffer({ creditFileId: 61, offerId: 610 });
+
+    expect(result.status).toBe("CLOSED");
+    expect(mockDb.updateCreditOffer).toHaveBeenCalledWith(
+      610,
+      expect.objectContaining({ status: "rejected" })
     );
   });
 });

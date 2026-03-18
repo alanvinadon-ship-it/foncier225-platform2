@@ -5,7 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { Building2, Filter } from "lucide-react";
 import { useState } from "react";
 
-type BankQueueStatus = "SUBMITTED" | "UNDER_REVIEW";
+type BankQueueStatus = "SUBMITTED" | "UNDER_REVIEW" | "DOCS_PENDING" | "OFFERED" | "ACCEPTED";
 
 export default function BankCreditFilesPage() {
   const [statuses, setStatuses] = useState<BankQueueStatus[]>(["SUBMITTED"]);
@@ -61,6 +61,30 @@ export default function BankCreditFilesPage() {
           variant={statuses.includes("UNDER_REVIEW") ? "default" : "outline"}
         >
           UNDER_REVIEW
+        </Button>
+        <Button
+          className={statuses.includes("DOCS_PENDING") ? "bg-sky-700 hover:bg-sky-800" : ""}
+          onClick={() => toggleStatus("DOCS_PENDING")}
+          size="sm"
+          variant={statuses.includes("DOCS_PENDING") ? "default" : "outline"}
+        >
+          DOCS_PENDING
+        </Button>
+        <Button
+          className={statuses.includes("OFFERED") ? "bg-sky-700 hover:bg-sky-800" : ""}
+          onClick={() => toggleStatus("OFFERED")}
+          size="sm"
+          variant={statuses.includes("OFFERED") ? "default" : "outline"}
+        >
+          OFFERED
+        </Button>
+        <Button
+          className={statuses.includes("ACCEPTED") ? "bg-sky-700 hover:bg-sky-800" : ""}
+          onClick={() => toggleStatus("ACCEPTED")}
+          size="sm"
+          variant={statuses.includes("ACCEPTED") ? "default" : "outline"}
+        >
+          ACCEPTED
         </Button>
       </div>
 

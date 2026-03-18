@@ -1,6 +1,8 @@
 import { CreditDocumentUploader, CreditStatusBadge, CreditSummaryCard, formatCreditProduct } from "@/components/citizen/credit-ui";
 import { CreditCompletenessPanel } from "@/components/citizen/CreditCompletenessPanel";
 import { CreditDocumentsList } from "@/components/citizen/CreditDocumentsList";
+import { CreditOfferPanel } from "@/components/citizen/CreditOfferPanel";
+import { CreditRequestsPanel } from "@/components/citizen/CreditRequestsPanel";
 import { CreditSubmissionBanner } from "@/components/citizen/CreditSubmissionBanner";
 import { CreditSubmitDialog } from "@/components/citizen/CreditSubmitDialog";
 import { CreditTimeline, type CreditTimelineEvent } from "@/components/citizen/CreditTimeline";
@@ -49,6 +51,26 @@ export default function CitizenCreditFileDetail() {
   const addDocumentMutation = trpc.credit.addCreditDocument.useMutation({
     onSuccess: async (_result, variables) => {
       setUploadFeedback(`Le document ${variables.documentType} a ete rattache au dossier.`);
+      await Promise.all([
+        creditFileQuery.refetch(),
+        checklistQuery.refetch(),
+        documentsQuery.refetch(),
+        utils.credit.listMyCreditFiles.invalidate(),
+      ]);
+    },
+  });
+  const acceptOfferMutation = trpc.credit.acceptCreditOffer.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        creditFileQuery.refetch(),
+        checklistQuery.refetch(),
+        documentsQuery.refetch(),
+        utils.credit.listMyCreditFiles.invalidate(),
+      ]);
+    },
+  });
+  const rejectOfferMutation = trpc.credit.rejectCreditOffer.useMutation({
+    onSuccess: async () => {
       await Promise.all([
         creditFileQuery.refetch(),
         checklistQuery.refetch(),
@@ -126,6 +148,29 @@ export default function CitizenCreditFileDetail() {
           tone: "success" as const,
         }]
       : []),
+    ...file.requests.map(request => ({
+      id: `request-${request.id}`,
+      title: "Demande de complements",
+      description: request.message,
+      at: request.createdAt,
+    })),
+    ...(file.latestOffer
+      ? [{
+          id: `offer-${file.latestOffer.id}`,
+          title: "Offre recue",
+          description: "Une offre bancaire est disponible pour ce dossier.",
+          at: file.latestOffer.createdAt ?? file.lastTransitionAt ?? file.createdAt,
+        }]
+      : []),
+    ...(file.latestDecision
+      ? [{
+          id: `decision-${file.latestDecision.id}`,
+          title: `Decision ${file.latestDecision.decisionType}`,
+          description: file.latestDecision.reason ?? "Decision finale enregistree.",
+          at: file.latestDecision.decidedAt,
+          tone: "success" as const,
+        }]
+      : []),
   ].sort((left, right) => {
     const leftTime = left.at ? new Date(left.at).getTime() : 0;
     const rightTime = right.at ? new Date(right.at).getTime() : 0;
@@ -151,6 +196,16 @@ export default function CitizenCreditFileDetail() {
       </div>
 
       <CreditSubmissionBanner status={file.status} submittedAt={file.submittedAt} />
+
+      {file.status === "DOCS_PENDING" && file.requests.some(request => request.status === "pending") ? (
+        <Alert className="border-amber-200 bg-amber-50 text-amber-950">
+          <AlertCircle className="h-4 w-4 text-amber-700" />
+          <AlertTitle>Complements demandes</AlertTitle>
+          <AlertDescription>
+            La banque a demande des documents ou informations complementaires. Vous pouvez a nouveau ajouter des pieces et re-soumettre le dossier une fois complet.
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       {submitMutation.error ? (
         <Alert variant="destructive">
@@ -259,6 +314,19 @@ export default function CitizenCreditFileDetail() {
       </div>
 
       <CreditDocumentsList documents={documents} isLocked={!canUploadDocuments} />
+      <CreditRequestsPanel requests={file.requests} />
+      <CreditOfferPanel
+        offer={file.latestOffer}
+        status={file.status}
+        isAccepting={acceptOfferMutation.isPending}
+        isRejecting={rejectOfferMutation.isPending}
+        onAccept={async offerId => {
+          await acceptOfferMutation.mutateAsync({ creditFileId, offerId });
+        }}
+        onReject={async offerId => {
+          await rejectOfferMutation.mutateAsync({ creditFileId, offerId });
+        }}
+      />
 
       <CreditTimeline events={timelineEvents} />
     </div>

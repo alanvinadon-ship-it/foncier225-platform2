@@ -8,8 +8,11 @@ import { CreditChecklistService } from "./credit-checklist.service";
 import { CreditWorkflowService } from "./credit-workflow.service";
 import {
   createAuditEvent,
+  getCreditOfferById,
   getCreditDocumentByFileAndType,
   getCreditFileByIdAndOwner,
+  getLatestCreditDecisionByFile,
+  getLatestCreditOfferByFile,
   getParcelById,
   insertCreditDocument,
   insertCreditFile,
@@ -17,6 +20,9 @@ import {
   listCreditDocumentsByFile,
   listCreditFileParticipants,
   listCreditFilesByOwner,
+  listCreditRequestsByFile,
+  updateCreditRequestsByFile,
+  updateCreditOffer,
   updateCreditDocument,
   updateCreditFileStatus,
 } from "./db";
@@ -183,7 +189,12 @@ export const creditRouter = router({
     .query(async ({ input, ctx }) => {
       assertCreditEnabled();
       const file = await verifyCreditFileOwnership(input.creditFileId, ctx.user.id);
-      const linkedParcel = file.parcelId ? await getParcelById(file.parcelId) : null;
+      const [linkedParcel, requests, latestOffer, latestDecision] = await Promise.all([
+        file.parcelId ? getParcelById(file.parcelId) : Promise.resolve(null),
+        listCreditRequestsByFile(file.id),
+        getLatestCreditOfferByFile(file.id),
+        getLatestCreditDecisionByFile(file.id),
+      ]);
 
       return {
         id: file.id,
@@ -198,6 +209,34 @@ export const creditRouter = router({
         closedAt: file.closedAt,
         parcelId: file.parcelId,
         parcelReference: linkedParcel?.reference ?? null,
+        requests: requests.map(request => ({
+          id: request.id,
+          requestType: request.requestType,
+          message: request.message,
+          requestedDocumentTypes: request.requestedDocumentTypes,
+          status: request.status,
+          createdAt: request.createdAt,
+          resolvedAt: request.resolvedAt,
+        })),
+        latestOffer: latestOffer
+          ? {
+              id: latestOffer.id,
+              status: latestOffer.status,
+              apr: latestOffer.apr,
+              monthlyPaymentXof: latestOffer.monthlyPaymentXof,
+              conditionsText: latestOffer.conditionsText,
+              expiresAt: latestOffer.expiresAt,
+              createdAt: latestOffer.createdAt,
+            }
+          : null,
+        latestDecision: latestDecision
+          ? {
+              id: latestDecision.id,
+              decisionType: latestDecision.decisionType,
+              reason: latestDecision.reason,
+              decidedAt: latestDecision.decidedAt,
+            }
+          : null,
       };
     }),
 
@@ -258,6 +297,12 @@ export const creditRouter = router({
         submittedAt: new Date(),
         lastTransitionAt: new Date(),
       });
+      if (currentStatus === CreditFileStatus.DOCS_PENDING) {
+        await updateCreditRequestsByFile(input.creditFileId, {
+          status: "fulfilled",
+          resolvedAt: new Date(),
+        }, "pending");
+      }
 
       await createAuditEvent({
         actorId: ctx.user.id,
@@ -552,5 +597,152 @@ export const creditRouter = router({
         consentGiven: participant.consentGiven,
         consentGivenAt: participant.consentGivenAt,
       }));
+    }),
+
+  acceptCreditOffer: protectedProcedure
+    .input(z.object({ creditFileId: z.number().int().positive(), offerId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      assertCreditEnabled();
+      const file = await verifyCreditFileOwnership(input.creditFileId, ctx.user.id);
+      const currentStatus = file.status as CreditFileStatus;
+
+      if (currentStatus !== CreditFileStatus.OFFERED) {
+        await auditCreditFileError({
+          actorId: ctx.user.id,
+          actorRole: ctx.user.role,
+          creditFileId: file.id,
+          reason: "invalid_offer_accept_transition",
+          details: { currentStatus, offerId: input.offerId },
+        });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "L'offre ne peut etre acceptee que depuis l'etat OFFERED.",
+        });
+      }
+
+      const offer = await getCreditOfferById(input.offerId);
+      if (!offer || offer.creditFileId !== file.id) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Offre introuvable." });
+      }
+
+      if (offer.status !== "pending") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Cette offre n'est plus active." });
+      }
+
+      if (offer.expiresAt && offer.expiresAt.getTime() <= Date.now()) {
+        await updateCreditOffer(offer.id, { status: "expired" });
+        await createAuditEvent({
+          actorId: ctx.user.id,
+          actorRole: ctx.user.role,
+          action: CREDIT_AUDIT_ACTIONS.OFFER_EXPIRED,
+          targetType: "credit_offer",
+          targetId: offer.id,
+          details: {
+            creditFileId: file.id,
+            timestamp: new Date().toISOString(),
+          },
+        });
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Cette offre est expiree." });
+      }
+
+      await updateCreditOffer(offer.id, {
+        status: "accepted",
+        acceptedAt: new Date(),
+      });
+      const newStatus = CreditWorkflowService.applyTransition(currentStatus, CreditWorkflowEvent.ACCEPT_OFFER);
+      await updateCreditFileStatus(file.id, {
+        status: newStatus,
+        lastTransitionAt: new Date(),
+      });
+
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: CREDIT_AUDIT_ACTIONS.FILE_OFFER_ACCEPTED,
+        targetType: "credit_file",
+        targetId: file.id,
+        details: {
+          offerId: offer.id,
+          previousStatus: currentStatus,
+          newStatus,
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      return { creditFileId: file.id, offerId: offer.id, status: newStatus };
+    }),
+
+  rejectCreditOffer: protectedProcedure
+    .input(z.object({ creditFileId: z.number().int().positive(), offerId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      assertCreditEnabled();
+      const file = await verifyCreditFileOwnership(input.creditFileId, ctx.user.id);
+      const currentStatus = file.status as CreditFileStatus;
+
+      if (currentStatus !== CreditFileStatus.OFFERED) {
+        await auditCreditFileError({
+          actorId: ctx.user.id,
+          actorRole: ctx.user.role,
+          creditFileId: file.id,
+          reason: "invalid_offer_reject_transition",
+          details: { currentStatus, offerId: input.offerId },
+        });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "L'offre ne peut etre refusee que depuis l'etat OFFERED.",
+        });
+      }
+
+      const offer = await getCreditOfferById(input.offerId);
+      if (!offer || offer.creditFileId !== file.id) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Offre introuvable." });
+      }
+
+      if (offer.status !== "pending") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Cette offre n'est plus active." });
+      }
+
+      if (offer.expiresAt && offer.expiresAt.getTime() <= Date.now()) {
+        await updateCreditOffer(offer.id, { status: "expired" });
+        await createAuditEvent({
+          actorId: ctx.user.id,
+          actorRole: ctx.user.role,
+          action: CREDIT_AUDIT_ACTIONS.OFFER_EXPIRED,
+          targetType: "credit_offer",
+          targetId: offer.id,
+          details: {
+            creditFileId: file.id,
+            timestamp: new Date().toISOString(),
+          },
+        });
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Cette offre est expiree." });
+      }
+
+      await updateCreditOffer(offer.id, {
+        status: "rejected",
+        rejectedAt: new Date(),
+      });
+      const newStatus = CreditWorkflowService.applyTransition(currentStatus, CreditWorkflowEvent.REJECT_OFFER);
+      await updateCreditFileStatus(file.id, {
+        status: newStatus,
+        closedAt: new Date(),
+        lastTransitionAt: new Date(),
+      });
+
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: CREDIT_AUDIT_ACTIONS.FILE_OFFER_REJECTED,
+        targetType: "credit_file",
+        targetId: file.id,
+        details: {
+          offerId: offer.id,
+          previousStatus: currentStatus,
+          newStatus,
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      return { creditFileId: file.id, offerId: offer.id, status: newStatus };
     }),
 });

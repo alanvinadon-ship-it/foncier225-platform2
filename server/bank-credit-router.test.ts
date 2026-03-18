@@ -4,10 +4,18 @@ import type { TrpcContext } from "./_core/context";
 vi.mock("./db", () => ({
   createAuditEvent: vi.fn(),
   getCreditFileById: vi.fn(),
+  getLatestCreditDecisionByFile: vi.fn(),
+  getLatestCreditOfferByFile: vi.fn(),
   getParcelById: vi.fn(),
   getUserById: vi.fn(),
+  insertCreditDecision: vi.fn(),
+  insertCreditOffer: vi.fn(),
+  insertCreditRequest: vi.fn(),
   listCreditDocumentsByFile: vi.fn(),
   listCreditFilesByStatuses: vi.fn(),
+  listCreditOffersByFile: vi.fn(),
+  listCreditRequestsByFile: vi.fn(),
+  updateCreditOffer: vi.fn(),
   updateCreditFileStatus: vi.fn(),
 }));
 
@@ -241,5 +249,74 @@ describe("bank credit router", () => {
         targetId: 42,
       })
     );
+  });
+
+  it("requests docs from under review and moves the file to docs pending", async () => {
+    mockDb.getCreditFileById.mockResolvedValue({
+      id: 50,
+      status: "UNDER_REVIEW",
+    } as any);
+    mockDb.insertCreditRequest.mockResolvedValue({ id: 500 } as any);
+    mockDb.updateCreditFileStatus.mockResolvedValue(undefined);
+    mockDb.createAuditEvent.mockResolvedValue(undefined);
+
+    const caller = bankCreditRouter.createCaller(createBankContext());
+    const result = await caller.requestDocsForCreditFile({
+      creditFileId: 50,
+      requestType: "DOCUMENT_REQUEST",
+      message: "Merci d'ajouter un justificatif de revenus a jour.",
+      requestedDocumentTypes: ["PROOF_INCOME"],
+    });
+
+    expect(result.status).toBe("DOCS_PENDING");
+    expect(mockDb.insertCreditRequest).toHaveBeenCalled();
+    expect(mockDb.updateCreditFileStatus).toHaveBeenCalledWith(
+      50,
+      expect.objectContaining({ status: "DOCS_PENDING" })
+    );
+  });
+
+  it("makes an offer from under review", async () => {
+    mockDb.getCreditFileById.mockResolvedValue({
+      id: 51,
+      amountRequestedXof: 5_000_000,
+      durationMonths: 36,
+      status: "UNDER_REVIEW",
+    } as any);
+    mockDb.listCreditOffersByFile.mockResolvedValue([]);
+    mockDb.insertCreditOffer.mockResolvedValue({ id: 510 } as any);
+    mockDb.updateCreditFileStatus.mockResolvedValue(undefined);
+    mockDb.createAuditEvent.mockResolvedValue(undefined);
+
+    const caller = bankCreditRouter.createCaller(createBankContext());
+    const result = await caller.makeCreditOffer({
+      creditFileId: 51,
+      apr: "8.5%",
+      monthlyPaymentXof: 175000,
+      conditionsText: "Offre sous reserve de verification finale.",
+      expiresAt: new Date("2026-06-01"),
+    });
+
+    expect(result.status).toBe("OFFERED");
+    expect(mockDb.insertCreditOffer).toHaveBeenCalled();
+  });
+
+  it("decides a file only from accepted", async () => {
+    mockDb.getCreditFileById.mockResolvedValue({
+      id: 52,
+      status: "ACCEPTED",
+    } as any);
+    mockDb.insertCreditDecision.mockResolvedValue({ id: 520 } as any);
+    mockDb.updateCreditFileStatus.mockResolvedValue(undefined);
+    mockDb.createAuditEvent.mockResolvedValue(undefined);
+
+    const caller = bankCreditRouter.createCaller(createBankContext());
+    const result = await caller.decideCreditFile({
+      creditFileId: 52,
+      decisionType: "APPROVED",
+    });
+
+    expect(result.status).toBe("APPROVED");
+    expect(mockDb.insertCreditDecision).toHaveBeenCalled();
   });
 });
