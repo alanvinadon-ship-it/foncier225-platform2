@@ -86,4 +86,35 @@
 - [x] Ajouter documentation technique docs/CREDIT_MODULE.md
 - [x] Tests : 47 tests credit-workflow + 36 routers + 1 auth = 84 PASS
 - [x] Validation : 0 erreur TypeScript, 84 tests verts
-- [ ] Checkpoint V1.1-03 (en cours)
+- [x] Checkpoint V1.1-03 (1b65b171)
+
+## v1.1-04 — Parcours Citoyen Crédit Habitat (UI + Upload)
+
+- [ ] Analyse existant : citizen layout, routing, storage S3, conventions upload
+- [ ] Backend : route upload S3 pour documents crédit
+- [ ] Page liste dossiers crédit (/citizen/credit)
+- [ ] Page création dossier crédit (/citizen/credit/new)
+- [ ] Page détail dossier crédit (/citizen/credit/:id)
+- [ ] Composant CreditChecklist dynamique (requis/optionnels)
+- [ ] Composant CreditDocumentUploader (upload S3 + rattachement)
+- [ ] Bouton soumission conditionnel (si dossier complet)
+- [ ] Intégration sidebar CitizenLayout + routing App.tsx
+- [ ] Feature flag UI : état propre si désactivé
+- [ ] Tests vitest V1.1-04
+- [ ] Non-régression : tests existants verts, pages existantes intactes
+- [ ] Documentation technique courte
+- [x] Checkpoint V1.1-04 (en cours)
+
+## Résolution conflits Git (fusion changements externes)
+
+- [x] Résolution marqueurs de fusion dans credit-router.ts (6 conflits)
+- [x] Résolution marqueurs de fusion dans featureFlags.ts
+- [x] Résolution marqueurs de fusion dans App.tsx et CitizenLayout.tsx
+- [x] Correction import CreditWorkflowEvent manquant dans credit-router.ts
+- [x] Correction Uint8Array iterable dans credit-ui.tsx
+- [x] Correction CreditFileDetail.tsx : fileData → fileBase64, mimeType → contentType
+- [x] Correction CreditFileDetail.tsx : uploadCreditDocument → addCreditDocument
+- [x] Correction test verify : date expiration future (2027 au lieu de 2025)
+- [x] Correction test verify : accent supprimé (vérification → verification)
+- [x] Correction test bank-credit-router : mocks manquants (listCreditRequestsByFile, etc.)
+- [x] Validation : 132 tests PASS, 0 erreurs TypeScript, serveur OK

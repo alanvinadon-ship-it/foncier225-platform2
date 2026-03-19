@@ -262,7 +262,7 @@ async function fileToBase64(file: File) {
 
   for (let index = 0; index < bytes.length; index += chunkSize) {
     const chunk = bytes.subarray(index, index + chunkSize);
-    binary += String.fromCharCode(...chunk);
+    binary += String.fromCharCode(...Array.from(chunk));
   }
 
   return btoa(binary);

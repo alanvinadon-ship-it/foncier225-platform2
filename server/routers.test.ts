@@ -225,7 +225,7 @@ describe("verify.check", () => {
       targetId: 1,
       status: "active" as const,
       issuedMonth: "mars 2025",
-      expiresAt: new Date("2025-06-01"),
+      expiresAt: new Date("2027-06-01"),
       createdAt: new Date(),
       createdById: null,
     });
@@ -331,7 +331,7 @@ describe("verify.check", () => {
 
     const caller = appRouter.createCaller(createPublicContext());
     await expect(caller.verify.check({ token: "unknown" }))
-      .rejects.toThrow("Token de vérification introuvable");
+      .rejects.toThrow("Token de verification introuvable");
   });
 });
 

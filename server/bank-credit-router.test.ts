@@ -188,6 +188,10 @@ describe("bank credit router", () => {
       completionPercentage: 100,
     });
     mockDb.getLatestCreditAttestationByFile.mockResolvedValue(undefined);
+    mockDb.listCreditRequestsByFile.mockResolvedValue([]);
+    mockDb.listCreditOffersByFile.mockResolvedValue([]);
+    mockDb.getLatestCreditDecisionByFile.mockResolvedValue(undefined);
+    mockDb.getLatestCreditOfferByFile.mockResolvedValue(undefined);
     mockDb.createAuditEvent.mockResolvedValue(undefined);
 
     const caller = bankCreditRouter.createCaller(createBankContext());

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "./_core/trpc";
 import { CreditChecklistService } from "./credit-checklist.service";
 import { CreditWorkflowService } from "./credit-workflow.service";
+import { CreditWorkflowEvent } from "@shared/credit-types";
 import {
   createAuditEvent,
   getCreditOfferById,

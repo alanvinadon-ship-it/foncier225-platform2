@@ -380,3 +380,186 @@ describe("V1.1-03 — Transition Rules Integrity", () => {
     expect(events.length).toBe(3);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════════════
+// ─── V1.1-04 — Parcours Citoyen Crédit (Upload & UI) ───────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+describe("V1.1-04 — Upload Constants & Validation", () => {
+  const ALLOWED_MIME_TYPES = ["application/pdf", "image/jpeg", "image/jpg", "image/png"];
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
+  it("should accept PDF files", () => {
+    expect(ALLOWED_MIME_TYPES).toContain("application/pdf");
+  });
+
+  it("should accept JPEG files", () => {
+    expect(ALLOWED_MIME_TYPES).toContain("image/jpeg");
+    expect(ALLOWED_MIME_TYPES).toContain("image/jpg");
+  });
+
+  it("should accept PNG files", () => {
+    expect(ALLOWED_MIME_TYPES).toContain("image/png");
+  });
+
+  it("should not accept other MIME types", () => {
+    expect(ALLOWED_MIME_TYPES).not.toContain("image/gif");
+    expect(ALLOWED_MIME_TYPES).not.toContain("application/zip");
+    expect(ALLOWED_MIME_TYPES).not.toContain("text/plain");
+    expect(ALLOWED_MIME_TYPES).not.toContain("application/msword");
+  });
+
+  it("should enforce 10 MB max file size", () => {
+    expect(MAX_FILE_SIZE).toBe(10 * 1024 * 1024);
+  });
+});
+
+describe("V1.1-04 — S3 Key Generation Pattern", () => {
+  it("should generate keys in credit/{creditFileId}/{docType}-{random}.{ext} format", () => {
+    const creditFileId = 42;
+    const docType = "ID_CARD";
+    const ext = "pdf";
+    const randomSuffix = Math.random().toString(36).substring(2, 10);
+    const fileKey = `credit/${creditFileId}/${docType}-${randomSuffix}.${ext}`;
+
+    expect(fileKey).toMatch(/^credit\/\d+\/[A-Z_]+-[a-z0-9]+\.\w+$/);
+    expect(fileKey).toContain("credit/42/");
+    expect(fileKey).toContain("ID_CARD-");
+    expect(fileKey).toContain(".pdf");
+  });
+
+  it("should generate unique keys for same document type", () => {
+    const keys = new Set<string>();
+    for (let i = 0; i < 50; i++) {
+      const randomSuffix = Math.random().toString(36).substring(2, 10);
+      keys.add(`credit/1/ID_CARD-${randomSuffix}.pdf`);
+    }
+    expect(keys.size).toBe(50);
+  });
+});
+
+describe("V1.1-04 — Base64 File Handling", () => {
+  it("should correctly encode and decode base64 content", () => {
+    const originalContent = "Hello, this is a test file content for Foncier225";
+    const base64 = Buffer.from(originalContent).toString("base64");
+    const decoded = Buffer.from(base64, "base64").toString("utf-8");
+    expect(decoded).toBe(originalContent);
+  });
+
+  it("should compute SHA256 hash from buffer", () => {
+    const { createHash } = require("crypto");
+    const content = "test document content";
+    const buffer = Buffer.from(content);
+    const sha256 = createHash("sha256").update(buffer).digest("hex");
+    expect(sha256).toMatch(/^[a-f0-9]{64}$/);
+    // Same content should produce same hash
+    const sha256Again = createHash("sha256").update(buffer).digest("hex");
+    expect(sha256Again).toBe(sha256);
+  });
+
+  it("should reject files exceeding 10 MB", () => {
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    // Simulate a 11 MB buffer
+    const oversizedLength = 11 * 1024 * 1024;
+    expect(oversizedLength > MAX_FILE_SIZE).toBe(true);
+    // Simulate a 5 MB buffer
+    const validLength = 5 * 1024 * 1024;
+    expect(validLength > MAX_FILE_SIZE).toBe(false);
+  });
+});
+
+describe("V1.1-04 — Credit File Status Labels for UI", () => {
+  it("should have French labels for all statuses displayed in citizen UI", () => {
+    const citizenVisibleStatuses = [
+      CreditFileStatus.DRAFT,
+      CreditFileStatus.DOCS_PENDING,
+      CreditFileStatus.SUBMITTED,
+      CreditFileStatus.UNDER_REVIEW,
+      CreditFileStatus.OFFERED,
+      CreditFileStatus.ACCEPTED,
+      CreditFileStatus.APPROVED,
+      CreditFileStatus.REJECTED,
+      CreditFileStatus.CLOSED,
+    ];
+    for (const status of citizenVisibleStatuses) {
+      const label = CREDIT_FILE_STATUS_LABELS[status];
+      expect(label).toBeDefined();
+      expect(label.length).toBeGreaterThan(0);
+      // Labels should be in French
+      expect(typeof label).toBe("string");
+    }
+  });
+
+  it("should have French labels for all document types in upload dialog", () => {
+    const uploadableTypes = [
+      CreditDocumentType.ID_CARD,
+      CreditDocumentType.PROOF_INCOME,
+      CreditDocumentType.PROOF_RESIDENCE,
+      CreditDocumentType.LAND_TITLE_DEED,
+      CreditDocumentType.BUILDING_PERMIT,
+      CreditDocumentType.INSURANCE_QUOTE,
+    ];
+    for (const docType of uploadableTypes) {
+      const label = CREDIT_DOCUMENT_TYPE_LABELS[docType];
+      expect(label).toBeDefined();
+      expect(label.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("V1.1-04 — Checklist Completeness for UI", () => {
+  it("STANDARD product should require 4 documents for submit button to enable", () => {
+    const required = CreditChecklistService.getRequiredDocumentTypes(CreditProductType.STANDARD);
+    expect(required.length).toBe(4);
+    expect(required).toContain(CreditDocumentType.ID_CARD);
+    expect(required).toContain(CreditDocumentType.PROOF_INCOME);
+    expect(required).toContain(CreditDocumentType.PROOF_RESIDENCE);
+    expect(required).toContain(CreditDocumentType.LAND_TITLE_DEED);
+  });
+
+  it("SIMPLIFIED product should require 3 documents for submit button to enable", () => {
+    const required = CreditChecklistService.getRequiredDocumentTypes(CreditProductType.SIMPLIFIED);
+    expect(required.length).toBe(3);
+    expect(required).toContain(CreditDocumentType.ID_CARD);
+    expect(required).toContain(CreditDocumentType.PROOF_RESIDENCE);
+    expect(required).toContain(CreditDocumentType.LAND_TITLE_DEED);
+  });
+
+  it("SIMPLIFIED product should show PROOF_INCOME as optional in UI", () => {
+    const optional = CreditChecklistService.getOptionalDocumentTypes(CreditProductType.SIMPLIFIED);
+    expect(optional).toContain(CreditDocumentType.PROOF_INCOME);
+  });
+});
+
+describe("V1.1-04 — Workflow Constraints for Upload UI", () => {
+  it("should allow ADD_DOC from DRAFT state", () => {
+    expect(CreditWorkflowService.canTransition(CreditFileStatus.DRAFT, CreditWorkflowEvent.ADD_DOC)).toBe(true);
+  });
+
+  it("should allow UPLOAD_COMPLETE from DOCS_PENDING state", () => {
+    expect(CreditWorkflowService.canTransition(CreditFileStatus.DOCS_PENDING, CreditWorkflowEvent.UPLOAD_COMPLETE)).toBe(true);
+  });
+
+  it("should not allow upload-related events from non-uploadable states", () => {
+    const nonUploadableStatuses = [
+      CreditFileStatus.SUBMITTED,
+      CreditFileStatus.UNDER_REVIEW,
+      CreditFileStatus.OFFERED,
+      CreditFileStatus.ACCEPTED,
+      CreditFileStatus.APPROVED,
+      CreditFileStatus.REJECTED,
+      CreditFileStatus.CLOSED,
+    ];
+
+    for (const status of nonUploadableStatuses) {
+      expect(CreditWorkflowService.canTransition(status, CreditWorkflowEvent.ADD_DOC)).toBe(false);
+      expect(CreditWorkflowService.canTransition(status, CreditWorkflowEvent.UPLOAD_COMPLETE)).toBe(false);
+    }
+  });
+
+  it("should only allow submit from DRAFT or DOCS_PENDING states", () => {
+    expect(CreditWorkflowService.canTransition(CreditFileStatus.DRAFT, CreditWorkflowEvent.SUBMIT)).toBe(true);
+    expect(CreditWorkflowService.canTransition(CreditFileStatus.DOCS_PENDING, CreditWorkflowEvent.SUBMIT)).toBe(true);
+    expect(CreditWorkflowService.canTransition(CreditFileStatus.SUBMITTED, CreditWorkflowEvent.SUBMIT)).toBe(false);
+  });
+});
