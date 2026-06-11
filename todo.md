@@ -136,3 +136,11 @@
 - [x] Charger automatiquement les points sur la carte après import
 - [x] Afficher un feedback (nombre de points importés, erreurs éventuelles)
 - [x] Vérifier le fonctionnement (0 erreurs TypeScript)
+
+## v1.2.2 — Tableau interactif des points GPS
+
+- [x] Remplacer la liste simple des points par un tableau de données structuré (colonnes: N°, Lat, Lng, Description, Actions)
+- [x] Permettre la modification inline des coordonnées et de la description
+- [x] Permettre la suppression individuelle avec bouton dédié
+- [x] Synchroniser les modifications avec la carte (mise à jour des marqueurs via state React)
+- [x] Vérifier le fonctionnement et les tests (145 tests PASS, 0 erreurs TypeScript)

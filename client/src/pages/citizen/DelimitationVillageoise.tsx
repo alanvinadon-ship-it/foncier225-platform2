@@ -5,7 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Check, ChevronRight, Upload, Trash2, Landmark, UserCheck, ShieldCheck, RefreshCw, FileUp } from "lucide-react";
+import { MapPin, Check, ChevronRight, Upload, Trash2, Landmark, UserCheck, ShieldCheck, RefreshCw, FileUp, Pencil, X, Save } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { toast } from "sonner";
 
 // Types
@@ -56,6 +64,8 @@ export default function DelimitationVillageoise() {
   const polylineRef = useRef<any>(null);
 
   const [importError, setImportError] = useState<string | null>(null);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editValues, setEditValues] = useState<{ lat: string; lng: string; landmark: string }>({ lat: "", lng: "", landmark: "" });
 
   // Form state
   const [villageName, setVillageName] = useState("Abobo-Gare");
@@ -159,6 +169,34 @@ export default function DelimitationVillageoise() {
       const updated = prev.filter((_, i) => i !== index);
       return updated.map((p, i) => ({ ...p, number: i + 1 }));
     });
+    if (editingIndex === index) setEditingIndex(null);
+  };
+
+  const startEdit = (index: number) => {
+    const point = boundaryPoints[index];
+    setEditValues({ lat: point.lat.toString(), lng: point.lng.toString(), landmark: point.landmark });
+    setEditingIndex(index);
+  };
+
+  const saveEdit = () => {
+    if (editingIndex === null) return;
+    const lat = parseFloat(editValues.lat);
+    const lng = parseFloat(editValues.lng);
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      toast.error("Coordonn\u00e9es invalides. Latitude: -90 \u00e0 90, Longitude: -180 \u00e0 180");
+      return;
+    }
+    setBoundaryPoints((prev) =>
+      prev.map((p, i) =>
+        i === editingIndex ? { ...p, lat, lng, landmark: editValues.landmark || `Point ${i + 1}` } : p
+      )
+    );
+    toast.success(`Point ${editingIndex + 1} modifi\u00e9`);
+    setEditingIndex(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingIndex(null);
   };
 
   // GPX/CSV Import
@@ -580,31 +618,107 @@ export default function DelimitationVillageoise() {
                   style={{ zIndex: 0 }}
                 />
 
-                {/* Points list */}
+                {/* Points table */}
                 {boundaryPoints.length > 0 && (
-                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                    {boundaryPoints.map((point, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-muted rounded-lg border-l-4 border-ci-orange"
-                      >
-                        <div>
-                          <span className="font-semibold text-ci-green">Point {point.number}</span>
-                          <span className="text-xs text-muted-foreground ml-2">
-                            {point.lat}, {point.lng}
-                          </span>
-                          <p className="text-xs text-muted-foreground">{point.landmark}</p>
-                        </div>
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b">
+                      <span className="text-sm font-medium text-ci-green">
+                        {boundaryPoints.length} point(s) de borne
+                      </span>
+                      {boundaryPoints.length > 0 && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => removePoint(index)}
-                          className="text-destructive hover:text-destructive"
+                          onClick={() => { setBoundaryPoints([]); setEditingIndex(null); toast.success("Tous les points supprim\u00e9s"); }}
+                          className="text-xs text-destructive hover:text-destructive"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Tout effacer
                         </Button>
-                      </div>
-                    ))}
+                      )}
+                    </div>
+                    <div className="max-h-[280px] overflow-y-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/30">
+                            <TableHead className="w-[50px] text-center">N\u00b0</TableHead>
+                            <TableHead className="w-[120px]">Latitude</TableHead>
+                            <TableHead className="w-[120px]">Longitude</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead className="w-[100px] text-center">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {boundaryPoints.map((point, index) => (
+                            <TableRow key={index} className={editingIndex === index ? "bg-ci-green/5" : ""}>
+                              <TableCell className="text-center font-semibold text-ci-green">
+                                {point.number}
+                              </TableCell>
+                              {editingIndex === index ? (
+                                <>
+                                  <TableCell>
+                                    <Input
+                                      value={editValues.lat}
+                                      onChange={(e) => setEditValues((v) => ({ ...v, lat: e.target.value }))}
+                                      className="h-7 text-xs w-full"
+                                      type="number"
+                                      step="0.000001"
+                                      min="-90"
+                                      max="90"
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <Input
+                                      value={editValues.lng}
+                                      onChange={(e) => setEditValues((v) => ({ ...v, lng: e.target.value }))}
+                                      className="h-7 text-xs w-full"
+                                      type="number"
+                                      step="0.000001"
+                                      min="-180"
+                                      max="180"
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <Input
+                                      value={editValues.landmark}
+                                      onChange={(e) => setEditValues((v) => ({ ...v, landmark: e.target.value }))}
+                                      className="h-7 text-xs w-full"
+                                      placeholder="Description..."
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center justify-center gap-1">
+                                      <Button variant="ghost" size="sm" onClick={saveEdit} className="h-7 w-7 p-0 text-ci-green hover:text-ci-green">
+                                        <Save className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button variant="ghost" size="sm" onClick={cancelEdit} className="h-7 w-7 p-0 text-muted-foreground">
+                                        <X className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </>
+                              ) : (
+                                <>
+                                  <TableCell className="text-xs font-mono">{point.lat}</TableCell>
+                                  <TableCell className="text-xs font-mono">{point.lng}</TableCell>
+                                  <TableCell className="text-xs text-muted-foreground truncate max-w-[150px]">{point.landmark}</TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center justify-center gap-1">
+                                      <Button variant="ghost" size="sm" onClick={() => startEdit(index)} className="h-7 w-7 p-0 text-ci-orange hover:text-ci-orange">
+                                        <Pencil className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button variant="ghost" size="sm" onClick={() => removePoint(index)} className="h-7 w-7 p-0 text-destructive hover:text-destructive">
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </>
+                              )}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </div>
                 )}
 
