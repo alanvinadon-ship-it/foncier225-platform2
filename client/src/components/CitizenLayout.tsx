@@ -53,6 +53,7 @@ const menuCategories: MenuCategory[] = [
       { icon: LayoutDashboard, label: "Tableau de bord", path: "/citizen", badge: false },
       { icon: MapPin, label: "Mes parcelles", path: "/citizen/parcels", badge: false },
       { icon: Banknote, label: "Crédit habitat", path: "/citizen/credit-habitat", badge: false },
+      { icon: Search, label: "Suivi dossier", path: "/citizen/suivi", badge: false },
       { icon: BellIcon, label: "Alertes", path: "/citizen/notifications", badge: false },
       { icon: User, label: "Mon profil", path: "/citizen/profile", badge: false },
     ],
@@ -63,7 +64,6 @@ const menuCategories: MenuCategory[] = [
     iconColor: "text-emerald-600",
     key: "rural",
     items: [
-      { icon: Search, label: "Suivi dossier", path: "/citizen/suivi", badge: true },
       { icon: GitBranch, label: "Processus", path: "/citizen/workflow", badge: false },
       { icon: Clock, label: "Timeline", path: "/citizen/timeline", badge: false },
       { icon: FileText, label: "Mes documents", path: "/citizen/documents", badge: false },

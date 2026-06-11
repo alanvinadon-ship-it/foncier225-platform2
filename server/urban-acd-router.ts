@@ -30,7 +30,7 @@ import {
   getAllUrbanAcdApplications,
   notifyCitizenStatusChange,
 } from "./db";
-import { mcluProcedure, protectedProcedure, router } from "./_core/trpc";
+import { mcluProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -481,7 +481,47 @@ const adminAcdRouter = router({
 
 // ─── Export combiné ──────────────────────────────────────────────────────────
 
+// ─── Public Router (no auth) ─────────────────────────────────────────────────
+
+const publicAcdRouter = router({
+  /** Track an ACD application by its reference number (no auth required) */
+  track: publicProcedure
+    .input(z.object({ reference: z.string().min(3).max(30) }))
+    .query(async ({ input }) => {
+      const { reference } = input;
+      const allApps = await getAllUrbanAcdApplications();
+      const matchedApp = allApps.find(
+        (a) => a.applicationNumber === reference || a.applicationNumber === reference.toUpperCase()
+      );
+      if (!matchedApp) {
+        return { found: false as const };
+      }
+      const steps = await listUrbanAcdSteps(matchedApp.id);
+      return {
+        found: true as const,
+        application: {
+          applicationNumber: matchedApp.applicationNumber,
+          status: matchedApp.status,
+          phase: matchedApp.phase,
+          commune: matchedApp.commune,
+          lotNumber: matchedApp.lotNumber,
+          lotissementName: matchedApp.lotissementName,
+          surfaceM2: matchedApp.surfaceM2,
+          createdAt: matchedApp.createdAt,
+          updatedAt: matchedApp.updatedAt,
+        },
+        steps: steps.map((s) => ({
+          stepType: s.stepType,
+          status: s.status,
+          startedAt: s.startedAt,
+          completedAt: s.completedAt,
+        })),
+      };
+    }),
+});
+
 export const urbanAcdRouter = router({
   citizen: citizenAcdRouter,
   admin: adminAcdRouter,
+  public: publicAcdRouter,
 });

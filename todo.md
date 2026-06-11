@@ -617,3 +617,10 @@
 - [x] Bouton « Télécharger le récapitulatif PDF » sur CitizenUrbanAcdDetail
 - [x] Téléchargement côté client via fetch + blob
 - [x] Tests TypeScript (0 erreurs) et 229 tests PASS
+
+## v3.10 — Suivi de dossier unifié (rural + urbain ACD) dans Commun
+
+- [x] Modifier la page suivi de dossier pour afficher les dossiers ACD en plus des dossiers ruraux
+- [x] Ajouter un onglet/filtre pour distinguer rural vs urbain (Tabs: Tous, Rural, Urbain)
+- [x] Déplacer le lien « Suivi dossier » de la catégorie Foncier Rural vers Commun (CitizenLayout)
+- [x] Tests TypeScript (0 erreurs) et 229 tests PASS
