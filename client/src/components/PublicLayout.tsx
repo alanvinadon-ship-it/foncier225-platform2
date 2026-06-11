@@ -10,8 +10,6 @@ const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663315306103/5jQVP
 const navLinks = [
   { label: "Accueil", path: "/" },
   { label: "Vérifier", path: "/verify" },
-  { label: "Suivi dossier", path: "/suivi" },
-  { label: "Processus", path: "/workflow" },
 ];
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
@@ -147,8 +145,6 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               <ul className="space-y-2 text-sm">
                 <li><Link href="/" className="hover:text-white transition-colors">Accueil</Link></li>
                 <li><Link href="/verify" className="hover:text-white transition-colors">Vérifier un document</Link></li>
-                <li><Link href="/suivi" className="hover:text-white transition-colors">Suivi de dossier</Link></li>
-                <li><Link href="/workflow" className="hover:text-white transition-colors">Processus foncier</Link></li>
               </ul>
             </div>
             <div>

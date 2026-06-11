@@ -59,8 +59,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/parcelle/:token" component={ParcelPublic} />
       <Route path="/verify" component={Verify} />
-      <Route path="/suivi" component={TrackApplication} />
-      <Route path="/workflow" component={WorkflowPage} />
+
 
       {/* Citizen routes */}
       <Route path="/citizen">
@@ -123,6 +122,16 @@ function Router() {
       <Route path="/citizen/profile">
         <CitizenLayout>
           <CitizenProfile />
+        </CitizenLayout>
+      </Route>
+      <Route path="/citizen/suivi">
+        <CitizenLayout>
+          <TrackApplication />
+        </CitizenLayout>
+      </Route>
+      <Route path="/citizen/workflow">
+        <CitizenLayout>
+          <WorkflowPage />
         </CitizenLayout>
       </Route>
 

@@ -370,3 +370,13 @@
 - [x] Labels colorés selon la couleur de l'étape
 - [x] Indicateur de couleur dans l'infobulle
 - [x] Tests TypeScript et validation (0 erreurs, 198 tests PASS)
+
+## v2.13.4 — Processus et Suivi dans l'espace citoyen (auth requise)
+
+- [x] Déplacer la route /workflow dans l'espace citoyen (/citizen/workflow) avec CitizenLayout
+- [x] Déplacer la route /suivi dans l'espace citoyen (/citizen/suivi) avec CitizenLayout
+- [x] Retirer les liens "Suivi dossier" et "Processus" de la navigation publique (PublicLayout)
+- [x] Ajouter les liens dans la navigation citoyen (CitizenLayout)
+- [x] Remplacer le bouton "Suivre mon dossier" par "Mon espace citoyen" sur la page d'accueil
+- [x] Mettre à jour le bouton CTA "Comment ça marche ?" vers /citizen/workflow
+- [x] Tests TypeScript et validation (0 erreurs, 198 tests PASS)

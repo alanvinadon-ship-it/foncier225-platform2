@@ -83,10 +83,10 @@ export default function Home() {
                   Vérifier un document
                 </Button>
               </Link>
-              <Link href="/suivi">
+              <Link href="/citizen">
                 <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 font-semibold">
-                  <Search className="h-4 w-4 mr-2" />
-                  Suivre mon dossier
+                  <User className="h-4 w-4 mr-2" />
+                  Mon espace citoyen
                 </Button>
               </Link>
             </div>
@@ -157,7 +157,7 @@ export default function Home() {
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </Link>
-            <Link href="/workflow">
+            <Link href="/citizen/workflow">
               <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 font-semibold">
                 <BookOpen className="h-4 w-4 mr-2" />
                 Comment ça marche ?
