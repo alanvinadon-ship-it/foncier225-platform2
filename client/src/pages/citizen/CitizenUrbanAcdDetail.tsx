@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { ACD_PHASES, ACD_STEP_LABELS, ACD_REQUIRED_DOCUMENTS, ACD_DOCUMENT_LABELS, type AcdPhase, type AcdStatus, type AcdStepType, type AcdDocumentType, getAcdPhaseForStatus } from "@shared/acd-workflow";
-import { ArrowLeft, Building2, Calendar, Clock, FileCheck, Loader2, MapPin, User } from "lucide-react";
+import { ArrowLeft, Building2, Calendar, Clock, Download, FileCheck, Loader2, MapPin, User } from "lucide-react";
 import { Link, useParams } from "wouter";
 import { toast } from "sonner";
 
@@ -26,6 +26,29 @@ export default function CitizenUrbanAcdDetail() {
       refetch();
     },
     onError: (err: any) => toast.error(err.message),
+  }) as any;
+
+  const pdfMutation = trpc.urbanAcd.citizen.generatePdf.useMutation({
+    onSuccess: (result: any) => {
+      // Decode base64 and trigger download
+      const byteCharacters = atob(result.base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: result.mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("PDF téléchargé avec succès");
+    },
+    onError: (err: any) => toast.error(err.message || "Erreur lors de la génération du PDF"),
   }) as any;
 
   if (isLoading) {
@@ -81,20 +104,36 @@ export default function CitizenUrbanAcdDetail() {
             Arrêté de Concession Définitive — {currentPhase ? ACD_PHASES[currentPhase].label : ""}
           </p>
         </div>
-        {isCancellable && (
+        <div className="flex items-center gap-2 shrink-0">
           <Button
-            variant="destructive"
+            variant="outline"
             size="sm"
-            onClick={() => {
-              if (confirm("Êtes-vous sûr de vouloir annuler ce dossier ?")) {
-                cancelMutation.mutate({ applicationId });
-              }
-            }}
-            disabled={cancelMutation.isPending}
+            className="gap-1.5"
+            onClick={() => pdfMutation.mutate({ applicationId })}
+            disabled={pdfMutation.isPending}
           >
-            Annuler le dossier
+            {pdfMutation.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
+            Télécharger PDF
           </Button>
-        )}
+          {isCancellable && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                if (confirm("Êtes-vous sûr de vouloir annuler ce dossier ?")) {
+                  cancelMutation.mutate({ applicationId });
+                }
+              }}
+              disabled={cancelMutation.isPending}
+            >
+              Annuler le dossier
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Gantt Workflow */}

@@ -609,3 +609,11 @@
 
 ### Validation
 - [x] Tests TypeScript (0 erreurs) et 229 tests PASS
+
+## v3.9 — Récapitulatif PDF du dossier ACD
+
+- [x] Procédure tRPC protégée pour générer le PDF récapitulatif ACD (serveur)
+- [x] Contenu PDF : en-tête officiel, infos dossier, timeline étapes, liste documents déposés
+- [x] Bouton « Télécharger le récapitulatif PDF » sur CitizenUrbanAcdDetail
+- [x] Téléchargement côté client via fetch + blob
+- [x] Tests TypeScript (0 erreurs) et 229 tests PASS

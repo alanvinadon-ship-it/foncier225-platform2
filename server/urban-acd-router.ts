@@ -227,6 +227,54 @@ const citizenAcdRouter = router({
       await createAuditEvent({ action: "urban_acd_cancelled", actorId: ctx.user.id, actorRole: ctx.user.role || "user", targetType: "urban_acd", targetId: input.applicationId, details: { reason: "citizen_cancelled" }, createdAt: new Date() });
       return { success: true };
     }),
+
+  /** Générer le récapitulatif PDF du dossier ACD */
+  generatePdf: protectedProcedure
+    .input(z.object({ applicationId: z.number().int() }))
+    .mutation(async ({ ctx, input }) => {
+      const app = await getUrbanAcdApplicationByIdAndUser(input.applicationId, ctx.user.id);
+      if (!app) throw new TRPCError({ code: "NOT_FOUND", message: "Dossier ACD introuvable" });
+      const steps = await listUrbanAcdSteps(input.applicationId);
+      const documents = await listUrbanAcdDocuments(input.applicationId);
+
+      const { generateAcdPdf } = await import("./acd-pdf-generator");
+      const pdfBuffer = await generateAcdPdf({
+        application: {
+          applicationNumber: app.applicationNumber,
+          status: app.status,
+          phase: app.phase,
+          applicantFullName: app.applicantFullName,
+          commune: app.commune,
+          lotNumber: app.lotNumber,
+          ilotNumber: app.ilotNumber,
+          lotissementName: app.lotissementName,
+          quartier: app.quartier,
+          surfaceM2: app.surfaceM2,
+          usagePrevu: app.usagePrevu,
+          createdAt: app.createdAt,
+          updatedAt: app.updatedAt,
+        },
+        steps: steps.map((s: any) => ({
+          stepType: s.stepType,
+          status: s.status,
+          startedAt: s.startedAt,
+          completedAt: s.completedAt,
+        })),
+        documents: documents.map((d: any) => ({
+          documentType: d.documentType,
+          label: d.label,
+          fileUrl: d.fileUrl,
+          createdAt: d.createdAt,
+        })),
+      });
+
+      // Return base64 encoded PDF
+      return {
+        filename: `Recapitulatif_ACD_${app.applicationNumber}.pdf`,
+        base64: pdfBuffer.toString("base64"),
+        mimeType: "application/pdf",
+      };
+    }),
 });
 // ─── Admin/MCLU Sub-Router ───────────────────────────────────────────────────
 
