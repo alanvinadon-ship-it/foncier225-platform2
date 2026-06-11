@@ -24,6 +24,8 @@ interface StepMeta {
   actors: string[];
   documents: string[];
   description: string;
+  color: string; // Tailwind bg class for the bar
+  colorHex: string; // Hex color for legend/indicators
 }
 
 const PHASE_1_STEPS: StepMeta[] = [
@@ -35,6 +37,8 @@ const PHASE_1_STEPS: StepMeta[] = [
     actors: ["Demandeur", "Opérateur technique agréé"],
     documents: ["Formulaire de demande AFOR", "Pièce d'identité (CNI/Passeport)", "Acte de naissance", "Certificat de résidence", "Reçu d'achat liasse (10 000 FCFA)"],
     description: "Le demandeur achète la liasse foncière AFOR, remplit les formulaires officiels et rassemble les pièces justificatives avec l'aide de l'opérateur technique agréé.",
+    color: "bg-emerald-500",
+    colorHex: "#10b981",
   },
   {
     id: "cf_submitted",
@@ -44,6 +48,8 @@ const PHASE_1_STEPS: StepMeta[] = [
     actors: ["Demandeur", "CSPGFR (Comité Sous-Préfectoral)"],
     documents: ["Liasse AFOR complète", "Procès-verbal de palabre", "Attestation de cession coutumière", "Plan de situation"],
     description: "Dépôt du dossier complet auprès du Comité Sous-Préfectoral de Gestion Foncière Rurale. Vérification de la recevabilité administrative.",
+    color: "bg-teal-500",
+    colorHex: "#14b8a6",
   },
   {
     id: "cf_delimitation",
@@ -53,6 +59,8 @@ const PHASE_1_STEPS: StepMeta[] = [
     actors: ["Opérateur technique agréé", "Géomètre-expert", "Riverains", "Chef de village"],
     documents: ["PV de bornage contradictoire", "Plan parcellaire (levé topographique)", "Fiches de présence des riverains", "Attestation du chef de village"],
     description: "Bornage contradictoire de la parcelle par le géomètre agréé, en présence des riverains et des autorités villageoises. Pose des bornes physiques.",
+    color: "bg-cyan-500",
+    colorHex: "#06b6d4",
   },
   {
     id: "cf_inquiry",
@@ -62,6 +70,8 @@ const PHASE_1_STEPS: StepMeta[] = [
     actors: ["Sous-Préfet", "Commission d'enquête", "Témoins", "Riverains"],
     documents: ["PV d'enquête publique", "Témoignages recueillis", "Rapport de la commission", "Attestations de non-opposition"],
     description: "Enquête officielle pour recueillir les témoignages et vérifier l'absence de contestation sur les droits fonciers revendiqués.",
+    color: "bg-sky-500",
+    colorHex: "#0ea5e9",
   },
   {
     id: "cf_publicity",
@@ -71,6 +81,8 @@ const PHASE_1_STEPS: StepMeta[] = [
     actors: ["Administration préfectorale", "Public"],
     documents: ["Avis d'affichage public", "Registre des oppositions", "PV de clôture de publicité"],
     description: "Affichage public des résultats de l'enquête pendant 3 mois (délai légal incompressible) pour permettre d'éventuelles oppositions de tiers.",
+    color: "bg-blue-500",
+    colorHex: "#3b82f6",
   },
   {
     id: "cf_validated",
@@ -80,6 +92,8 @@ const PHASE_1_STEPS: StepMeta[] = [
     actors: ["CSPGFR", "Sous-Préfet", "Représentants villageois"],
     documents: ["Avis favorable du CSPGFR", "PV de délibération", "Rapport de synthèse du dossier"],
     description: "Examen du dossier complet, des résultats de l'enquête et des éventuelles oppositions. Émission d'un avis favorable ou défavorable.",
+    color: "bg-indigo-500",
+    colorHex: "#6366f1",
   },
   {
     id: "cf_signed",
@@ -89,6 +103,8 @@ const PHASE_1_STEPS: StepMeta[] = [
     actors: ["Préfet de département"],
     documents: ["Certificat Foncier (original)", "Arrêté préfectoral", "Registre foncier rural"],
     description: "Le Préfet signe le Certificat Foncier sur la base de l'avis favorable du CSPGFR. Le CF est valable 3 ans et renouvelable.",
+    color: "bg-violet-500",
+    colorHex: "#8b5cf6",
   },
 ];
 
@@ -101,6 +117,8 @@ const PHASE_2_STEPS: StepMeta[] = [
     actors: ["Demandeur (nationalité ivoirienne)", "AFOR"],
     documents: ["Certificat Foncier valide", "Demande d'immatriculation", "Certificat de nationalité ivoirienne", "Quittance de paiement des droits"],
     description: "Dépôt de la demande de transformation du Certificat Foncier en Titre Foncier auprès de l'AFOR. Condition : nationalité ivoirienne obligatoire.",
+    color: "bg-orange-500",
+    colorHex: "#f97316",
   },
   {
     id: "tf_afor_review",
@@ -110,6 +128,8 @@ const PHASE_2_STEPS: StepMeta[] = [
     actors: ["AFOR (Agence Foncière Rurale)", "Service juridique"],
     documents: ["Rapport de contrôle AFOR", "Vérification de conformité", "Historique du CF", "Attestation d'absence de contentieux"],
     description: "Vérification de la conformité du dossier, de la validité du CF, de l'absence de contentieux et du respect des conditions légales.",
+    color: "bg-rose-500",
+    colorHex: "#f43f5e",
   },
   {
     id: "tf_apfr_ready",
@@ -119,6 +139,8 @@ const PHASE_2_STEPS: StepMeta[] = [
     actors: ["AFOR", "Service cartographique"],
     documents: ["APFR (Attestation de Propriété Foncière Rurale)", "Plan définitif géoréférencé", "Fiche descriptive de la parcelle"],
     description: "Préparation de l'Attestation de Propriété Foncière Rurale qui deviendra le support juridique du Titre Foncier définitif.",
+    color: "bg-fuchsia-500",
+    colorHex: "#d946ef",
   },
   {
     id: "tf_minister_signing",
@@ -128,6 +150,8 @@ const PHASE_2_STEPS: StepMeta[] = [
     actors: ["Ministre de l'Agriculture", "Direction du Foncier Rural"],
     documents: ["Arrêté ministériel", "Titre Foncier (projet)", "Visa de la Direction juridique"],
     description: "Le Ministre de l'Agriculture signe l'arrêté portant délivrance du Titre Foncier après validation par la Direction du Foncier Rural.",
+    color: "bg-purple-500",
+    colorHex: "#a855f7",
   },
   {
     id: "tf_registered",
@@ -137,6 +161,8 @@ const PHASE_2_STEPS: StepMeta[] = [
     actors: ["Conservation Foncière", "Conservateur"],
     documents: ["Titre Foncier définitif", "Inscription au Livre Foncier", "Certificat d'inscription"],
     description: "Enregistrement au Livre Foncier, conférant un caractère définitif, inattaquable et opposable aux tiers au droit de propriété.",
+    color: "bg-amber-600",
+    colorHex: "#d97706",
   },
 ];
 
@@ -185,9 +211,9 @@ export default function WorkflowGantt({ currentStatus, showLegend = true, compac
     <div className="w-full">
       {showLegend && (
         <div className="flex items-center gap-4 mb-4 text-xs text-muted-foreground flex-wrap">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-green-500 inline-block" /> Complété</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-amber-500 inline-block animate-pulse" /> En cours</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-gray-200 inline-block" /> À venir</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-emerald-500 inline-block" /> Complété</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-emerald-500 inline-block animate-pulse ring-2 ring-emerald-300" /> En cours</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-emerald-500 opacity-40 inline-block" /> À venir</span>
           <span className="flex items-center gap-1">
             <Info className="h-3 w-3" />
             {isTouch ? "Appuyez pour les détails" : "Survolez pour les détails"}
@@ -288,11 +314,13 @@ function GanttPhase({ steps, currentStatus, compact, phaseColor = "green", isTou
           const widthPercent = (step.days / phaseTotalDays) * 100;
           const isActive = activeStep === step.id;
 
-          const bgColor = status === "completed"
-            ? phaseColor === "green" ? "bg-green-500" : "bg-blue-500"
+          // Each step has its own unique color; darken completed, pulse current, lighten upcoming
+          const stepColor = step.color;
+          const bgColor = status === "upcoming"
+            ? `${stepColor} opacity-40`
             : status === "current"
-              ? phaseColor === "green" ? "bg-amber-500" : "bg-amber-500"
-              : "bg-gray-200";
+              ? stepColor
+              : stepColor;
 
           return (
             <motion.div
@@ -346,11 +374,7 @@ function GanttPhase({ steps, currentStatus, compact, phaseColor = "green", isTou
                 onMouseEnter={() => handleMouseEnter(step.id)}
                 onMouseLeave={handleMouseLeave}
               >
-                <p className={`text-[10px] leading-tight truncate ${
-                  status === "completed" ? "text-green-700 font-medium" :
-                  status === "current" ? "text-amber-700 font-semibold" :
-                  "text-muted-foreground"
-                }`}>
+                <p className="text-[10px] leading-tight truncate font-medium" style={{ color: status === "upcoming" ? undefined : step.colorHex }}>
                   {step.label}
                 </p>
                 <p className="text-[9px] text-muted-foreground">{step.days}j</p>
@@ -388,7 +412,10 @@ function StepTooltip({ step, currentStatus, phaseColor, isTouch, onClose }: {
     >
       {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-2">
-        <h5 className="font-semibold text-sm text-foreground">{step.label}</h5>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: step.colorHex }} />
+          <h5 className="font-semibold text-sm text-foreground">{step.label}</h5>
+        </div>
         <div className="flex items-center gap-2">
           <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusColor}`}>
             {statusLabel}

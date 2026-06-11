@@ -362,3 +362,11 @@
 - [x] Afficher l'infobulle au clic/tap sur mobile (persistante jusqu'à clic extérieur)
 - [x] Conserver le comportement hover sur desktop
 - [x] Tests TypeScript et validation (0 erreurs, 198 tests PASS)
+
+## v2.13.3 — Couleurs distinctes par étape WorkflowGantt
+
+- [x] Attribuer une couleur unique à chaque étape (12 couleurs distinctes)
+- [x] Opacité réduite pour les étapes à venir, pleine pour complété/en cours
+- [x] Labels colorés selon la couleur de l'étape
+- [x] Indicateur de couleur dans l'infobulle
+- [x] Tests TypeScript et validation (0 erreurs, 198 tests PASS)
