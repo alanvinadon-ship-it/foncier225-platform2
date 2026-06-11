@@ -28,6 +28,7 @@ import {
   listUrbanAcdOppositions,
   updateUrbanAcdOpposition,
   getAllUrbanAcdApplications,
+  notifyCitizenStatusChange,
 } from "./db";
 import { mcluProcedure, protectedProcedure, router } from "./_core/trpc";
 
@@ -341,6 +342,18 @@ const adminAcdRouter = router({
         targetId: input.id,
         details: { from: currentStatus, to: newStatus, notes: input.notes },
       });
+
+      // Notification automatique au citoyen
+      if (app.userId) {
+        await notifyCitizenStatusChange({
+          userId: app.userId,
+          module: "urban_acd",
+          entityId: input.id,
+          oldStatus: currentStatus,
+          newStatus,
+          applicationNumber: app.applicationNumber,
+        }).catch(() => {}); // Ne pas bloquer la transition si la notification échoue
+      }
 
       return { success: true, newStatus, newPhase };
     }),

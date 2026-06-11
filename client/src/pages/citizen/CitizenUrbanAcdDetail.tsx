@@ -1,11 +1,13 @@
 import AcdDocumentUploader from "@/components/AcdDocumentUploader";
 import { AcdStatusBadge } from "@/components/AcdStatusBadge";
 import AcdWorkflowGantt from "@/components/AcdWorkflowGantt";
+import AcdTimeline from "@/components/AcdTimeline";
+import AcdDocumentChecklist from "@/components/AcdDocumentChecklist";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { ACD_PHASES, ACD_STEP_LABELS, type AcdPhase, type AcdStatus, type AcdStepType, getAcdPhaseForStatus } from "@shared/acd-workflow";
-import { ArrowLeft, Building2, Calendar, Loader2, MapPin, User } from "lucide-react";
+import { ACD_PHASES, ACD_STEP_LABELS, ACD_REQUIRED_DOCUMENTS, ACD_DOCUMENT_LABELS, type AcdPhase, type AcdStatus, type AcdStepType, type AcdDocumentType, getAcdPhaseForStatus } from "@shared/acd-workflow";
+import { ArrowLeft, Building2, Calendar, Clock, FileCheck, Loader2, MapPin, User } from "lucide-react";
 import { Link, useParams } from "wouter";
 import { toast } from "sonner";
 
@@ -154,32 +156,45 @@ export default function CitizenUrbanAcdDetail() {
         />
       </div>
 
-      {/* Steps history */}
-      {steps.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Historique des étapes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {steps.map((step: any, idx: number) => (
-                <div key={step.id || idx} className="flex items-center gap-3 text-sm">
-                  <span className={`h-2 w-2 rounded-full shrink-0 ${
-                    step.status === "completed" ? "bg-emerald-500" :
-                    step.status === "in_progress" ? "bg-amber-500" :
-                    "bg-gray-300"
-                  }`} />
-                  <span className="flex-1 text-xs">{ACD_STEP_LABELS[step.stepType as AcdStepType] || step.stepType}</span>
-                  <span className="text-[10px] text-muted-foreground">
-                    {step.completedAt ? new Date(step.completedAt).toLocaleDateString("fr-FR") :
-                     step.startedAt ? `Depuis ${new Date(step.startedAt).toLocaleDateString("fr-FR")}` : ""}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Timeline interactive — progression réelle vs théorique */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Clock className="h-4 w-4 text-blue-600" />
+            Timeline — Progression réelle vs théorique
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AcdTimeline
+            currentStatus={app.status as AcdStatus}
+            steps={steps.map((s: any) => ({
+              stepType: s.stepType,
+              status: s.status as "completed" | "in_progress" | "pending",
+              startedAt: s.startedAt,
+              completedAt: s.completedAt,
+            }))}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Checklist documents par étape */}
+      <Card id="document-checklist">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <FileCheck className="h-4 w-4 text-amber-600" />
+            Checklist documents — Étape en cours
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AcdDocumentChecklist
+            currentStepType={currentStepType}
+            uploadedDocumentTypes={documents.map((d: any) => d.documentType)}
+            onScrollToUpload={() => {
+              document.querySelector('[data-upload-section]')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

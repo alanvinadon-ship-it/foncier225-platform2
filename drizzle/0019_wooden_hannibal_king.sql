@@ -1,0 +1,1 @@
+ALTER TABLE `citizen_notifications` MODIFY COLUMN `relatedModule` enum('land_title','credit','delimitation','urban_acd','general') NOT NULL DEFAULT 'general';

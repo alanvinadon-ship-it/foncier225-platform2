@@ -589,3 +589,23 @@
 - [x] Route /citizen/urban-workflow dans App.tsx
 - [x] Lien dans le menu Foncier Urbain (CitizenLayout)
 - [x] Tests TypeScript (0 erreurs) et 229 tests PASS
+
+## v3.8 — Améliorations ACD : Timeline, Notifications, Checklist
+
+### Timeline interactive progression réelle vs théorique
+- [x] Composant AcdTimeline avec progression réelle (dates) vs délais théoriques
+- [x] Indicateur visuel retard/avance par étape
+- [x] Intégration dans CitizenUrbanAcdDetail
+
+### Notifications ACD automatiques
+- [x] Étendre notifyCitizenStatusChange pour supporter le module "urban_acd"
+- [x] Appeler la notification dans advanceStatus du urban-acd-router
+- [x] Labels ACD dans la fonction de notification
+
+### Checklist documents par étape
+- [x] Indicateur visuel progression documents (X/Y complétés) sur la page détail
+- [x] Badge alerte si documents manquants pour l'étape en cours
+- [x] Lien direct vers la section upload
+
+### Validation
+- [x] Tests TypeScript (0 erreurs) et 229 tests PASS

@@ -1227,13 +1227,14 @@ export async function markAllNotificationsRead(userId: number) {
 /** Helper to send a notification to a citizen when their dossier status changes */
 export async function notifyCitizenStatusChange(params: {
   userId: number;
-  module: "land_title" | "credit" | "delimitation";
+  module: "land_title" | "credit" | "delimitation" | "urban_acd";
   entityId: number;
   oldStatus: string;
   newStatus: string;
   applicationNumber?: string;
 }) {
   const statusLabels: Record<string, string> = {
+    // Rural - Certificat Foncier
     cf_draft: "Brouillon",
     cf_submitted: "Soumis",
     cf_inquiry_open: "Enquête ouverte",
@@ -1251,11 +1252,28 @@ export async function notifyCitizenStatusChange(params: {
     tf_title_issued: "Titre délivré",
     tf_published: "Publié au JO",
     tf_rejected: "Rejeté",
+    // Urbain - ACD
+    acd_submitted: "Demande soumise",
+    acd_lot_check: "Vérification du lot",
+    acd_technical_instruction: "Instruction technique",
+    acd_commission: "Commission d'attribution",
+    acd_acp_signed: "ACP signée",
+    acd_development_notified: "Obligations notifiées",
+    acd_development_ongoing: "Mise en valeur en cours",
+    acd_development_verified: "Mise en valeur vérifiée",
+    acd_transformation_requested: "Transformation demandée",
+    acd_conformity_check: "Vérification de conformité",
+    acd_acd_signed: "ACD signée",
+    acd_journal_officiel: "Publié au J.O.",
+    acd_delivered: "Titre délivré",
+    acd_rejected: "Rejeté",
+    acd_cancelled: "Annulé",
   };
 
   const newLabel = statusLabels[params.newStatus] || params.newStatus;
   const moduleLabel = params.module === "land_title" ? "Titre Foncier" :
-    params.module === "credit" ? "Crédit Habitat" : "Délimitation";
+    params.module === "credit" ? "Crédit Habitat" :
+    params.module === "urban_acd" ? "Foncier Urbain (ACD)" : "Délimitation";
   const ref = params.applicationNumber || `#${params.entityId}`;
 
   return createCitizenNotification({

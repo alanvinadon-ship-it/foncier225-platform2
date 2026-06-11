@@ -666,7 +666,7 @@ export const citizenNotifications = mysqlTable(
     type: mysqlEnum("type", ["status_change", "document_verified", "document_rejected", "opposition_filed", "general"]).default("general").notNull(),
     title: varchar("title", { length: 255 }).notNull(),
     message: text("message").notNull(),
-    relatedModule: mysqlEnum("relatedModule", ["land_title", "credit", "delimitation", "general"]).default("general").notNull(),
+    relatedModule: mysqlEnum("relatedModule", ["land_title", "credit", "delimitation", "urban_acd", "general"]).default("general").notNull(),
     relatedEntityId: int("relatedEntityId"),
     isRead: boolean("isRead").default(false).notNull(),
     createdAt: bigint("createdAt", { mode: "number" }).notNull(),
