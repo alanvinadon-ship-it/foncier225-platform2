@@ -550,6 +550,7 @@ export const landTitleApplications = mysqlTable(
     apfrNumber: varchar("apfrNumber", { length: 100 }),
     titleNumber: varchar("titleNumber", { length: 100 }),
     titleRegisteredAt: bigint("titleRegisteredAt", { mode: "number" }),
+    applicationType: mysqlEnum("applicationType", ["immatriculation", "mutation", "morcellement"]).default("immatriculation").notNull(),
     presforEligible: boolean("presforEligible").default(false).notNull(),
     notes: text("notes"),
     createdAt: bigint("createdAt", { mode: "number" }).notNull(),

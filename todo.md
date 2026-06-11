@@ -313,3 +313,14 @@
 - [x] Connecter les filtres aux queries tRPC avec réactivité dynamique
 - [x] Bouton réinitialiser les filtres
 - [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)
+
+## v2.10 — Filtre type de demande foncière Dashboard admin
+
+- [x] Ajouter colonne applicationType (enum: immatriculation, mutation, morcellement) au schéma DB
+- [x] Ajouter le paramètre applicationType aux helpers DB stats (buildLandTitleConditions)
+- [x] Mettre à jour les procédures tRPC admin pour accepter applicationType
+- [x] Ajouter applicationType à la procédure create et update du routeur citoyen
+- [x] Ajouter le sélecteur type de demande dans le formulaire de création citoyen
+- [x] Ajouter le Select type de demande dans la barre de filtres du Dashboard admin
+- [x] dashboardFilterOptions retourne applicationTypes
+- [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)

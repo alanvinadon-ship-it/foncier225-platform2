@@ -1,0 +1,1 @@
+ALTER TABLE `land_title_applications` ADD `applicationType` enum('immatriculation','mutation','morcellement') DEFAULT 'immatriculation' NOT NULL;

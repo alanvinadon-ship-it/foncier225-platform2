@@ -367,6 +367,7 @@ const adminRouter = router({
     dateTo: z.number().optional(),
     region: z.string().optional(),
     operatorName: z.string().optional(),
+    applicationType: z.string().optional(),
   }).optional()).query(async ({ input }) => {
     return getLandTitleStatusDistribution(input ?? {});
   }),
@@ -376,6 +377,7 @@ const adminRouter = router({
     dateTo: z.number().optional(),
     region: z.string().optional(),
     operatorName: z.string().optional(),
+    applicationType: z.string().optional(),
   }).optional()).query(async ({ input }) => {
     return getLandTitleStats(input ?? {});
   }),
@@ -398,6 +400,7 @@ const adminRouter = router({
     return {
       regions: await getDistinctLandTitleRegions(),
       operators: await getDistinctLandTitleOperators(),
+      applicationTypes: ["immatriculation", "mutation", "morcellement"],
     };
   }),
 

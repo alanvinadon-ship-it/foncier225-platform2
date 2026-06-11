@@ -1270,6 +1270,7 @@ export interface DashboardFilters {
   dateTo?: number;   // unix ms
   region?: string;
   operatorName?: string;
+  applicationType?: string;
 }
 
 function buildLandTitleConditions(filters: DashboardFilters) {
@@ -1278,6 +1279,7 @@ function buildLandTitleConditions(filters: DashboardFilters) {
   if (filters.dateTo) conditions.push(lte(landTitleApplications.createdAt, filters.dateTo));
   if (filters.region) conditions.push(eq(landTitleApplications.landRegion, filters.region));
   if (filters.operatorName) conditions.push(eq(landTitleApplications.operatorName, filters.operatorName));
+  if (filters.applicationType) conditions.push(eq(landTitleApplications.applicationType, filters.applicationType as "immatriculation" | "mutation" | "morcellement"));
   return conditions.length > 0 ? and(...conditions) : undefined;
 }
 

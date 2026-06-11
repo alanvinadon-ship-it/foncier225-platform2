@@ -17,6 +17,7 @@ export default function CitizenLandTitleCreate() {
 
   const [form, setForm] = useState({
     applicantProfile: "individuel" as "individuel" | "groupement" | "personne_morale",
+    applicationType: "immatriculation" as "immatriculation" | "mutation" | "morcellement",
     applicantFullName: "",
     applicantNationality: "ivoirienne",
     applicantIdType: "CNI",
@@ -100,6 +101,7 @@ export default function CitizenLandTitleCreate() {
     if (!validate()) return;
     createMutation.mutate({
       applicantProfile: form.applicantProfile,
+      applicationType: form.applicationType,
       applicantFullName: form.applicantFullName.trim(),
       applicantNationality: form.applicantNationality || undefined,
       applicantIdType: form.applicantIdType || undefined,
@@ -200,6 +202,27 @@ export default function CitizenLandTitleCreate() {
                 </Select>
                 <p className="text-xs text-muted-foreground">
                   Ce choix détermine les documents requis pour votre dossier.
+                </p>
+              </div>
+
+              {/* Type de demande foncière */}
+              <div className="space-y-2">
+                <Label>Type de demande foncière <span className="text-destructive">*</span></Label>
+                <Select
+                  value={form.applicationType}
+                  onValueChange={(v) => setForm(prev => ({ ...prev, applicationType: v as any }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionnez le type de demande" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="immatriculation">Immatriculation (première inscription)</SelectItem>
+                    <SelectItem value="mutation">Mutation (transfert de propriété)</SelectItem>
+                    <SelectItem value="morcellement">Morcellement (division de parcelle)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Immatriculation pour une première demande, Mutation pour un transfert, Morcellement pour une division.
                 </p>
               </div>
 

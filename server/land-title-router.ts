@@ -99,6 +99,7 @@ const citizenLandTitleRouter = router({
   create: protectedProcedure
     .input(z.object({
       applicantProfile: z.enum(["individuel", "groupement", "personne_morale"]).default("individuel"),
+      applicationType: z.enum(["immatriculation", "mutation", "morcellement"]).default("immatriculation"),
       applicantFullName: z.string().min(2).max(255),
       applicantNationality: z.string().max(100).optional(),
       applicantIdType: z.string().max(50).optional(),
@@ -130,6 +131,7 @@ const citizenLandTitleRouter = router({
         phase: "certificate",
         status: "cf_draft",
         applicantProfile: input.applicantProfile,
+        applicationType: input.applicationType,
         applicantFullName: input.applicantFullName,
         applicantNationality: input.applicantNationality || null,
         applicantIdType: input.applicantIdType || null,
@@ -214,6 +216,7 @@ const citizenLandTitleRouter = router({
     .input(z.object({
       id: z.number(),
       applicantProfile: z.enum(["individuel", "groupement", "personne_morale"]).optional(),
+      applicationType: z.enum(["immatriculation", "mutation", "morcellement"]).optional(),
       applicantFullName: z.string().min(2).max(255).optional(),
       applicantNationality: z.string().max(100).optional(),
       applicantIdType: z.string().max(50).optional(),

@@ -93,6 +93,7 @@ export default function AdminDashboard() {
   const [period, setPeriod] = useState("all");
   const [region, setRegion] = useState("all");
   const [operator, setOperator] = useState("all");
+  const [appType, setAppType] = useState("all");
 
   const filters = useMemo(() => {
     const range = periodToRange(period);
@@ -100,15 +101,16 @@ export default function AdminDashboard() {
       ...range,
       ...(region !== "all" ? { region } : {}),
       ...(operator !== "all" ? { operatorName: operator } : {}),
+      ...(appType !== "all" ? { applicationType: appType } : {}),
     };
-  }, [period, region, operator]);
+  }, [period, region, operator, appType]);
 
   const creditFilters = useMemo(() => {
     const range = periodToRange(period);
     return range.dateFrom ? { dateFrom: range.dateFrom, dateTo: range.dateTo } : undefined;
   }, [period]);
 
-  const hasFilters = period !== "all" || region !== "all" || operator !== "all";
+  const hasFilters = period !== "all" || region !== "all" || operator !== "all" || appType !== "all";
 
   const { data: stats, isLoading } = trpc.admin.dashboardStats.useQuery();
   const { data: statusDist } = trpc.admin.parcelStatusDistribution.useQuery();
@@ -126,6 +128,7 @@ export default function AdminDashboard() {
     setPeriod("all");
     setRegion("all");
     setOperator("all");
+    setAppType("all");
   };
 
   return (
@@ -147,7 +150,7 @@ export default function AdminDashboard() {
             </Button>
           )}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Period Filter */}
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground flex items-center gap-1">
@@ -199,6 +202,25 @@ export default function AdminDashboard() {
                 <SelectItem value="all">Tous les opérateurs</SelectItem>
                 {filterOptions?.operators.map(o => (
                   <SelectItem key={o} value={o}>{o}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Application Type Filter */}
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground flex items-center gap-1">
+              <Landmark className="h-3 w-3" />
+              Type de demande
+            </label>
+            <Select value={appType} onValueChange={setAppType}>
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les types</SelectItem>
+                {filterOptions?.applicationTypes?.map(t => (
+                  <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
