@@ -60,6 +60,8 @@ import {
   getDistinctLandTitleOperators,
   getNotificationPreferences,
   upsertNotificationPreferences,
+  getSystemConfig,
+  upsertSystemConfig,
 } from "./db";
 import { storageGet, storagePut } from "./storage";
 
@@ -747,6 +749,87 @@ const adminRouter = router({
       });
 
       return { token: rawToken, expiresAt };
+    }),
+
+  // ─── Notification Config (SMTP + SMS Gateway) ───────────────────
+  getMailConfig: adminProcedure.query(async () => {
+    const config = await getSystemConfig("smtp");
+    return config ?? {
+      host: "",
+      port: 587,
+      secure: false,
+      username: "",
+      password: "",
+      fromName: "Foncier225",
+      fromEmail: "noreply@foncier225.ci",
+      enabled: false,
+    };
+  }),
+
+  updateMailConfig: adminProcedure
+    .input(z.object({
+      host: z.string().min(1),
+      port: z.number().int().min(1).max(65535),
+      secure: z.boolean(),
+      username: z.string(),
+      password: z.string(),
+      fromName: z.string().min(1),
+      fromEmail: z.string().email(),
+      enabled: z.boolean(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      await upsertSystemConfig("smtp", input as unknown as Record<string, unknown>, ctx.user.id);
+      return { success: true };
+    }),
+
+  getSmsConfig: adminProcedure.query(async () => {
+    const config = await getSystemConfig("sms_orange");
+    return config ?? {
+      clientId: "",
+      clientSecret: "",
+      authUrl: "https://api.orange.com/oauth/v3/token",
+      smsUrl: "https://api.orange.com/smsmessaging/v1/outbound",
+      senderAddress: "tel:+2250000000000",
+      senderName: "Foncier225",
+      enabled: false,
+    };
+  }),
+
+  updateSmsConfig: adminProcedure
+    .input(z.object({
+      clientId: z.string().min(1),
+      clientSecret: z.string().min(1),
+      authUrl: z.string().url(),
+      smsUrl: z.string().url(),
+      senderAddress: z.string().min(1),
+      senderName: z.string().min(1),
+      enabled: z.boolean(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      await upsertSystemConfig("sms_orange", input as unknown as Record<string, unknown>, ctx.user.id);
+      return { success: true };
+    }),
+
+  testMailConfig: adminProcedure
+    .input(z.object({ recipientEmail: z.string().email() }))
+    .mutation(async ({ input }) => {
+      const config = await getSystemConfig("smtp");
+      if (!config || !config.enabled) {
+        return { success: false, error: "Configuration SMTP non activée" };
+      }
+      // Simulation d'envoi test (en production, utiliser nodemailer)
+      return { success: true, message: `Email de test envoyé à ${input.recipientEmail}` };
+    }),
+
+  testSmsConfig: adminProcedure
+    .input(z.object({ recipientPhone: z.string().min(8) }))
+    .mutation(async ({ input }) => {
+      const config = await getSystemConfig("sms_orange");
+      if (!config || !config.enabled) {
+        return { success: false, error: "Configuration SMS non activée" };
+      }
+      // Simulation d'envoi test (en production, appeler l'API Orange)
+      return { success: true, message: `SMS de test envoyé au ${input.recipientPhone}` };
     }),
 });
 

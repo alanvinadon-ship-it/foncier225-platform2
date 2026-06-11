@@ -38,6 +38,7 @@ const CitizenLandTitleCreate = lazy(() => import("./pages/citizen/CitizenLandTit
 const TrackApplication = lazy(() => import("./pages/TrackApplication"));
 const WorkflowPage = lazy(() => import("./pages/WorkflowPage"));
 const NotificationSettings = lazy(() => import("./pages/citizen/NotificationSettings"));
+const AdminNotifications = lazy(() => import("./pages/admin/AdminNotifications"));
 
 function RouteFallback() {
   return (
@@ -192,6 +193,11 @@ function Router() {
       <Route path="/admin/delimitation">
         <DashboardLayout>
           <DelimitationVillageoise />
+        </DashboardLayout>
+      </Route>
+      <Route path="/admin/notifications">
+        <DashboardLayout>
+          <AdminNotifications />
         </DashboardLayout>
       </Route>
 

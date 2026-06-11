@@ -22,6 +22,7 @@ import {
   territoryStatusHistory, InsertTerritoryStatusHistory,
   citizenNotifications, InsertCitizenNotification,
   notificationPreferences, InsertNotificationPreference,
+  systemConfig,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1424,4 +1425,41 @@ export async function upsertNotificationPreferences(userId: number, data: Partia
     }).$returningId();
     return result;
   }
+}
+
+// ─── System Configuration Helpers ───────────────────────────────────────────
+export async function getSystemConfig(key: string): Promise<Record<string, unknown> | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(systemConfig)
+    .where(eq(systemConfig.configKey, key))
+    .limit(1);
+  if (!row) return null;
+  try {
+    return JSON.parse(row.configValue);
+  } catch {
+    return null;
+  }
+}
+
+export async function upsertSystemConfig(key: string, value: Record<string, unknown>, updatedBy: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const existing = await db.select().from(systemConfig)
+    .where(eq(systemConfig.configKey, key))
+    .limit(1);
+  const jsonValue = JSON.stringify(value);
+  if (existing.length > 0) {
+    await db.update(systemConfig)
+      .set({ configValue: jsonValue, updatedAt: Date.now(), updatedBy })
+      .where(eq(systemConfig.configKey, key));
+  } else {
+    await db.insert(systemConfig).values({
+      configKey: key,
+      configValue: jsonValue,
+      updatedAt: Date.now(),
+      updatedBy,
+    });
+  }
+  return value;
 }

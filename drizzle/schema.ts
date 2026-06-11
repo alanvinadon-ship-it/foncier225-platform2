@@ -709,3 +709,21 @@ export const notificationPreferences = mysqlTable(
 
 export type NotificationPreference = typeof notificationPreferences.$inferSelect;
 export type InsertNotificationPreference = typeof notificationPreferences.$inferInsert;
+
+// ─── System Configuration (SMTP, SMS Gateway, etc.) ─────────────────────────
+export const systemConfig = mysqlTable(
+  "system_config",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    configKey: varchar("configKey", { length: 100 }).notNull(),
+    configValue: text("configValue").notNull(), // JSON stringified
+    updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
+    updatedBy: int("updatedBy").references(() => users.id),
+  },
+  table => ({
+    keyIdx: unique("uniq_config_key").on(table.configKey),
+  })
+);
+
+export type SystemConfig = typeof systemConfig.$inferSelect;
+export type InsertSystemConfig = typeof systemConfig.$inferInsert;

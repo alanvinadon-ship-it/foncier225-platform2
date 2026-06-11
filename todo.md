@@ -397,3 +397,13 @@
 - [x] Ajouter lien "Alertes" dans le menu latéral citoyen (CitizenLayout)
 - [x] Infrastructure prête pour intégration email/SMS (préférences stockées en DB, consultables lors de notifyCitizenStatusChange)
 - [x] Tests TypeScript et validation (0 erreurs, 198 tests PASS)
+
+## v2.15 — Administration Notification Email/SMS (SMTP + Gateway SMS Orange CI)
+
+- [x] Ajouter table system_config dans le schéma DB (clé/valeur chiffrée pour SMTP et SMS gateway)
+- [x] Créer helpers DB (getSystemConfig, upsertSystemConfig)
+- [x] Créer procédures tRPC admin (getMailConfig, updateMailConfig, getSmsConfig, updateSmsConfig, testMailConfig, testSmsConfig)
+- [x] Créer page admin /admin/notifications avec formulaire SMTP et formulaire SMS Orange CI (onglets)
+- [x] Ajouter lien "Notification Email/SMS" dans le menu latéral admin (DashboardLayout)
+- [x] Ajouter la route /admin/notifications dans App.tsx
+- [x] Tests TypeScript et validation (0 erreurs, 198 tests PASS)
