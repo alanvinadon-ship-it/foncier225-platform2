@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Banknote, Bell as BellIcon, Building2, FileText, Home, Landmark, LayoutDashboard, LogOut, MapPin, PanelLeft, Clock, User, Search, GitBranch } from "lucide-react";
+import { Banknote, Bell as BellIcon, Building2, FileText, Home, Landmark, LayoutDashboard, LogOut, MapPin, PanelLeft, Clock, PlusCircle, User, Search, GitBranch } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
@@ -32,6 +32,7 @@ import { trpc } from "@/lib/trpc";
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663315306103/5jQVPXrA6y6Zze2FEtSNJt/foncier225-logo-8Tu2AjJfXPzkTY5ufdWVtP.webp";
 
 const menuItems = [
+  { icon: PlusCircle, label: "Nouvelle demande", path: "/citizen/new-application", badge: false },
   { icon: LayoutDashboard, label: "Tableau de bord", path: "/citizen", badge: false },
   { icon: MapPin, label: "Mes parcelles", path: "/citizen/parcels", badge: false },
   { icon: Search, label: "Suivi dossier", path: "/citizen/suivi", badge: true },

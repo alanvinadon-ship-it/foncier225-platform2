@@ -46,6 +46,7 @@ const CitizenUrbanAcdCreate = lazy(() => import("./pages/citizen/CitizenUrbanAcd
 const CitizenUrbanAcdDetail = lazy(() => import("./pages/citizen/CitizenUrbanAcdDetail"));
 const AdminUrbanAcdList = lazy(() => import("./pages/admin/AdminUrbanAcdList"));
 const AdminUrbanAcdDetail = lazy(() => import("./pages/admin/AdminUrbanAcdDetail"));
+const NewApplication = lazy(() => import("./pages/citizen/NewApplication"));
 
 function RouteFallback() {
   return (
@@ -113,6 +114,11 @@ function Router() {
         </CitizenLayout>
       </Route>
 
+      <Route path="/citizen/new-application">
+        <CitizenLayout>
+          <NewApplication />
+        </CitizenLayout>
+      </Route>
       <Route path="/citizen/urban-acd">
         <CitizenLayout>
           <CitizenUrbanAcdList />

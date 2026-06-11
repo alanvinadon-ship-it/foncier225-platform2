@@ -503,3 +503,19 @@
 - [x] Ajouter routes /admin/urban-acd et /admin/urban-acd/:id dans App.tsx
 - [x] Ajouter lien "Foncier Urbain (ACD)" avec icône Building2 dans le menu admin (DashboardLayout)
 - [x] Tests TypeScript (0 erreurs) et 229 tests PASS (10 fichiers)
+
+## v3.3 — Questionnaire d'aiguillage urbain/rural
+
+### Page questionnaire
+- [x] Page /citizen/new-application avec questionnaire interactif étape par étape
+- [x] Question 1 : Localisation du terrain (zone urbaine/péri-urbaine ou zone rurale)
+- [x] Question 2 : Type de terrain (lotissement/parcelle viabilisée ou terrain coutumier/non loti)
+- [x] Question 3 : Document existant (lettre d'attribution, permis de construire, attestation villageoise)
+- [x] Résultat avec recommandation claire (ACD ou Certificat Foncier) et bouton de redirection
+- [x] Design visuel avec icônes, animations de transition entre étapes
+
+### Intégration
+- [x] Ajouter route /citizen/new-application dans App.tsx
+- [x] Ajouter bouton "Nouvelle demande" dans le menu citoyen (CitizenLayout)
+- [x] Lien depuis la page d'accueil publique
+- [x] Tests TypeScript et validation (0 erreurs, 229 tests PASS)
