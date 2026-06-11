@@ -10,6 +10,9 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -29,20 +32,41 @@ import { Button } from "./ui/button";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663315306103/5jQVPXrA6y6Zze2FEtSNJt/foncier225-logo-8Tu2AjJfXPzkTY5ufdWVtP.webp";
 
-const menuItems = [
-  { icon: LayoutDashboard, label: "Tableau de bord", path: "/admin" },
-  { icon: MapPin, label: "Parcelles", path: "/admin/parcels" },
-  { icon: FileCheck, label: "Documents", path: "/admin/documents" },
-  { icon: Users, label: "Utilisateurs", path: "/admin/users" },
-  { icon: Shield, label: "Journal d'audit", path: "/admin/audit" },
-  { icon: Landmark, label: "Titre foncier", path: "/admin/land-title" },
-  { icon: Map, label: "Délimitation villageoise", path: "/admin/delimitation" },
-  { icon: Bell, label: "Notification Email/SMS", path: "/admin/notifications" },
-  { icon: Globe, label: "Configuration SIG", path: "/admin/sig-config" },
-  { icon: BarChart3, label: "Tableau de bord SIG", path: "/admin/sig-dashboard" },
-  { icon: Building2, label: "Foncier Urbain (ACD)", path: "/admin/urban-acd" },
-  { icon: PieChart, label: "Statistiques unifiées", path: "/admin/unified-dashboard" },
+type AdminMenuItem = { icon: any; label: string; path: string };
+type AdminMenuCategory = { title: string; items: AdminMenuItem[] };
+
+const menuCategories: AdminMenuCategory[] = [
+  {
+    title: "Commun",
+    items: [
+      { icon: LayoutDashboard, label: "Tableau de bord", path: "/admin" },
+      { icon: Users, label: "Utilisateurs", path: "/admin/users" },
+      { icon: Shield, label: "Journal d'audit", path: "/admin/audit" },
+      { icon: Bell, label: "Notification Email/SMS", path: "/admin/notifications" },
+      { icon: PieChart, label: "Statistiques unifiées", path: "/admin/unified-dashboard" },
+    ],
+  },
+  {
+    title: "Foncier Rural",
+    items: [
+      { icon: MapPin, label: "Parcelles", path: "/admin/parcels" },
+      { icon: FileCheck, label: "Documents", path: "/admin/documents" },
+      { icon: Landmark, label: "Titre foncier", path: "/admin/land-title" },
+      { icon: Map, label: "Délimitation villageoise", path: "/admin/delimitation" },
+      { icon: Globe, label: "Configuration SIG", path: "/admin/sig-config" },
+      { icon: BarChart3, label: "Tableau de bord SIG", path: "/admin/sig-dashboard" },
+    ],
+  },
+  {
+    title: "Foncier Urbain",
+    items: [
+      { icon: Building2, label: "Foncier Urbain (ACD)", path: "/admin/urban-acd" },
+    ],
+  },
 ];
+
+// Flat list for active item detection
+const menuItems = menuCategories.flatMap(c => c.items);
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 260;
@@ -200,24 +224,33 @@ function DashboardLayoutContent({
           </SidebarHeader>
 
           <SidebarContent className="gap-0">
-            <SidebarMenu className="px-2 py-1">
-              {menuItems.map(item => {
-                const isActive = location === item.path;
-                return (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      isActive={isActive}
-                      onClick={() => setLocation(item.path)}
-                      tooltip={item.label}
-                      className="h-10 transition-all font-normal"
-                    >
-                      <item.icon className={`h-4 w-4 ${isActive ? "text-ci-green" : ""}`} />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
+            {menuCategories.map(category => (
+              <SidebarGroup key={category.title}>
+                <SidebarGroupLabel className="text-[11px] uppercase tracking-wider text-muted-foreground/60 font-semibold">
+                  {category.title}
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {category.items.map(item => {
+                      const isActive = location === item.path;
+                      return (
+                        <SidebarMenuItem key={item.path}>
+                          <SidebarMenuButton
+                            isActive={isActive}
+                            onClick={() => setLocation(item.path)}
+                            tooltip={item.label}
+                            className="h-10 transition-all font-normal"
+                          >
+                            <item.icon className={`h-4 w-4 ${isActive ? "text-ci-green" : ""}`} />
+                            <span>{item.label}</span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            ))}
           </SidebarContent>
 
           <SidebarFooter className="p-3">

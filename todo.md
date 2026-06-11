@@ -538,3 +538,20 @@
 ### Intégration
 - [x] Page dédiée /admin/unified-dashboard avec lien dans le menu admin (DashboardLayout)
 - [x] Tests TypeScript (0 erreurs) et 229 tests PASS
+
+## v3.5 — Regroupement menus sidebar en catégories (Rural / Urbain / Commun)
+
+### Menu citoyen (CitizenLayout)
+- [x] Catégorie "Commun" : Nouvelle demande, Tableau de bord, Mon profil, Alertes
+- [x] Catégorie "Foncier Rural" : Mes parcelles, Suivi dossier, Processus, Timeline, Mes documents, Titre foncier, Crédit habitat
+- [x] Catégorie "Foncier Urbain" : Foncier urbain (ACD)
+- [x] Labels de section visibles en mode étendu, masqués en mode réduit (SidebarGroupLabel)
+
+### Menu admin (DashboardLayout)
+- [x] Catégorie "Commun" : Tableau de bord, Utilisateurs, Journal d'audit, Notification Email/SMS, Statistiques unifiées
+- [x] Catégorie "Foncier Rural" : Parcelles, Documents, Titre foncier, Délimitation villageoise, Configuration SIG, Tableau de bord SIG
+- [x] Catégorie "Foncier Urbain" : Foncier Urbain (ACD)
+- [x] Labels de section visibles en mode étendu, masqués en mode réduit
+
+### Validation
+- [x] Tests TypeScript (0 erreurs) et 229 tests PASS

@@ -10,6 +10,9 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -31,20 +34,41 @@ import { trpc } from "@/lib/trpc";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663315306103/5jQVPXrA6y6Zze2FEtSNJt/foncier225-logo-8Tu2AjJfXPzkTY5ufdWVtP.webp";
 
-const menuItems = [
-  { icon: PlusCircle, label: "Nouvelle demande", path: "/citizen/new-application", badge: false },
-  { icon: LayoutDashboard, label: "Tableau de bord", path: "/citizen", badge: false },
-  { icon: MapPin, label: "Mes parcelles", path: "/citizen/parcels", badge: false },
-  { icon: Search, label: "Suivi dossier", path: "/citizen/suivi", badge: true },
-  { icon: GitBranch, label: "Processus", path: "/citizen/workflow", badge: false },
-  { icon: Clock, label: "Timeline", path: "/citizen/timeline", badge: false },
-  { icon: FileText, label: "Mes documents", path: "/citizen/documents", badge: false },
-  { icon: Landmark, label: "Titre foncier", path: "/citizen/land-title", badge: false },
-  { icon: Building2, label: "Foncier urbain", path: "/citizen/urban-acd", badge: false },
-  { icon: Banknote, label: "Crédit habitat", path: "/citizen/credit-habitat", badge: false },
-  { icon: BellIcon, label: "Alertes", path: "/citizen/notifications", badge: false },
-  { icon: User, label: "Mon profil", path: "/citizen/profile", badge: false },
+type MenuItem = { icon: any; label: string; path: string; badge: boolean };
+type MenuCategory = { title: string; items: MenuItem[] };
+
+const menuCategories: MenuCategory[] = [
+  {
+    title: "Commun",
+    items: [
+      { icon: PlusCircle, label: "Nouvelle demande", path: "/citizen/new-application", badge: false },
+      { icon: LayoutDashboard, label: "Tableau de bord", path: "/citizen", badge: false },
+      { icon: BellIcon, label: "Alertes", path: "/citizen/notifications", badge: false },
+      { icon: User, label: "Mon profil", path: "/citizen/profile", badge: false },
+    ],
+  },
+  {
+    title: "Foncier Rural",
+    items: [
+      { icon: MapPin, label: "Mes parcelles", path: "/citizen/parcels", badge: false },
+      { icon: Search, label: "Suivi dossier", path: "/citizen/suivi", badge: true },
+      { icon: GitBranch, label: "Processus", path: "/citizen/workflow", badge: false },
+      { icon: Clock, label: "Timeline", path: "/citizen/timeline", badge: false },
+      { icon: FileText, label: "Mes documents", path: "/citizen/documents", badge: false },
+      { icon: Landmark, label: "Titre foncier", path: "/citizen/land-title", badge: false },
+      { icon: Banknote, label: "Crédit habitat", path: "/citizen/credit-habitat", badge: false },
+    ],
+  },
+  {
+    title: "Foncier Urbain",
+    items: [
+      { icon: Building2, label: "Foncier urbain (ACD)", path: "/citizen/urban-acd", badge: false },
+    ],
+  },
 ];
+
+// Flat list for active item detection
+const menuItems = menuCategories.flatMap(c => c.items);
 
 const SIDEBAR_WIDTH_KEY = "citizen-sidebar-width";
 const DEFAULT_WIDTH = 260;
@@ -192,25 +216,34 @@ function CitizenLayoutContent({
           </SidebarHeader>
 
           <SidebarContent className="gap-0">
-            <SidebarMenu className="px-2 py-1">
-              {menuItems.map(item => {
-                const isActive = location === item.path || location.startsWith(`${item.path}/`);
-                return (
-                  <SidebarMenuItem key={item.path}>
-                    <SidebarMenuButton
-                      isActive={isActive}
-                      onClick={() => setLocation(item.path)}
-                      tooltip={item.label}
-                      className="h-10 transition-all font-normal"
-                    >
-                      <item.icon className={`h-4 w-4 ${isActive ? "text-ci-orange" : ""}`} />
-                      <span className="flex-1">{item.label}</span>
-                      {item.badge && <NotificationBadge />}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
+            {menuCategories.map(category => (
+              <SidebarGroup key={category.title}>
+                <SidebarGroupLabel className="text-[11px] uppercase tracking-wider text-muted-foreground/60 font-semibold">
+                  {category.title}
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {category.items.map(item => {
+                      const isActive = location === item.path || location.startsWith(`${item.path}/`);
+                      return (
+                        <SidebarMenuItem key={item.path}>
+                          <SidebarMenuButton
+                            isActive={isActive}
+                            onClick={() => setLocation(item.path)}
+                            tooltip={item.label}
+                            className="h-10 transition-all font-normal"
+                          >
+                            <item.icon className={`h-4 w-4 ${isActive ? "text-ci-orange" : ""}`} />
+                            <span className="flex-1">{item.label}</span>
+                            {item.badge && <NotificationBadge />}
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            ))}
           </SidebarContent>
 
           <SidebarFooter className="p-3">
