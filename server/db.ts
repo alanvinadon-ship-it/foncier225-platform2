@@ -1681,3 +1681,31 @@ export async function getUnifiedDashboardStats() {
     monthlyComparison,
   };
 }
+
+// ─── Active dossier counts per category (for sidebar badges) ─────────
+export async function getActiveDossierCounts(userId: number) {
+  const db = await getDb();
+  if (!db) return { rural: 0, urban: 0 };
+
+  const ruralActiveStatuses = ["submitted", "under_review", "survey_scheduled", "survey_done", "opposition_period", "cf_pending", "tf_pending"];
+  const urbanActiveStatuses = ["submitted", "verification", "technical_study", "public_inquiry", "commission_review", "acd_pending"];
+
+  const [ruralResult] = await db.select({ count: sql<number>`count(*)` })
+    .from(landTitleApplications)
+    .where(and(
+      eq(landTitleApplications.userId, userId),
+      inArray(landTitleApplications.status, ruralActiveStatuses)
+    ));
+
+  const [urbanResult] = await db.select({ count: sql<number>`count(*)` })
+    .from(urbanAcdApplications)
+    .where(and(
+      eq(urbanAcdApplications.userId, userId),
+      inArray(urbanAcdApplications.status, urbanActiveStatuses)
+    ));
+
+  return {
+    rural: Number(ruralResult?.count ?? 0),
+    urban: Number(urbanResult?.count ?? 0),
+  };
+}

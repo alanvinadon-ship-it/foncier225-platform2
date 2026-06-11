@@ -1,6 +1,11 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -24,7 +29,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { BarChart3, Bell, Building2, FileCheck, Globe, Home, Landmark, LayoutDashboard, LogOut, Map, MapPin, PanelLeft, PieChart, Shield, Users } from "lucide-react";
+import { BarChart3, Bell, Building2, ChevronDown, FileCheck, Globe, Home, Landmark, LayoutDashboard, LogOut, Map, MapPin, PanelLeft, PieChart, Shield, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -33,11 +38,14 @@ import { Button } from "./ui/button";
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663315306103/5jQVPXrA6y6Zze2FEtSNJt/foncier225-logo-8Tu2AjJfXPzkTY5ufdWVtP.webp";
 
 type AdminMenuItem = { icon: any; label: string; path: string };
-type AdminMenuCategory = { title: string; items: AdminMenuItem[] };
+type AdminMenuCategory = { title: string; color: string; iconColor: string; key: string; items: AdminMenuItem[] };
 
 const menuCategories: AdminMenuCategory[] = [
   {
     title: "Commun",
+    color: "text-ci-orange",
+    iconColor: "text-ci-orange",
+    key: "common",
     items: [
       { icon: LayoutDashboard, label: "Tableau de bord", path: "/admin" },
       { icon: Users, label: "Utilisateurs", path: "/admin/users" },
@@ -48,6 +56,9 @@ const menuCategories: AdminMenuCategory[] = [
   },
   {
     title: "Foncier Rural",
+    color: "text-emerald-600",
+    iconColor: "text-emerald-600",
+    key: "rural",
     items: [
       { icon: MapPin, label: "Parcelles", path: "/admin/parcels" },
       { icon: FileCheck, label: "Documents", path: "/admin/documents" },
@@ -59,6 +70,9 @@ const menuCategories: AdminMenuCategory[] = [
   },
   {
     title: "Foncier Urbain",
+    color: "text-blue-600",
+    iconColor: "text-blue-600",
+    key: "urban",
     items: [
       { icon: Building2, label: "Foncier Urbain (ACD)", path: "/admin/urban-acd" },
     ],
@@ -67,6 +81,106 @@ const menuCategories: AdminMenuCategory[] = [
 
 // Flat list for active item detection
 const menuItems = menuCategories.flatMap(c => c.items);
+
+const ADMIN_COLLAPSED_SECTIONS_KEY = "admin-collapsed-sections";
+
+/** Collapsible admin sidebar section with colored label and chevron */
+function AdminCollapsibleSection({
+  category,
+  location,
+  setLocation,
+  isCollapsed,
+}: {
+  category: AdminMenuCategory;
+  location: string;
+  setLocation: (path: string) => void;
+  isCollapsed: boolean;
+}) {
+  const [open, setOpen] = useState(() => {
+    try {
+      const saved = localStorage.getItem(ADMIN_COLLAPSED_SECTIONS_KEY);
+      if (saved) {
+        const collapsed: string[] = JSON.parse(saved);
+        return !collapsed.includes(category.key);
+      }
+    } catch {}
+    return true;
+  });
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(ADMIN_COLLAPSED_SECTIONS_KEY);
+      const collapsed: string[] = saved ? JSON.parse(saved) : [];
+      if (!open && !collapsed.includes(category.key)) {
+        localStorage.setItem(ADMIN_COLLAPSED_SECTIONS_KEY, JSON.stringify([...collapsed, category.key]));
+      } else if (open && collapsed.includes(category.key)) {
+        localStorage.setItem(ADMIN_COLLAPSED_SECTIONS_KEY, JSON.stringify(collapsed.filter(k => k !== category.key)));
+      }
+    } catch {}
+  }, [open, category.key]);
+
+  if (isCollapsed) {
+    return (
+      <SidebarGroup>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {category.items.map(item => {
+              const isActive = location === item.path;
+              return (
+                <SidebarMenuItem key={item.path}>
+                  <SidebarMenuButton
+                    isActive={isActive}
+                    onClick={() => setLocation(item.path)}
+                    tooltip={item.label}
+                    className="h-10 transition-all font-normal"
+                  >
+                    <item.icon className={`h-4 w-4 ${isActive ? category.iconColor : ""}`} />
+                    <span>{item.label}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    );
+  }
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <SidebarGroup>
+        <CollapsibleTrigger asChild>
+          <SidebarGroupLabel className={`text-[11px] uppercase tracking-wider font-semibold cursor-pointer select-none hover:bg-accent/50 rounded-md transition-colors ${category.color}`}>
+            <span className="flex-1">{category.title}</span>
+            <ChevronDown className={`h-3.5 w-3.5 ml-1 transition-transform duration-200 ${open ? "" : "-rotate-90"}`} />
+          </SidebarGroupLabel>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="transition-all data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {category.items.map(item => {
+                const isActive = location === item.path;
+                return (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton
+                      isActive={isActive}
+                      onClick={() => setLocation(item.path)}
+                      tooltip={item.label}
+                      className="h-10 transition-all font-normal"
+                    >
+                      <item.icon className={`h-4 w-4 ${isActive ? category.iconColor : ""}`} />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </CollapsibleContent>
+      </SidebarGroup>
+    </Collapsible>
+  );
+}
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 260;
@@ -225,31 +339,13 @@ function DashboardLayoutContent({
 
           <SidebarContent className="gap-0">
             {menuCategories.map(category => (
-              <SidebarGroup key={category.title}>
-                <SidebarGroupLabel className="text-[11px] uppercase tracking-wider text-muted-foreground/60 font-semibold">
-                  {category.title}
-                </SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {category.items.map(item => {
-                      const isActive = location === item.path;
-                      return (
-                        <SidebarMenuItem key={item.path}>
-                          <SidebarMenuButton
-                            isActive={isActive}
-                            onClick={() => setLocation(item.path)}
-                            tooltip={item.label}
-                            className="h-10 transition-all font-normal"
-                          >
-                            <item.icon className={`h-4 w-4 ${isActive ? "text-ci-green" : ""}`} />
-                            <span>{item.label}</span>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      );
-                    })}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
+              <AdminCollapsibleSection
+                key={category.key}
+                category={category}
+                location={location}
+                setLocation={setLocation}
+                isCollapsed={isCollapsed}
+              />
             ))}
           </SidebarContent>
 

@@ -1,6 +1,11 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -24,7 +29,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Banknote, Bell as BellIcon, Building2, FileText, Home, Landmark, LayoutDashboard, LogOut, MapPin, PanelLeft, Clock, PlusCircle, User, Search, GitBranch } from "lucide-react";
+import { Banknote, Bell as BellIcon, Building2, ChevronDown, FileText, Home, Landmark, LayoutDashboard, LogOut, MapPin, PanelLeft, Clock, PlusCircle, User, Search, GitBranch } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
@@ -35,11 +40,14 @@ import { trpc } from "@/lib/trpc";
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663315306103/5jQVPXrA6y6Zze2FEtSNJt/foncier225-logo-8Tu2AjJfXPzkTY5ufdWVtP.webp";
 
 type MenuItem = { icon: any; label: string; path: string; badge: boolean };
-type MenuCategory = { title: string; items: MenuItem[] };
+type MenuCategory = { title: string; color: string; iconColor: string; key: "common" | "rural" | "urban"; items: MenuItem[] };
 
 const menuCategories: MenuCategory[] = [
   {
     title: "Commun",
+    color: "text-ci-orange",
+    iconColor: "text-ci-orange",
+    key: "common",
     items: [
       { icon: PlusCircle, label: "Nouvelle demande", path: "/citizen/new-application", badge: false },
       { icon: LayoutDashboard, label: "Tableau de bord", path: "/citizen", badge: false },
@@ -51,6 +59,9 @@ const menuCategories: MenuCategory[] = [
   },
   {
     title: "Foncier Rural",
+    color: "text-emerald-600",
+    iconColor: "text-emerald-600",
+    key: "rural",
     items: [
       { icon: Search, label: "Suivi dossier", path: "/citizen/suivi", badge: true },
       { icon: GitBranch, label: "Processus", path: "/citizen/workflow", badge: false },
@@ -61,6 +72,9 @@ const menuCategories: MenuCategory[] = [
   },
   {
     title: "Foncier Urbain",
+    color: "text-blue-600",
+    iconColor: "text-blue-600",
+    key: "urban",
     items: [
       { icon: Building2, label: "Foncier urbain (ACD)", path: "/citizen/urban-acd", badge: false },
     ],
@@ -70,10 +84,126 @@ const menuCategories: MenuCategory[] = [
 // Flat list for active item detection
 const menuItems = menuCategories.flatMap(c => c.items);
 
+const COLLAPSED_SECTIONS_KEY = "citizen-collapsed-sections";
+
 const SIDEBAR_WIDTH_KEY = "citizen-sidebar-width";
 const DEFAULT_WIDTH = 260;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 400;
+
+/** Collapsible sidebar section with colored label, chevron, and active dossier badge */
+function CollapsibleSection({
+  category,
+  location,
+  setLocation,
+  isCollapsed,
+}: {
+  category: MenuCategory;
+  location: string;
+  setLocation: (path: string) => void;
+  isCollapsed: boolean;
+}) {
+  const [open, setOpen] = useState(() => {
+    try {
+      const saved = localStorage.getItem(COLLAPSED_SECTIONS_KEY);
+      if (saved) {
+        const collapsed: string[] = JSON.parse(saved);
+        return !collapsed.includes(category.key);
+      }
+    } catch {}
+    return true;
+  });
+
+  // Persist collapsed state
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(COLLAPSED_SECTIONS_KEY);
+      const collapsed: string[] = saved ? JSON.parse(saved) : [];
+      if (!open && !collapsed.includes(category.key)) {
+        localStorage.setItem(COLLAPSED_SECTIONS_KEY, JSON.stringify([...collapsed, category.key]));
+      } else if (open && collapsed.includes(category.key)) {
+        localStorage.setItem(COLLAPSED_SECTIONS_KEY, JSON.stringify(collapsed.filter(k => k !== category.key)));
+      }
+    } catch {}
+  }, [open, category.key]);
+
+  // Active dossier counts
+  const { data: counts } = trpc.citizen.activeDossierCounts.useQuery(undefined, {
+    refetchInterval: 60000,
+  });
+  const badgeCount = category.key === "rural" ? (counts?.rural ?? 0)
+    : category.key === "urban" ? (counts?.urban ?? 0)
+    : 0;
+
+  // When sidebar is in icon mode, render items without collapsible wrapper
+  if (isCollapsed) {
+    return (
+      <SidebarGroup>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {category.items.map(item => {
+              const isActive = location === item.path || location.startsWith(`${item.path}/`);
+              return (
+                <SidebarMenuItem key={item.path}>
+                  <SidebarMenuButton
+                    isActive={isActive}
+                    onClick={() => setLocation(item.path)}
+                    tooltip={item.label}
+                    className="h-10 transition-all font-normal"
+                  >
+                    <item.icon className={`h-4 w-4 ${isActive ? category.iconColor : ""}`} />
+                    <span className="flex-1">{item.label}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    );
+  }
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <SidebarGroup>
+        <CollapsibleTrigger asChild>
+          <SidebarGroupLabel className={`text-[11px] uppercase tracking-wider font-semibold cursor-pointer select-none hover:bg-accent/50 rounded-md transition-colors ${category.color}`}>
+            <span className="flex-1">{category.title}</span>
+            {badgeCount > 0 && (
+              <span className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold text-white ${category.key === "rural" ? "bg-emerald-600" : "bg-blue-600"}`}>
+                {badgeCount}
+              </span>
+            )}
+            <ChevronDown className={`h-3.5 w-3.5 ml-1 transition-transform duration-200 ${open ? "" : "-rotate-90"}`} />
+          </SidebarGroupLabel>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="transition-all data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {category.items.map(item => {
+                const isActive = location === item.path || location.startsWith(`${item.path}/`);
+                return (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton
+                      isActive={isActive}
+                      onClick={() => setLocation(item.path)}
+                      tooltip={item.label}
+                      className="h-10 transition-all font-normal"
+                    >
+                      <item.icon className={`h-4 w-4 ${isActive ? category.iconColor : ""}`} />
+                      <span className="flex-1">{item.label}</span>
+                      {item.badge && <NotificationBadge />}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </CollapsibleContent>
+      </SidebarGroup>
+    </Collapsible>
+  );
+}
 
 /** Badge showing unread status_change notifications count in the sidebar */
 function NotificationBadge() {
@@ -217,32 +347,13 @@ function CitizenLayoutContent({
 
           <SidebarContent className="gap-0">
             {menuCategories.map(category => (
-              <SidebarGroup key={category.title}>
-                <SidebarGroupLabel className="text-[11px] uppercase tracking-wider text-muted-foreground/60 font-semibold">
-                  {category.title}
-                </SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {category.items.map(item => {
-                      const isActive = location === item.path || location.startsWith(`${item.path}/`);
-                      return (
-                        <SidebarMenuItem key={item.path}>
-                          <SidebarMenuButton
-                            isActive={isActive}
-                            onClick={() => setLocation(item.path)}
-                            tooltip={item.label}
-                            className="h-10 transition-all font-normal"
-                          >
-                            <item.icon className={`h-4 w-4 ${isActive ? "text-ci-orange" : ""}`} />
-                            <span className="flex-1">{item.label}</span>
-                            {item.badge && <NotificationBadge />}
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      );
-                    })}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
+              <CollapsibleSection
+                key={category.key}
+                category={category}
+                location={location}
+                setLocation={setLocation}
+                isCollapsed={isCollapsed}
+              />
             ))}
           </SidebarContent>
 

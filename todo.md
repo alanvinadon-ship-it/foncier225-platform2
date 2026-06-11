@@ -555,3 +555,24 @@
 
 ### Validation
 - [x] Tests TypeScript (0 erreurs) et 229 tests PASS
+
+## v3.6 — Améliorations menu sidebar (repliable, couleurs, compteurs)
+
+### Sections repliables
+- [x] Chevron animé sur chaque catégorie pour replier/déplier
+- [x] État replié persisté en localStorage
+- [x] Animation fluide d'ouverture/fermeture
+
+### Icônes colorées par catégorie
+- [x] Orange pour Commun
+- [x] Vert pour Foncier Rural
+- [x] Bleu pour Foncier Urbain
+- [x] Couleur appliquée sur le label de section et les icônes actives
+
+### Compteur de dossiers actifs
+- [x] Procédure tRPC pour compter les dossiers actifs par catégorie (rural/urbain)
+- [x] Badge numérique à côté du titre de chaque catégorie
+- [x] Rafraîchissement automatique (polling 60s)
+
+### Validation
+- [x] Tests TypeScript (0 erreurs) et 229 tests PASS

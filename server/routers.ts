@@ -60,6 +60,7 @@ import {
   getDistinctLandTitleRegions,
   getDistinctLandTitleOperators,
   getUnifiedDashboardStats,
+  getActiveDossierCounts,
   getNotificationPreferences,
   upsertNotificationPreferences,
   getSystemConfig,
@@ -342,6 +343,11 @@ const citizenRouter = router({
   unreadNotificationsCount: citizenProcedure
     .query(async ({ ctx }) => {
       return countUnreadNotifications(ctx.user.id);
+    }),
+
+  activeDossierCounts: citizenProcedure
+    .query(async ({ ctx }) => {
+      return getActiveDossierCounts(ctx.user.id);
     }),
 
   markNotificationRead: citizenProcedure
