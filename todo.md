@@ -348,3 +348,10 @@
 - [x] Intégration dans la page publique /suivi (workflow général + position si dossier trouvé)
 - [x] Page dédiée /workflow accessible depuis la navigation (route publique, nav header + footer + CTA accueil)
 - [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)
+
+## v2.13.1 — Infobulles interactives WorkflowGantt
+
+- [x] Enrichir les données de chaque étape avec acteurs impliqués et documents nécessaires
+- [x] Implémenter des infobulles interactives (Tooltip/Popover) au survol de chaque barre du Gantt
+- [x] Afficher dans l'infobulle : nom de l'étape, durée, acteurs, documents requis
+- [x] Tests TypeScript et validation (0 erreurs, 198 tests PASS)
