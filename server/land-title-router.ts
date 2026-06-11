@@ -28,6 +28,7 @@ import {
   countLandTitleOppositionsByApplication,
   getParcelByIdAndOwner,
 } from "./db";
+import { getRequiredDocumentsForProfile, type ApplicantProfile } from "@shared/afor-documents";
 
 // ─── Constants ──────────────────────────────────────────────────────
 
@@ -165,7 +166,7 @@ const citizenLandTitleRouter = router({
       return app;
     }),
 
-  // List my applications (with linked parcel info)
+  // List my applications (with linked parcel info + documents for completeness)
   listMine: protectedProcedure
     .input(z.object({
       limit: z.number().min(1).max(100).default(50),
@@ -178,7 +179,17 @@ const citizenLandTitleRouter = router({
         listLandTitleApplicationsByUserWithParcel(ctx.user.id, limit, offset),
         countLandTitleApplicationsByUser(ctx.user.id),
       ]);
-      return { items, total };
+      // Attach documents for draft items (needed for completeness indicator)
+      const enrichedItems = await Promise.all(
+        items.map(async (item) => {
+          if (item.status === "cf_draft") {
+            const docs = await listLandTitleDocuments(item.id);
+            return { ...item, documents: docs.map((d: any) => ({ documentType: d.documentType })) };
+          }
+          return { ...item, documents: [] };
+        })
+      );
+      return { items: enrichedItems, total };
     }),
 
   // Get one application by ID (strict ownership, with parcel)
@@ -201,6 +212,7 @@ const citizenLandTitleRouter = router({
   update: protectedProcedure
     .input(z.object({
       id: z.number(),
+      applicantProfile: z.enum(["individuel", "groupement", "personne_morale"]).optional(),
       applicantFullName: z.string().min(2).max(255).optional(),
       applicantNationality: z.string().max(100).optional(),
       applicantIdType: z.string().max(50).optional(),
@@ -247,6 +259,20 @@ const citizenLandTitleRouter = router({
       // Validate required fields
       if (!app.applicantFullName || !app.landLocality || !app.landSubPrefecture) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Informations incomplètes: nom, localité et sous-préfecture requis" });
+      }
+
+      // Validate required documents for the applicant profile
+      const profile = (app.applicantProfile || "individuel") as ApplicantProfile;
+      const requiredDocs = getRequiredDocumentsForProfile(profile).filter(d => d.required);
+      const uploadedDocs = await listLandTitleDocuments(input.id);
+      const uploadedTypes = new Set(uploadedDocs.map((d: any) => d.documentType));
+      const missingDocs = requiredDocs.filter(d => !uploadedTypes.has(d.documentType));
+      if (missingDocs.length > 0) {
+        const missingLabels = missingDocs.map(d => d.label).join(", ");
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Documents obligatoires manquants : ${missingLabels}`,
+        });
       }
 
       await updateLandTitleApplication(input.id, { status: "cf_submitted" });

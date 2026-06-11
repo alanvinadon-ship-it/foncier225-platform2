@@ -1,6 +1,7 @@
 import { LandTitleTimeline, LandTitleStatusBadge } from "@/components/LandTitleTimeline";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
 import {
@@ -12,10 +13,12 @@ import {
   User,
   Calendar,
   AlertTriangle,
+  Pencil,
 } from "lucide-react";
 import { Link, useParams } from "wouter";
+import { toast } from "sonner";
 import LandTitleDocumentUploader from "@/components/LandTitleDocumentUploader";
-import type { ApplicantProfile } from "@shared/afor-documents";
+import { PROFILE_LABELS, type ApplicantProfile } from "@shared/afor-documents";
 
 function deriveProfile(data: any): ApplicantProfile {
   // Use stored applicantProfile if available, otherwise derive from applicationType
@@ -26,6 +29,39 @@ function deriveProfile(data: any): ApplicantProfile {
   if (appType === "groupement" || appType === "community") return "groupement";
   if (appType === "personne_morale" || appType === "company") return "personne_morale";
   return "individuel";
+}
+
+function ProfileSelector({ applicationId, currentProfile, onUpdated }: {
+  applicationId: number;
+  currentProfile: ApplicantProfile;
+  onUpdated: () => void;
+}) {
+  const updateMutation = trpc.landTitle.citizen.update.useMutation({
+    onSuccess: () => {
+      toast.success("Profil mis à jour");
+      onUpdated();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  return (
+    <Select
+      value={currentProfile}
+      onValueChange={(value) => {
+        updateMutation.mutate({ id: applicationId, applicantProfile: value as ApplicantProfile });
+      }}
+      disabled={updateMutation.isPending}
+    >
+      <SelectTrigger className="h-7 w-auto inline-flex text-xs font-medium gap-1">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="individuel">{PROFILE_LABELS.individuel}</SelectItem>
+        <SelectItem value="groupement">{PROFILE_LABELS.groupement}</SelectItem>
+        <SelectItem value="personne_morale">{PROFILE_LABELS.personne_morale}</SelectItem>
+      </SelectContent>
+    </Select>
+  );
 }
 
 export default function CitizenLandTitleDetail() {
@@ -130,6 +166,19 @@ export default function CitizenLandTitleDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
+                {/* Profil demandeur — modifiable en brouillon */}
+                <div>
+                  <span className="text-muted-foreground">Profil :</span>{" "}
+                  {data.status === "cf_draft" ? (
+                    <ProfileSelector
+                      applicationId={appId}
+                      currentProfile={deriveProfile(data)}
+                      onUpdated={() => utils.landTitle.citizen.getById.invalidate({ id: appId })}
+                    />
+                  ) : (
+                    <span className="font-medium">{PROFILE_LABELS[deriveProfile(data)]}</span>
+                  )}
+                </div>
                 <div>
                   <span className="text-muted-foreground">Nom :</span>{" "}
                   <span className="font-medium">{data.applicantFullName}</span>

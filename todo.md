@@ -283,3 +283,11 @@
 - [x] Mettre à jour le formulaire de création (sélecteur profil)
 - [x] Mettre à jour la page détail citoyen (utiliser le profil stocké au lieu de dériver)
 - [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)
+
+## v2.7 — Validation soumission, indicateur complétude, modification profil
+
+- [x] Blocage soumission côté serveur si documents obligatoires du profil manquants
+- [x] Indicateur visuel complet/incomplet dans la liste des demandes citoyen
+- [x] Procédure updateProfile pour modifier le profil en brouillon (cf_draft) — intégré dans update
+- [x] UI modification profil dans la page détail citoyen (ProfileSelector)
+- [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)

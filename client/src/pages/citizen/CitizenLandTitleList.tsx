@@ -3,8 +3,35 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
-import { FileText, MapPin, Plus, ChevronRight, Loader2 } from "lucide-react";
+import { FileText, MapPin, Plus, ChevronRight, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Link } from "wouter";
+import { getRequiredDocumentsForProfile, type ApplicantProfile } from "@shared/afor-documents";
+import { useMemo } from "react";
+
+function DocumentCompletenessIndicator({ app }: { app: any }) {
+  const completeness = useMemo(() => {
+    if (app.status !== "cf_draft") return null; // Only show for drafts
+    const profile = (app.applicantProfile || "individuel") as ApplicantProfile;
+    const requiredDocs = getRequiredDocumentsForProfile(profile).filter(d => d.required);
+    const uploadedTypes = new Set((app.documents || []).map((d: any) => d.documentType));
+    const uploaded = requiredDocs.filter(d => uploadedTypes.has(d.documentType)).length;
+    return { uploaded, total: requiredDocs.length, complete: uploaded >= requiredDocs.length };
+  }, [app]);
+
+  if (!completeness) return null;
+
+  return completeness.complete ? (
+    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-ci-green bg-ci-green/10 rounded-full px-2 py-0.5">
+      <CheckCircle2 className="h-3 w-3" />
+      Complet
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600 bg-amber-50 rounded-full px-2 py-0.5">
+      <AlertCircle className="h-3 w-3" />
+      {completeness.uploaded}/{completeness.total} docs
+    </span>
+  );
+}
 
 export default function CitizenLandTitleList() {
   const { data, isLoading, error } = trpc.landTitle.citizen.listMine.useQuery({});
@@ -79,9 +106,10 @@ export default function CitizenLandTitleList() {
                       <FileText className="h-5 w-5 text-ci-green" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-semibold truncate">{app.applicationNumber}</span>
                         <LandTitleStatusBadge status={app.status} />
+                        <DocumentCompletenessIndicator app={app} />
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5 truncate">
                         {app.applicantFullName} — {app.landLocality || app.landSubPrefecture || "Localité non renseignée"}
