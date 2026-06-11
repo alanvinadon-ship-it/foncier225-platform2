@@ -274,3 +274,12 @@
 - [x] Intégrer le tunnel dans la page détail citoyen (étape ouverture dossier)
 - [x] Afficher la complétude du dossier par catégorie (barre de progression animée)
 - [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)
+
+## v2.6 — Champ Profil Demandeur (filtrage dynamique documents AFOR)
+
+- [x] Ajouter colonne applicantProfile (enum: individuel, groupement, personne_morale) à land_title_applications
+- [x] Pousser la migration DB
+- [x] Mettre à jour le routeur tRPC (input create + retour getById)
+- [x] Mettre à jour le formulaire de création (sélecteur profil)
+- [x] Mettre à jour la page détail citoyen (utiliser le profil stocké au lieu de dériver)
+- [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)

@@ -18,6 +18,10 @@ import LandTitleDocumentUploader from "@/components/LandTitleDocumentUploader";
 import type { ApplicantProfile } from "@shared/afor-documents";
 
 function deriveProfile(data: any): ApplicantProfile {
+  // Use stored applicantProfile if available, otherwise derive from applicationType
+  if (data.applicantProfile && ["individuel", "groupement", "personne_morale"].includes(data.applicantProfile)) {
+    return data.applicantProfile as ApplicantProfile;
+  }
   const appType = data.applicationType;
   if (appType === "groupement" || appType === "community") return "groupement";
   if (appType === "personne_morale" || appType === "company") return "personne_morale";

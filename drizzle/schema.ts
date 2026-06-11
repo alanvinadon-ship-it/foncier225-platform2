@@ -528,6 +528,7 @@ export const landTitleApplications = mysqlTable(
     status: varchar("status", { length: 30 }).default("cf_draft").notNull(),
     parcelId: int("parcelId").references(() => parcels.id, { onDelete: "set null" }),
     territoryId: int("territoryId").references(() => villageTerritories.id, { onDelete: "set null" }),
+    applicantProfile: mysqlEnum("applicantProfile", ["individuel", "groupement", "personne_morale"]).default("individuel").notNull(),
     applicantFullName: varchar("applicantFullName", { length: 255 }).notNull(),
     applicantNationality: varchar("applicantNationality", { length: 100 }),
     applicantIdType: varchar("applicantIdType", { length: 50 }),

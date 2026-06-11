@@ -16,6 +16,7 @@ export default function CitizenLandTitleCreate() {
   const utils = trpc.useUtils();
 
   const [form, setForm] = useState({
+    applicantProfile: "individuel" as "individuel" | "groupement" | "personne_morale",
     applicantFullName: "",
     applicantNationality: "ivoirienne",
     applicantIdType: "CNI",
@@ -98,6 +99,7 @@ export default function CitizenLandTitleCreate() {
     e.preventDefault();
     if (!validate()) return;
     createMutation.mutate({
+      applicantProfile: form.applicantProfile,
       applicantFullName: form.applicantFullName.trim(),
       applicantNationality: form.applicantNationality || undefined,
       applicantIdType: form.applicantIdType || undefined,
@@ -180,6 +182,27 @@ export default function CitizenLandTitleCreate() {
               <CardTitle className="text-base">Informations du demandeur</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Profil du demandeur */}
+              <div className="space-y-2">
+                <Label>Profil du demandeur <span className="text-destructive">*</span></Label>
+                <Select
+                  value={form.applicantProfile}
+                  onValueChange={(v) => setForm(prev => ({ ...prev, applicantProfile: v as any }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionnez votre profil" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="individuel">Personne physique (Individuel)</SelectItem>
+                    <SelectItem value="groupement">Groupement informel (Famille / Communauté)</SelectItem>
+                    <SelectItem value="personne_morale">Personne morale (Société / Association)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Ce choix détermine les documents requis pour votre dossier.
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="applicantFullName">
                   Nom complet <span className="text-destructive">*</span>

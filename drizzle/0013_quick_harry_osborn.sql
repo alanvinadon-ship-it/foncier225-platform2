@@ -1,0 +1,1 @@
+ALTER TABLE `land_title_applications` ADD `applicantProfile` enum('individuel','groupement','personne_morale') DEFAULT 'individuel' NOT NULL;

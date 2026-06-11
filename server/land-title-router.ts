@@ -96,6 +96,7 @@ const citizenLandTitleRouter = router({
   // Create a new application (Phase 1 — draft)
   create: protectedProcedure
     .input(z.object({
+      applicantProfile: z.enum(["individuel", "groupement", "personne_morale"]).default("individuel"),
       applicantFullName: z.string().min(2).max(255),
       applicantNationality: z.string().max(100).optional(),
       applicantIdType: z.string().max(50).optional(),
@@ -126,6 +127,7 @@ const citizenLandTitleRouter = router({
         userId: ctx.user.id,
         phase: "certificate",
         status: "cf_draft",
+        applicantProfile: input.applicantProfile,
         applicantFullName: input.applicantFullName,
         applicantNationality: input.applicantNationality || null,
         applicantIdType: input.applicantIdType || null,
