@@ -18,6 +18,7 @@ import {
 import { Link, useParams } from "wouter";
 import { toast } from "sonner";
 import LandTitleDocumentUploader from "@/components/LandTitleDocumentUploader";
+import LandTitleSubmissionRecap from "@/components/LandTitleSubmissionRecap";
 import { PROFILE_LABELS, type ApplicantProfile } from "@shared/afor-documents";
 
 function deriveProfile(data: any): ApplicantProfile {
@@ -288,6 +289,21 @@ export default function CitizenLandTitleDetail() {
               }}
             />
           </motion.div>
+
+          {/* Soumission — visible uniquement en brouillon */}
+          {data.status === "cf_draft" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+            >
+              <LandTitleSubmissionRecap
+                applicationId={appId}
+                data={data}
+                onSubmitted={() => utils.landTitle.citizen.getById.invalidate({ id: appId })}
+              />
+            </motion.div>
+          )}
 
           {/* Oppositions */}
           {data.oppositions && data.oppositions.length > 0 && (

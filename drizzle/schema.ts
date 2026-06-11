@@ -650,3 +650,30 @@ export const landTitleOppositions = mysqlTable(
 
 export type LandTitleOpposition = typeof landTitleOppositions.$inferSelect;
 export type InsertLandTitleOpposition = typeof landTitleOppositions.$inferInsert;
+
+// ============================================================
+// NOTIFICATIONS CITOYEN
+// ============================================================
+
+export const citizenNotifications = mysqlTable(
+  "citizen_notifications",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+    type: mysqlEnum("type", ["status_change", "document_verified", "document_rejected", "opposition_filed", "general"]).default("general").notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    message: text("message").notNull(),
+    relatedModule: mysqlEnum("relatedModule", ["land_title", "credit", "delimitation", "general"]).default("general").notNull(),
+    relatedEntityId: int("relatedEntityId"),
+    isRead: boolean("isRead").default(false).notNull(),
+    createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+  },
+  table => ({
+    userIdx: index("idx_cn_user").on(table.userId),
+    userReadIdx: index("idx_cn_user_read").on(table.userId, table.isRead),
+    moduleIdx: index("idx_cn_module").on(table.relatedModule),
+  })
+);
+
+export type CitizenNotification = typeof citizenNotifications.$inferSelect;
+export type InsertCitizenNotification = typeof citizenNotifications.$inferInsert;

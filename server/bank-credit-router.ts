@@ -30,6 +30,7 @@ import {
   updateGeneratedDocument,
   updateCreditOffer,
   updateCreditFileStatus,
+  notifyCitizenStatusChange,
 } from "./db";
 import { storagePut } from "./storage";
 import type { CreditFile } from "../drizzle/schema";
@@ -289,6 +290,15 @@ export const bankCreditRouter = router({
         },
       });
 
+      // Notify citizen
+      void notifyCitizenStatusChange({
+        userId: file.initiatorId,
+        module: "credit",
+        entityId: file.id,
+        oldStatus: currentStatus,
+        newStatus,
+      });
+
       return {
         creditFileId: file.id,
         status: newStatus,
@@ -362,6 +372,15 @@ export const bankCreditRouter = router({
           newStatus,
           timestamp: new Date().toISOString(),
         },
+      });
+
+      // Notify citizen of document request
+      void notifyCitizenStatusChange({
+        userId: file.initiatorId,
+        module: "credit",
+        entityId: file.id,
+        oldStatus: currentStatus,
+        newStatus,
       });
 
       return {
@@ -446,6 +465,15 @@ export const bankCreditRouter = router({
         },
       });
 
+      // Notify citizen of offer
+      void notifyCitizenStatusChange({
+        userId: file.initiatorId,
+        module: "credit",
+        entityId: file.id,
+        oldStatus: currentStatus,
+        newStatus,
+      });
+
       return {
         creditFileId: file.id,
         offerId: createdOffer?.id,
@@ -511,6 +539,15 @@ export const bankCreditRouter = router({
           newStatus,
           timestamp: new Date().toISOString(),
         },
+      });
+
+      // Notify citizen of final decision
+      void notifyCitizenStatusChange({
+        userId: file.initiatorId,
+        module: "credit",
+        entityId: file.id,
+        oldStatus: currentStatus,
+        newStatus,
       });
 
       return {

@@ -25,6 +25,7 @@ vi.mock("./db", () => ({
   updateCreditOffer: vi.fn(),
   updateCreditFileStatus: vi.fn(),
   updateGeneratedDocument: vi.fn(),
+  notifyCitizenStatusChange: vi.fn(),
 }));
 
 vi.mock("./storage", () => ({

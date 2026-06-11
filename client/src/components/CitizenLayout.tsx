@@ -26,6 +26,7 @@ import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
+import NotificationBell from "./NotificationBell";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663315306103/5jQVPXrA6y6Zze2FEtSNJt/foncier225-logo-8Tu2AjJfXPzkTY5ufdWVtP.webp";
 
@@ -244,6 +245,12 @@ function CitizenLayoutContent({
                 </span>
               </div>
             </div>
+            <NotificationBell />
+          </div>
+        )}
+        {!isMobile && (
+          <div className="flex justify-end px-6 pt-4">
+            <NotificationBell />
           </div>
         )}
         <main className="flex-1 p-6">{children}</main>

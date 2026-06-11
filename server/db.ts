@@ -20,6 +20,7 @@ import {
   territoryBoundaryPoints, InsertTerritoryBoundaryPoint,
   territoryDocuments, InsertTerritoryDocument,
   territoryStatusHistory, InsertTerritoryStatusHistory,
+  citizenNotifications, InsertCitizenNotification,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1171,4 +1172,157 @@ export async function countLandTitleOppositionsByApplication(applicationId: numb
   const result = await db.select({ count: sql<number>`count(*)` }).from(landTitleOppositions)
     .where(and(...conditions));
   return result[0]?.count ?? 0;
+}
+
+
+// ─── Citizen Notifications ──────────────────────────────────────────
+
+export async function createCitizenNotification(data: Omit<InsertCitizenNotification, "id">) {
+  const db = await getDb();
+  if (!db) return null;
+  const [result] = await db.insert(citizenNotifications).values(data).$returningId();
+  return result;
+}
+
+export async function listCitizenNotifications(userId: number, limit = 50, offset = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(citizenNotifications)
+    .where(eq(citizenNotifications.userId, userId))
+    .orderBy(desc(citizenNotifications.createdAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function countUnreadNotifications(userId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.select({ count: sql<number>`count(*)` }).from(citizenNotifications)
+    .where(and(eq(citizenNotifications.userId, userId), eq(citizenNotifications.isRead, false)));
+  return result[0]?.count ?? 0;
+}
+
+export async function markNotificationRead(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(citizenNotifications)
+    .set({ isRead: true })
+    .where(and(eq(citizenNotifications.id, id), eq(citizenNotifications.userId, userId)));
+}
+
+export async function markAllNotificationsRead(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(citizenNotifications)
+    .set({ isRead: true })
+    .where(and(eq(citizenNotifications.userId, userId), eq(citizenNotifications.isRead, false)));
+}
+
+/** Helper to send a notification to a citizen when their dossier status changes */
+export async function notifyCitizenStatusChange(params: {
+  userId: number;
+  module: "land_title" | "credit" | "delimitation";
+  entityId: number;
+  oldStatus: string;
+  newStatus: string;
+  applicationNumber?: string;
+}) {
+  const statusLabels: Record<string, string> = {
+    cf_draft: "Brouillon",
+    cf_submitted: "Soumis",
+    cf_inquiry_open: "Enquête ouverte",
+    cf_inquiry_done: "Enquête terminée",
+    cf_publicity: "Publicité foncière",
+    cf_opposition_period: "Période d'opposition",
+    cf_commission_review: "Examen commission",
+    cf_approved: "Approuvé",
+    cf_signed: "Certificat signé",
+    cf_rejected: "Rejeté",
+    tf_conversion_requested: "Conversion demandée",
+    tf_apfr_review: "Examen APFR",
+    tf_cadastral_survey: "Bornage cadastral",
+    tf_registration: "Enregistrement",
+    tf_title_issued: "Titre délivré",
+    tf_published: "Publié au JO",
+    tf_rejected: "Rejeté",
+  };
+
+  const newLabel = statusLabels[params.newStatus] || params.newStatus;
+  const moduleLabel = params.module === "land_title" ? "Titre Foncier" :
+    params.module === "credit" ? "Crédit Habitat" : "Délimitation";
+  const ref = params.applicationNumber || `#${params.entityId}`;
+
+  return createCitizenNotification({
+    userId: params.userId,
+    type: "status_change",
+    title: `${moduleLabel} — Nouveau statut`,
+    message: `Votre dossier ${ref} est passé au statut « ${newLabel} ».`,
+    relatedModule: params.module,
+    relatedEntityId: params.entityId,
+    isRead: false,
+    createdAt: Date.now(),
+  });
+}
+
+// ─── Admin Land Title & Credit Statistics ────────────────────────────
+export async function getLandTitleStatusDistribution() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    status: landTitleApplications.status,
+    phase: landTitleApplications.phase,
+    count: sql<number>`count(*)`,
+  }).from(landTitleApplications).groupBy(landTitleApplications.status, landTitleApplications.phase);
+}
+
+export async function getLandTitleStats() {
+  const db = await getDb();
+  if (!db) return { total: 0, rejected: 0, avgProcessingDays: 0 };
+  const [totalRes] = await db.select({ count: sql<number>`count(*)` }).from(landTitleApplications);
+  const [rejectedRes] = await db.select({ count: sql<number>`count(*)` }).from(landTitleApplications)
+    .where(eq(landTitleApplications.status, "cf_rejected"));
+  // Average processing time: from createdAt to updatedAt for completed/rejected dossiers
+  const completedStatuses = ["tf_delivered", "cf_rejected"];
+  const [avgRes] = await db.select({
+    avgDays: sql<number>`COALESCE(AVG((${landTitleApplications.updatedAt} - ${landTitleApplications.createdAt}) / 86400000), 0)`,
+  }).from(landTitleApplications)
+    .where(inArray(landTitleApplications.status, completedStatuses));
+
+  return {
+    total: totalRes?.count ?? 0,
+    rejected: rejectedRes?.count ?? 0,
+    avgProcessingDays: Math.round(avgRes?.avgDays ?? 0),
+  };
+}
+
+export async function getCreditStatusDistribution() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    status: creditFiles.status,
+    count: sql<number>`count(*)`,
+  }).from(creditFiles).groupBy(creditFiles.status);
+}
+
+export async function getCreditStats() {
+  const db = await getDb();
+  if (!db) return { total: 0, rejected: 0, approved: 0, avgProcessingDays: 0 };
+  const [totalRes] = await db.select({ count: sql<number>`count(*)` }).from(creditFiles);
+  const [rejectedRes] = await db.select({ count: sql<number>`count(*)` }).from(creditFiles)
+    .where(eq(creditFiles.status, "REJECTED"));
+  const [approvedRes] = await db.select({ count: sql<number>`count(*)` }).from(creditFiles)
+    .where(eq(creditFiles.status, "APPROVED"));
+  // Average processing time for terminal statuses
+  const terminalStatuses = ["APPROVED", "REJECTED"] as const;
+  const [avgRes] = await db.select({
+    avgDays: sql<number>`COALESCE(AVG(DATEDIFF(${creditFiles.lastTransitionAt}, ${creditFiles.createdAt})), 0)`,
+  }).from(creditFiles)
+    .where(inArray(creditFiles.status, terminalStatuses));
+
+  return {
+    total: totalRes?.count ?? 0,
+    rejected: rejectedRes?.count ?? 0,
+    approved: approvedRes?.count ?? 0,
+    avgProcessingDays: Math.round(avgRes?.avgDays ?? 0),
+  };
 }

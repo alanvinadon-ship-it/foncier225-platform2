@@ -291,3 +291,15 @@
 - [x] Procédure updateProfile pour modifier le profil en brouillon (cf_draft) — intégré dans update
 - [x] UI modification profil dans la page détail citoyen (ProfileSelector)
 - [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)
+
+## v2.8 — Récapitulatif avant soumission, Notifications, Dashboard admin
+
+- [x] Page récapitulative avant soumission (composant LandTitleSubmissionRecap)
+- [x] Dialog de confirmation avec résumé visuel avant submit
+- [x] Système de notifications citoyen (table citizen_notifications + helper notifyCitizenStatusChange)
+- [x] Procédures tRPC notifications citoyen (list, unreadCount, markRead, markAllRead)
+- [x] Composant NotificationBell intégré dans CitizenLayout
+- [x] Tableau de bord statistique admin (dossiers par statut, délais moyens, taux de rejet)
+- [x] Graphiques Recharts dans la page admin dashboard (BarChart TF + PieChart Crédit)
+- [x] KPI cards : total dossiers, taux rejet TF, taux approbation crédit, délais moyens
+- [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)

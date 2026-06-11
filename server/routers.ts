@@ -48,6 +48,14 @@ import {
   updateGeneratedDocument,
   updateParcelOwner,
   updateUserRole,
+  listCitizenNotifications,
+  countUnreadNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  getLandTitleStatusDistribution,
+  getLandTitleStats,
+  getCreditStatusDistribution,
+  getCreditStats,
 } from "./db";
 import { storageGet, storagePut } from "./storage";
 
@@ -315,6 +323,31 @@ const citizenRouter = router({
       }
       return listAttestationsByParcelAndOwner(input.parcelId, ctx.user.id);
     }),
+
+  // ─── Notifications ─────────────────────────────────────────────────
+  notifications: citizenProcedure
+    .input(z.object({ limit: z.number().min(1).max(100).default(50), offset: z.number().min(0).default(0) }))
+    .query(async ({ input, ctx }) => {
+      return listCitizenNotifications(ctx.user.id, input.limit, input.offset);
+    }),
+
+  unreadNotificationsCount: citizenProcedure
+    .query(async ({ ctx }) => {
+      return countUnreadNotifications(ctx.user.id);
+    }),
+
+  markNotificationRead: citizenProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      await markNotificationRead(input.id, ctx.user.id);
+      return { success: true };
+    }),
+
+  markAllNotificationsRead: citizenProcedure
+    .mutation(async ({ ctx }) => {
+      await markAllNotificationsRead(ctx.user.id);
+      return { success: true };
+    }),
 });
 
 // ─── Admin Router (protected + admin only) ───────────────────────────
@@ -325,6 +358,22 @@ const adminRouter = router({
 
   parcelStatusDistribution: adminProcedure.query(async () => {
     return getParcelStatusDistribution();
+  }),
+
+  landTitleStatusDistribution: adminProcedure.query(async () => {
+    return getLandTitleStatusDistribution();
+  }),
+
+  landTitleStats: adminProcedure.query(async () => {
+    return getLandTitleStats();
+  }),
+
+  creditStatusDistribution: adminProcedure.query(async () => {
+    return getCreditStatusDistribution();
+  }),
+
+  creditStats: adminProcedure.query(async () => {
+    return getCreditStats();
   }),
 
   listUsers: adminProcedure.query(async () => {

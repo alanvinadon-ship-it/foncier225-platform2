@@ -27,6 +27,7 @@ import {
   updateLandTitleOpposition,
   countLandTitleOppositionsByApplication,
   getParcelByIdAndOwner,
+  notifyCitizenStatusChange,
 } from "./db";
 import { getRequiredDocumentsForProfile, type ApplicantProfile } from "@shared/afor-documents";
 
@@ -575,6 +576,16 @@ const adminLandTitleRouter = router({
         content: `Statut passé de ${previousStatus} à ${input.newStatus}${input.notes ? ` (note: ${input.notes})` : ""}`,
       });
 
+      // Notify citizen
+      void notifyCitizenStatusChange({
+        userId: app.userId,
+        module: "land_title",
+        entityId: input.applicationId,
+        oldStatus: previousStatus,
+        newStatus: input.newStatus,
+        applicationNumber: app.applicationNumber,
+      });
+
       return { success: true, previousStatus, newStatus: input.newStatus };
     }),
 
@@ -609,6 +620,16 @@ const adminLandTitleRouter = router({
       void notifyOwner({
         title: `Titre Foncier — Dossier #${app.applicationNumber} REJETÉ`,
         content: `Motif: ${input.reason}`,
+      });
+
+      // Notify citizen of rejection
+      void notifyCitizenStatusChange({
+        userId: app.userId,
+        module: "land_title",
+        entityId: input.applicationId,
+        oldStatus: previousStatus,
+        newStatus: rejectStatus,
+        applicationNumber: app.applicationNumber,
       });
 
       return { success: true };
