@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Save } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
@@ -26,9 +26,13 @@ export default function CitizenLandTitleCreate() {
     landDepartment: "",
     landRegion: "",
     landAreaHectares: "",
+    parcelId: undefined as number | undefined,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Fetch citizen's parcels for the selector
+  const { data: myParcels, isLoading: parcelsLoading } = trpc.citizen.myParcels.useQuery();
 
   const createMutation = trpc.landTitle.citizen.create.useMutation({
     onSuccess: (data) => {
@@ -61,13 +65,32 @@ export default function CitizenLandTitleCreate() {
 
   function handleChange(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }));
-    // Clear error on change
     if (errors[field]) {
       setErrors(prev => {
         const next = { ...prev };
         delete next[field];
         return next;
       });
+    }
+  }
+
+  function handleParcelSelect(parcelIdStr: string) {
+    if (parcelIdStr === "__none__") {
+      setForm(prev => ({ ...prev, parcelId: undefined }));
+      return;
+    }
+    const parcelId = Number(parcelIdStr);
+    setForm(prev => ({ ...prev, parcelId }));
+
+    // Auto-fill land info from selected parcel
+    const parcel = myParcels?.find(p => p.id === parcelId);
+    if (parcel) {
+      setForm(prev => ({
+        ...prev,
+        parcelId,
+        landLocality: parcel.localisation || prev.landLocality,
+        landAreaHectares: parcel.surfaceApprox || prev.landAreaHectares,
+      }));
     }
   }
 
@@ -85,6 +108,7 @@ export default function CitizenLandTitleCreate() {
       landDepartment: form.landDepartment.trim() || undefined,
       landRegion: form.landRegion.trim() || undefined,
       landAreaHectares: form.landAreaHectares || undefined,
+      parcelId: form.parcelId,
     });
   }
 
@@ -106,8 +130,51 @@ export default function CitizenLandTitleCreate() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Applicant info */}
+        {/* Parcel selector */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <Card className="border-ci-green/30 bg-ci-green/5">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-ci-green" />
+                Lier à une parcelle existante
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Sélectionnez une de vos parcelles enregistrées pour lier cette demande de titre foncier.
+                Les informations de localisation seront pré-remplies automatiquement.
+              </p>
+              <Select
+                value={form.parcelId ? String(form.parcelId) : "__none__"}
+                onValueChange={handleParcelSelect}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir une parcelle..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Aucune parcelle (saisie manuelle)</SelectItem>
+                  {parcelsLoading ? (
+                    <SelectItem value="__loading__" disabled>Chargement...</SelectItem>
+                  ) : (
+                    myParcels?.map(p => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.reference} — {p.localisation || p.zoneCode} ({p.surfaceApprox || "?"} ha)
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              {form.parcelId && (
+                <p className="text-xs text-ci-green font-medium">
+                  Parcelle liée : {myParcels?.find(p => p.id === form.parcelId)?.reference}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Applicant info */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
           <Card>
             <CardHeader className="pb-4">
               <CardTitle className="text-base">Informations du demandeur</CardTitle>

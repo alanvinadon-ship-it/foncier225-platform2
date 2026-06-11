@@ -276,6 +276,26 @@ export default function AdminLandTitleDetail() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
+              {(data as any).parcel && (
+                <div className="rounded-md border border-ci-green/30 bg-ci-green/5 p-3 mb-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <MapPin className="h-3.5 w-3.5 text-ci-green" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-ci-green">Parcelle liée</span>
+                  </div>
+                  <span className="font-semibold text-ci-green">
+                    {(data as any).parcel.reference}
+                  </span>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {(data as any).parcel.zoneCode && <span>Zone: {(data as any).parcel.zoneCode}</span>}
+                    {(data as any).parcel.localisation && <span> — {(data as any).parcel.localisation}</span>}
+                    {(data as any).parcel.surfaceApprox && <span> — {(data as any).parcel.surfaceApprox} ha</span>}
+                  </div>
+                  <div className="mt-1 text-xs">
+                    <span className="text-muted-foreground">Statut parcelle :</span>{" "}
+                    <span className="font-medium">{(data as any).parcel.statusPublic?.replace(/_/g, " ")}</span>
+                  </div>
+                </div>
+              )}
               {data.landLocality && <div><span className="text-muted-foreground">Localité :</span> <span className="font-medium">{data.landLocality}</span></div>}
               {data.landSubPrefecture && <div><span className="text-muted-foreground">Sous-préfecture :</span> <span className="font-medium">{data.landSubPrefecture}</span></div>}
               {data.landDepartment && <div><span className="text-muted-foreground">Département :</span> <span className="font-medium">{data.landDepartment}</span></div>}

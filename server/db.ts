@@ -1001,6 +1001,64 @@ export async function updateLandTitleApplication(id: number, data: Partial<Omit<
   await db.update(landTitleApplications).set({ ...data, updatedAt: Date.now() }).where(eq(landTitleApplications.id, id));
 }
 
+// ─── Land Title Applications with Parcel Join ───────────────────────
+export async function getLandTitleApplicationWithParcel(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select({
+      application: landTitleApplications,
+      parcel: parcels,
+    })
+    .from(landTitleApplications)
+    .leftJoin(parcels, eq(landTitleApplications.parcelId, parcels.id))
+    .where(eq(landTitleApplications.id, id))
+    .limit(1);
+  if (!result[0]) return undefined;
+  return { ...result[0].application, parcel: result[0].parcel ?? null };
+}
+
+export async function listLandTitleApplicationsByUserWithParcel(userId: number, limit = 50, offset = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  const result = await db
+    .select({
+      application: landTitleApplications,
+      parcel: parcels,
+    })
+    .from(landTitleApplications)
+    .leftJoin(parcels, eq(landTitleApplications.parcelId, parcels.id))
+    .where(eq(landTitleApplications.userId, userId))
+    .orderBy(desc(landTitleApplications.createdAt))
+    .limit(limit)
+    .offset(offset);
+  return result.map(r => ({ ...r.application, parcel: r.parcel ?? null }));
+}
+
+export async function listAllLandTitleApplicationsWithParcel(
+  statusFilter?: string,
+  phaseFilter?: string,
+  limit = 50,
+  offset = 0
+) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [];
+  if (statusFilter) conditions.push(eq(landTitleApplications.status, statusFilter));
+  if (phaseFilter) conditions.push(eq(landTitleApplications.phase, phaseFilter as any));
+  const query = db
+    .select({
+      application: landTitleApplications,
+      parcel: parcels,
+    })
+    .from(landTitleApplications)
+    .leftJoin(parcels, eq(landTitleApplications.parcelId, parcels.id));
+  const rows = conditions.length > 0
+    ? await query.where(and(...conditions)).orderBy(desc(landTitleApplications.createdAt)).limit(limit).offset(offset)
+    : await query.orderBy(desc(landTitleApplications.createdAt)).limit(limit).offset(offset);
+  return rows.map(r => ({ ...r.application, parcel: r.parcel ?? null }));
+}
+
 // ─── Land Title Steps ───────────────────────────────────────────────
 export async function createLandTitleStep(step: InsertLandTitleStep) {
   const db = await getDb();

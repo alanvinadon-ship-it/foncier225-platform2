@@ -150,6 +150,23 @@ export default function CitizenLandTitleDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
+                {(data as any).parcel && (
+                  <div className="rounded-md border border-ci-green/30 bg-ci-green/5 p-3 mb-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <MapPin className="h-3.5 w-3.5 text-ci-green" />
+                      <span className="text-xs font-semibold uppercase tracking-wider text-ci-green">Parcelle liée</span>
+                    </div>
+                    <Link href={`/citizen/parcels/${(data as any).parcel.id}`}>
+                      <span className="font-semibold text-ci-green hover:underline cursor-pointer">
+                        {(data as any).parcel.reference}
+                      </span>
+                    </Link>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {(data as any).parcel.localisation && <span>{(data as any).parcel.localisation}</span>}
+                      {(data as any).parcel.surfaceApprox && <span> — {(data as any).parcel.surfaceApprox} ha</span>}
+                    </div>
+                  </div>
+                )}
                 {data.landLocality && (
                   <div>
                     <span className="text-muted-foreground">Localité :</span>{" "}

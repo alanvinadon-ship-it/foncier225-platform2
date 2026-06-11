@@ -251,3 +251,13 @@
 - [x] Animations fluides (framer-motion) sur les transitions d'état
 - [x] Validation formulaire en temps réel (zod + react-hook-form)
 - [x] Routing et sidebar CitizenLayout mis à jour
+
+## v2.4 — Liaison Titre Foncier ↔ Parcelles
+
+- [x] Colonne parcelId (FK vers parcels) déjà présente dans land_title_applications
+- [x] Migration DB déjà appliquée (index idx_lta_parcel)
+- [x] Mettre à jour les helpers DB (jointure parcelle dans les requêtes)
+- [x] Mettre à jour le routeur tRPC (input parcelId dans createApplication, retourner infos parcelle)
+- [x] Mettre à jour le formulaire citoyen de création (sélecteur de parcelle)
+- [x] Afficher les infos parcelle dans la page détail citoyen et admin
+- [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)

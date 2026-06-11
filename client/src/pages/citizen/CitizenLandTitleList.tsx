@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
-import { FileText, Plus, ChevronRight, Loader2 } from "lucide-react";
+import { FileText, MapPin, Plus, ChevronRight, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 
 export default function CitizenLandTitleList() {
@@ -85,6 +85,12 @@ export default function CitizenLandTitleList() {
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5 truncate">
                         {app.applicantFullName} — {app.landLocality || app.landSubPrefecture || "Localité non renseignée"}
+                        {app.parcel && (
+                          <span className="ml-2 inline-flex items-center gap-1 text-ci-green">
+                            <MapPin className="h-3 w-3" />
+                            {app.parcel.reference}
+                          </span>
+                        )}
                       </p>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">

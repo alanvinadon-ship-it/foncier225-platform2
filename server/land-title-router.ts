@@ -6,9 +6,12 @@ import {
   createAuditEvent,
   createLandTitleApplication,
   getLandTitleApplicationById,
+  getLandTitleApplicationWithParcel,
   listLandTitleApplicationsByUser,
+  listLandTitleApplicationsByUserWithParcel,
   countLandTitleApplicationsByUser,
   listAllLandTitleApplications,
+  listAllLandTitleApplicationsWithParcel,
   countAllLandTitleApplications,
   updateLandTitleApplication,
   createLandTitleStep,
@@ -23,6 +26,7 @@ import {
   listLandTitleOppositions,
   updateLandTitleOpposition,
   countLandTitleOppositionsByApplication,
+  getParcelByIdAndOwner,
 } from "./db";
 
 // ─── Constants ──────────────────────────────────────────────────────
@@ -107,6 +111,14 @@ const citizenLandTitleRouter = router({
       presforEligible: z.boolean().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      // Validate parcel ownership if provided
+      if (input.parcelId) {
+        const parcel = await getParcelByIdAndOwner(input.parcelId, ctx.user.id);
+        if (!parcel) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Parcelle introuvable ou ne vous appartient pas" });
+        }
+      }
+
       const now = Date.now();
       const applicationNumber = generateApplicationNumber("certificate");
       const app = await createLandTitleApplication({
@@ -151,7 +163,7 @@ const citizenLandTitleRouter = router({
       return app;
     }),
 
-  // List my applications
+  // List my applications (with linked parcel info)
   listMine: protectedProcedure
     .input(z.object({
       limit: z.number().min(1).max(100).default(50),
@@ -161,17 +173,17 @@ const citizenLandTitleRouter = router({
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
       const [items, total] = await Promise.all([
-        listLandTitleApplicationsByUser(ctx.user.id, limit, offset),
+        listLandTitleApplicationsByUserWithParcel(ctx.user.id, limit, offset),
         countLandTitleApplicationsByUser(ctx.user.id),
       ]);
       return { items, total };
     }),
 
-  // Get one application by ID (strict ownership)
+  // Get one application by ID (strict ownership, with parcel)
   getById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input, ctx }) => {
-      const app = await getLandTitleApplicationById(input.id);
+      const app = await getLandTitleApplicationWithParcel(input.id);
       if (!app || app.userId !== ctx.user.id) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Dossier introuvable ou accès non autorisé" });
       }
@@ -388,17 +400,17 @@ const adminLandTitleRouter = router({
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
       const [items, total] = await Promise.all([
-        listAllLandTitleApplications(status, phase, limit, offset),
+        listAllLandTitleApplicationsWithParcel(status, phase, limit, offset),
         countAllLandTitleApplications(status, phase),
       ]);
       return { items, total };
     }),
 
-  // Get full details (admin)
+  // Get full details (admin, with parcel)
   getByIdAdmin: adminProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
-      const app = await getLandTitleApplicationById(input.id);
+      const app = await getLandTitleApplicationWithParcel(input.id);
       if (!app) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Dossier introuvable" });
       }
