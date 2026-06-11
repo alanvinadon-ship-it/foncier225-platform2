@@ -44,12 +44,26 @@ const STATUS_TO_STEP: Record<string, number> = {
   synced: 5,
 };
 
-// Detail map component for visualizing the polygon
+// Detail map component for visualizing the polygon with layer switcher
 function DetailMapView({ points, detailMapRef, detailMapInstanceRef }: {
   points: { pointNumber: number; latitude: string; longitude: string; landmark?: string | null }[];
   detailMapRef: React.RefObject<HTMLDivElement | null>;
   detailMapInstanceRef: React.MutableRefObject<any>;
 }) {
+  const [mapLayer, setMapLayer] = useState<"road" | "satellite">("road");
+  const tileLayerRef = useRef<any>(null);
+
+  const TILE_LAYERS = {
+    road: {
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: "\u00a9 OpenStreetMap",
+    },
+    satellite: {
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      attribution: "\u00a9 Esri",
+    },
+  };
+
   useEffect(() => {
     if (!detailMapRef.current || points.length < 3) return;
 
@@ -68,10 +82,11 @@ function DetailMapView({ points, detailMapRef, detailMapInstanceRef }: {
       });
 
       const map = L.map(detailMapRef.current!, { scrollWheelZoom: true, zoomControl: true });
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "\u00a9 OpenStreetMap",
+      const layer = L.tileLayer(TILE_LAYERS[mapLayer].url, {
+        attribution: TILE_LAYERS[mapLayer].attribution,
         maxZoom: 19,
       }).addTo(map);
+      tileLayerRef.current = layer;
 
       const coords: [number, number][] = points.map(p => [parseFloat(p.latitude), parseFloat(p.longitude)]);
 
@@ -108,9 +123,32 @@ function DetailMapView({ points, detailMapRef, detailMapInstanceRef }: {
         detailMapInstanceRef.current = null;
       }
     };
-  }, [points]);
+  }, [points, mapLayer]);
 
-  return <div ref={detailMapRef} className="h-[280px] rounded-lg border border-ci-green/20 z-0" />;
+  return (
+    <div className="space-y-2">
+      {/* Layer switcher */}
+      <div className="flex gap-1 bg-muted/50 p-1 rounded-lg w-fit">
+        <button
+          onClick={() => setMapLayer("road")}
+          className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+            mapLayer === "road" ? "bg-white text-ci-green shadow-sm" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Routi\u00e8re
+        </button>
+        <button
+          onClick={() => setMapLayer("satellite")}
+          className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+            mapLayer === "satellite" ? "bg-white text-ci-green shadow-sm" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Satellite
+        </button>
+      </div>
+      <div ref={detailMapRef} className="h-[280px] rounded-lg border border-ci-green/20 z-0" />
+    </div>
+  );
 }
 
 export default function DelimitationVillageoise() {
@@ -693,21 +731,32 @@ ${boundaryPoints.map((p) => `  <wpt lat="${p.lat}" lon="${p.lng}">
     exportPdfMutation.mutate({ territoryId: activeTerritoryId });
   };
 
+  const [geojsonExporting, setGeojsonExporting] = useState(false);
+  const [geojsonExportSuccess, setGeojsonExportSuccess] = useState(false);
+
   const handleExportGeoJSON = async () => {
     if (!activeTerritoryId) return;
-    const result = await refetchGeoJSON();
-    if (result.data) {
-      const content = JSON.stringify(result.data.geojson, null, 2);
-      const blob = new Blob([content], { type: "application/geo+json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = result.data.filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success("GeoJSON export\u00e9 avec succ\u00e8s");
+    setGeojsonExporting(true);
+    setGeojsonExportSuccess(false);
+    try {
+      const result = await refetchGeoJSON();
+      if (result.data) {
+        const content = JSON.stringify(result.data.geojson, null, 2);
+        const blob = new Blob([content], { type: "application/geo+json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = result.data.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success("GeoJSON export\u00e9 avec succ\u00e8s");
+        setGeojsonExportSuccess(true);
+        setTimeout(() => setGeojsonExportSuccess(false), 5000);
+      }
+    } finally {
+      setGeojsonExporting(false);
     }
   };
 
@@ -985,12 +1034,80 @@ ${boundaryPoints.map((p) => `  <wpt lat="${p.lat}" lon="${p.lng}">
               <div className="pt-2 border-t space-y-2">
                 <Button variant="outline" size="sm" className="w-full justify-start gap-2" onClick={handleExportPdf} disabled={exportPdfMutation.isPending}>
                   <FileText className="h-4 w-4 text-red-600" />
-                  {exportPdfMutation.isPending ? "G\u00e9n\u00e9ration..." : "Exporter en PDF"}
+                  {exportPdfMutation.isPending ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-3 w-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                      G\u00e9n\u00e9ration PDF...
+                    </span>
+                  ) : "Exporter en PDF"}
                 </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start gap-2" onClick={handleExportGeoJSON}>
+                {exportPdfMutation.isSuccess && (
+                  <p className="text-xs text-green-600 flex items-center gap-1"><Check className="h-3 w-3" /> PDF g\u00e9n\u00e9r\u00e9 avec succ\u00e8s</p>
+                )}
+                <Button variant="outline" size="sm" className="w-full justify-start gap-2" onClick={handleExportGeoJSON} disabled={geojsonExporting}>
                   <Globe className="h-4 w-4 text-blue-600" />
-                  Exporter en GeoJSON
+                  {geojsonExporting ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-3 w-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                      Export GeoJSON...
+                    </span>
+                  ) : "Exporter en GeoJSON"}
                 </Button>
+                {geojsonExportSuccess && (
+                  <p className="text-xs text-green-600 flex items-center gap-1"><Check className="h-3 w-3" /> GeoJSON export\u00e9 avec succ\u00e8s</p>
+                )}
+              </div>
+
+              {/* Timeline / Historique des statuts */}
+              <div className="pt-3 border-t">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Historique</p>
+                <div className="space-y-2">
+                  {territoryDetail.territory.createdAt && (
+                    <div className="flex items-start gap-2">
+                      <div className="mt-1 h-2 w-2 rounded-full bg-gray-400 shrink-0" />
+                      <div className="text-xs">
+                        <p className="font-medium">Cr\u00e9ation</p>
+                        <p className="text-muted-foreground">{new Date(territoryDetail.territory.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                      </div>
+                    </div>
+                  )}
+                  {territoryDetail.territory.status !== "draft" && territoryDetail.territory.status !== "collecting" && (
+                    <div className="flex items-start gap-2">
+                      <div className="mt-1 h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+                      <div className="text-xs">
+                        <p className="font-medium">Points soumis</p>
+                        <p className="text-muted-foreground">Dossier en r\u00e9vision</p>
+                      </div>
+                    </div>
+                  )}
+                  {(territoryDetail.territory.status === "validated_chief" || territoryDetail.territory.status === "official" || territoryDetail.territory.status === "synced") && territoryDetail.territory.chiefSignedAt && (
+                    <div className="flex items-start gap-2">
+                      <div className="mt-1 h-2 w-2 rounded-full bg-purple-500 shrink-0" />
+                      <div className="text-xs">
+                        <p className="font-medium">Valid\u00e9 par le chef</p>
+                        <p className="text-muted-foreground">{new Date(territoryDetail.territory.chiefSignedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                      </div>
+                    </div>
+                  )}
+                  {(territoryDetail.territory.status === "official" || territoryDetail.territory.status === "synced") && territoryDetail.territory.officializedAt && (
+                    <div className="flex items-start gap-2">
+                      <div className="mt-1 h-2 w-2 rounded-full bg-green-500 shrink-0" />
+                      <div className="text-xs">
+                        <p className="font-medium">Reconnaissance officielle</p>
+                        <p className="text-muted-foreground">{new Date(territoryDetail.territory.officializedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                      </div>
+                    </div>
+                  )}
+                  {territoryDetail.territory.status === "synced" && territoryDetail.territory.syncedAt && (
+                    <div className="flex items-start gap-2">
+                      <div className="mt-1 h-2 w-2 rounded-full bg-emerald-600 shrink-0" />
+                      <div className="text-xs">
+                        <p className="font-medium">Synchronis\u00e9 SIFOR-CI</p>
+                        <p className="text-muted-foreground">{new Date(territoryDetail.territory.syncedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
