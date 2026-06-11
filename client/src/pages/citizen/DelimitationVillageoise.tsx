@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Check, ChevronRight, Upload, Trash2, Landmark, UserCheck, ShieldCheck, RefreshCw, FileUp, Pencil, X, Save, Download, Ruler, Plus } from "lucide-react";
+import { MapPin, Check, ChevronRight, Upload, Trash2, Landmark, UserCheck, ShieldCheck, RefreshCw, FileUp, Pencil, X, Save, Download, Ruler, Plus, FileDown, Eye, FileText, Globe } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -44,6 +44,75 @@ const STATUS_TO_STEP: Record<string, number> = {
   synced: 5,
 };
 
+// Detail map component for visualizing the polygon
+function DetailMapView({ points, detailMapRef, detailMapInstanceRef }: {
+  points: { pointNumber: number; latitude: string; longitude: string; landmark?: string | null }[];
+  detailMapRef: React.RefObject<HTMLDivElement | null>;
+  detailMapInstanceRef: React.MutableRefObject<any>;
+}) {
+  useEffect(() => {
+    if (!detailMapRef.current || points.length < 3) return;
+
+    // Destroy previous instance
+    if (detailMapInstanceRef.current) {
+      detailMapInstanceRef.current.remove();
+      detailMapInstanceRef.current = null;
+    }
+
+    import("leaflet").then((L) => {
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+        iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+        shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+      });
+
+      const map = L.map(detailMapRef.current!, { scrollWheelZoom: true, zoomControl: true });
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "\u00a9 OpenStreetMap",
+        maxZoom: 19,
+      }).addTo(map);
+
+      const coords: [number, number][] = points.map(p => [parseFloat(p.latitude), parseFloat(p.longitude)]);
+
+      // Draw polygon
+      const polygon = L.polygon(coords, {
+        color: "#E67E22",
+        fillColor: "#E67E22",
+        fillOpacity: 0.15,
+        weight: 3,
+      }).addTo(map);
+
+      // Add markers
+      points.forEach((p) => {
+        L.circleMarker([parseFloat(p.latitude), parseFloat(p.longitude)], {
+          radius: 6,
+          color: "#009E49",
+          fillColor: "#009E49",
+          fillOpacity: 0.8,
+          weight: 2,
+        })
+          .bindTooltip(`N\u00b0${p.pointNumber}${p.landmark ? " - " + p.landmark : ""}`, { permanent: false })
+          .addTo(map);
+      });
+
+      // Fit bounds
+      map.fitBounds(polygon.getBounds().pad(0.1));
+
+      detailMapInstanceRef.current = map;
+    });
+
+    return () => {
+      if (detailMapInstanceRef.current) {
+        detailMapInstanceRef.current.remove();
+        detailMapInstanceRef.current = null;
+      }
+    };
+  }, [points]);
+
+  return <div ref={detailMapRef} className="h-[280px] rounded-lg border border-ci-green/20 z-0" />;
+}
+
 export default function DelimitationVillageoise() {
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
@@ -57,6 +126,8 @@ export default function DelimitationVillageoise() {
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const polylineRef = useRef<any>(null);
+  const detailMapRef = useRef<HTMLDivElement>(null);
+  const detailMapInstanceRef = useRef<any>(null);
 
   const [importError, setImportError] = useState<string | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -145,6 +216,19 @@ export default function DelimitationVillageoise() {
       toast.error(err.message);
     },
   });
+
+  const exportPdfMutation = trpc.delimitation.exportPdf.useMutation({
+    onSuccess: (data) => {
+      window.open(data.url, "_blank");
+      toast.success("PDF g\u00e9n\u00e9r\u00e9 avec succ\u00e8s");
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const { data: geojsonData, refetch: refetchGeoJSON } = trpc.delimitation.exportGeoJSON.useQuery(
+    { territoryId: activeTerritoryId! },
+    { enabled: false }
+  );
 
   // Load territory detail into local state
   useEffect(() => {
@@ -604,6 +688,29 @@ ${boundaryPoints.map((p) => `  <wpt lat="${p.lat}" lon="${p.lng}">
     }, 300);
   };
 
+  const handleExportPdf = () => {
+    if (!activeTerritoryId) return;
+    exportPdfMutation.mutate({ territoryId: activeTerritoryId });
+  };
+
+  const handleExportGeoJSON = async () => {
+    if (!activeTerritoryId) return;
+    const result = await refetchGeoJSON();
+    if (result.data) {
+      const content = JSON.stringify(result.data.geojson, null, 2);
+      const blob = new Blob([content], { type: "application/geo+json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.data.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("GeoJSON export\u00e9 avec succ\u00e8s");
+    }
+  };
+
   const handleStartNew = () => {
     setActiveTerritoryId(null);
     setShowList(false);
@@ -616,10 +723,14 @@ ${boundaryPoints.map((p) => `  <wpt lat="${p.lat}" lon="${p.lng}">
     setChiefName("");
     setChiefPhone("");
     setEstimatedArea("");
-    // Destroy map
+    // Destroy maps
     if (mapInstanceRef.current) {
       mapInstanceRef.current.remove();
       mapInstanceRef.current = null;
+    }
+    if (detailMapInstanceRef.current) {
+      detailMapInstanceRef.current.remove();
+      detailMapInstanceRef.current = null;
     }
   };
 
@@ -634,16 +745,21 @@ ${boundaryPoints.map((p) => `  <wpt lat="${p.lat}" lon="${p.lng}">
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-      draft: { label: "Brouillon", variant: "secondary" },
-      collecting: { label: "Collecte", variant: "outline" },
-      submitted: { label: "Soumis", variant: "outline" },
-      validated_chief: { label: "Validé chef", variant: "default" },
-      official: { label: "Officiel", variant: "default" },
-      synced: { label: "Synchronisé SIFOR", variant: "default" },
+    const variants: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
+      draft: { label: "Brouillon", className: "bg-gray-100 text-gray-700 border-gray-300", icon: <Pencil className="h-3 w-3" /> },
+      collecting: { label: "Collecte", className: "bg-blue-50 text-blue-700 border-blue-300", icon: <MapPin className="h-3 w-3" /> },
+      submitted: { label: "En r\u00e9vision", className: "bg-amber-50 text-amber-700 border-amber-300", icon: <Eye className="h-3 w-3" /> },
+      validated_chief: { label: "Valid\u00e9 chef", className: "bg-purple-50 text-purple-700 border-purple-300", icon: <UserCheck className="h-3 w-3" /> },
+      official: { label: "Officiel", className: "bg-green-50 text-green-700 border-green-300", icon: <ShieldCheck className="h-3 w-3" /> },
+      synced: { label: "Synchronis\u00e9 SIFOR", className: "bg-emerald-50 text-emerald-800 border-emerald-400", icon: <Check className="h-3 w-3" /> },
     };
     const config = variants[status] || variants.draft;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    return (
+      <Badge variant="outline" className={`${config.className} gap-1 font-medium`}>
+        {config.icon}
+        {config.label}
+      </Badge>
+    );
   };
 
   // ─── List View ─────────────────────────────────────────────────────
@@ -833,6 +949,63 @@ ${boundaryPoints.map((p) => `  <wpt lat="${p.lat}" lon="${p.lng}">
           </div>
         ))}
       </div>
+
+      {/* Status card + Map + Export (visible when territory exists with points) */}
+      {territoryDetail && territoryDetail.points.length >= 3 && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Status panel */}
+          <Card className="lg:col-span-1">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Statut du dossier</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3">
+                {getStatusBadge(territoryDetail.territory.status)}
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Superficie</span>
+                  <span className="font-medium">{territoryDetail.territory.calculatedAreaHa ? `${parseFloat(territoryDetail.territory.calculatedAreaHa).toFixed(2)} ha` : "N/A"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">P\u00e9rim\u00e8tre</span>
+                  <span className="font-medium">{territoryDetail.territory.calculatedPerimeterKm ? `${parseFloat(territoryDetail.territory.calculatedPerimeterKm).toFixed(3)} km` : "N/A"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Points GPS</span>
+                  <span className="font-medium">{territoryDetail.points.length}</span>
+                </div>
+                {territoryDetail.territory.siforCode && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Code SIFOR</span>
+                    <span className="font-mono text-xs font-medium text-ci-green">{territoryDetail.territory.siforCode}</span>
+                  </div>
+                )}
+              </div>
+              <div className="pt-2 border-t space-y-2">
+                <Button variant="outline" size="sm" className="w-full justify-start gap-2" onClick={handleExportPdf} disabled={exportPdfMutation.isPending}>
+                  <FileText className="h-4 w-4 text-red-600" />
+                  {exportPdfMutation.isPending ? "G\u00e9n\u00e9ration..." : "Exporter en PDF"}
+                </Button>
+                <Button variant="outline" size="sm" className="w-full justify-start gap-2" onClick={handleExportGeoJSON}>
+                  <Globe className="h-4 w-4 text-blue-600" />
+                  Exporter en GeoJSON
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Detail map */}
+          <Card className="lg:col-span-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Aper\u00e7u du polygone</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DetailMapView points={territoryDetail.points} detailMapRef={detailMapRef} detailMapInstanceRef={detailMapInstanceRef} />
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Step 1: Initialize territory */}
       {currentStep === 1 && (

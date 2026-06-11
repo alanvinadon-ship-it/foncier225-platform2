@@ -18,6 +18,7 @@ import {
   deleteTerritoryDocument,
 } from "./db";
 import { storagePut } from "./storage";
+import { DocumentGenerationService } from "./document-generation.service";
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
@@ -418,5 +419,113 @@ export const delimitationRouter = router({
       });
 
       return { success: true };
+    }),
+
+  // Export territory as GeoJSON
+  exportGeoJSON: protectedProcedure
+    .input(z.object({ territoryId: z.number().int().positive() }))
+    .query(async ({ input, ctx }) => {
+      const territory = await verifyTerritoryOwnership(input.territoryId, ctx.user.id);
+      const points = await listBoundaryPointsByTerritory(input.territoryId);
+
+      const coordinates = points.map(p => [parseFloat(p.longitude), parseFloat(p.latitude)]);
+      // Close the polygon
+      if (coordinates.length > 0) {
+        coordinates.push(coordinates[0]);
+      }
+
+      const geojson = {
+        type: "FeatureCollection" as const,
+        features: [
+          {
+            type: "Feature" as const,
+            properties: {
+              name: territory.name,
+              code: territory.code,
+              chiefName: territory.chiefName,
+              status: territory.status,
+              estimatedAreaHa: territory.estimatedAreaHa,
+              calculatedAreaHa: territory.calculatedAreaHa,
+              calculatedPerimeterKm: territory.calculatedPerimeterKm,
+              siforCode: territory.siforCode,
+              createdAt: territory.createdAt,
+            },
+            geometry: {
+              type: "Polygon" as const,
+              coordinates: coordinates.length >= 4 ? [coordinates] : [],
+            },
+          },
+          ...points.map(p => ({
+            type: "Feature" as const,
+            properties: {
+              pointNumber: p.pointNumber,
+              landmark: p.landmark,
+              source: p.source,
+            },
+            geometry: {
+              type: "Point" as const,
+              coordinates: [parseFloat(p.longitude), parseFloat(p.latitude)],
+            },
+          })),
+        ],
+      };
+
+      return { geojson, filename: `delimitation-${territory.code}.geojson` };
+    }),
+
+  // Export territory as PDF
+  exportPdf: protectedProcedure
+    .input(z.object({ territoryId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const territory = await verifyTerritoryOwnership(input.territoryId, ctx.user.id);
+      const points = await listBoundaryPointsByTerritory(input.territoryId);
+
+      const statusLabels: Record<string, string> = {
+        draft: "Brouillon",
+        collecting: "Collecte en cours",
+        submitted: "Soumis",
+        validated_chief: "Valid\u00e9 par le chef",
+        official: "Officiel",
+        synced: "Synchronis\u00e9 SIFOR-CI",
+      };
+
+      const lines = [
+        `Code territoire : ${territory.code}`,
+        `Nom du village : ${territory.name}`,
+        `Chef du village : ${territory.chiefName}`,
+        territory.chiefPhone ? `T\u00e9l\u00e9phone : ${territory.chiefPhone}` : "",
+        `Statut : ${statusLabels[territory.status] || territory.status}`,
+        `Surface estim\u00e9e : ${territory.estimatedAreaHa || "N/A"} ha`,
+        `Surface calcul\u00e9e : ${territory.calculatedAreaHa || "N/A"} ha`,
+        `P\u00e9rim\u00e8tre calcul\u00e9 : ${territory.calculatedPerimeterKm || "N/A"} km`,
+        territory.siforCode ? `Code SIFOR : ${territory.siforCode}` : "",
+        `Date de cr\u00e9ation : ${new Date(territory.createdAt).toLocaleDateString("fr-FR")}`,
+        "",
+        `--- POINTS DE BORNE (${points.length}) ---`,
+        ...points.map(p => `  N\u00b0${p.pointNumber}: Lat ${p.latitude}, Lng ${p.longitude} - ${p.landmark || ""} (${p.source})`),
+      ].filter(Boolean);
+
+      const { buffer, checksumSha256 } = DocumentGenerationService.buildPdf({
+        title: "FICHE DE D\u00c9LIMITATION VILLAGEOISE",
+        subtitle: `Territoire : ${territory.name} (${territory.code})`,
+        lines,
+        watermark: "FONCIER225",
+        verifySeed: `delimitation-${territory.id}-${territory.code}`,
+      });
+
+      // Upload to S3
+      const fileKey = `delimitation/${territory.id}/fiche-delimitation-${territory.code}-${Date.now()}.pdf`;
+      const { url } = await storagePut(fileKey, buffer, "application/pdf");
+
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: "delimitation.pdf.exported",
+        targetType: "village_territory",
+        targetId: territory.id,
+        details: { checksum: checksumSha256 },
+      });
+
+      return { url, filename: `fiche-delimitation-${territory.code}.pdf`, checksum: checksumSha256 };
     }),
 });
