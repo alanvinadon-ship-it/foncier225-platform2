@@ -387,3 +387,13 @@
 - [x] Ajouter un badge numérique animé (pulse) sur l'item "Suivi dossier" dans CitizenLayout
 - [x] Badge se met à jour automatiquement (polling 30s) et disparaît quand count=0
 - [x] Tests TypeScript et validation (0 erreurs, 198 tests PASS)
+
+## v2.14 — Module de notification email/SMS pour l'avancement des dossiers
+
+- [x] Ajouter table notification_preferences dans le schéma DB (email, phone, canaux activés par type)
+- [x] Créer helpers DB (get/upsert notification preferences)
+- [x] Créer procédures tRPC (getNotifPreferences, updateNotifPreferences)
+- [x] Créer page /citizen/notifications avec formulaire de préférences (email, téléphone, toggles par type)
+- [x] Ajouter lien "Alertes" dans le menu latéral citoyen (CitizenLayout)
+- [x] Infrastructure prête pour intégration email/SMS (préférences stockées en DB, consultables lors de notifyCitizenStatusChange)
+- [x] Tests TypeScript et validation (0 erreurs, 198 tests PASS)

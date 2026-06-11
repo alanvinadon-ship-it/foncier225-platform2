@@ -58,6 +58,8 @@ import {
   getCreditStats,
   getDistinctLandTitleRegions,
   getDistinctLandTitleOperators,
+  getNotificationPreferences,
+  upsertNotificationPreferences,
 } from "./db";
 import { storageGet, storagePut } from "./storage";
 
@@ -349,6 +351,29 @@ const citizenRouter = router({
     .mutation(async ({ ctx }) => {
       await markAllNotificationsRead(ctx.user.id);
       return { success: true };
+    }),
+
+  // ─── Notification Preferences ─────────────────────────────────────
+  getNotifPreferences: citizenProcedure
+    .query(async ({ ctx }) => {
+      return getNotificationPreferences(ctx.user.id);
+    }),
+
+  updateNotifPreferences: citizenProcedure
+    .input(z.object({
+      email: z.string().email().nullable().optional(),
+      phone: z.string().min(8).max(20).nullable().optional(),
+      emailStatusChange: z.boolean().optional(),
+      smsStatusChange: z.boolean().optional(),
+      emailDocumentUpdate: z.boolean().optional(),
+      smsDocumentUpdate: z.boolean().optional(),
+      emailOpposition: z.boolean().optional(),
+      smsOpposition: z.boolean().optional(),
+      emailGeneral: z.boolean().optional(),
+      smsGeneral: z.boolean().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      return upsertNotificationPreferences(ctx.user.id, input);
     }),
 });
 

@@ -8,6 +8,7 @@ import {
   mysqlTable,
   text,
   timestamp,
+  unique,
   varchar,
 } from "drizzle-orm/mysql-core";
 
@@ -678,3 +679,33 @@ export const citizenNotifications = mysqlTable(
 
 export type CitizenNotification = typeof citizenNotifications.$inferSelect;
 export type InsertCitizenNotification = typeof citizenNotifications.$inferInsert;
+
+// ─── Notification Preferences ───────────────────────────────────────────────
+export const notificationPreferences = mysqlTable(
+  "notification_preferences",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+    // Contact info
+    email: varchar("email", { length: 255 }),
+    phone: varchar("phone", { length: 30 }),
+    // Channel toggles per event type
+    emailStatusChange: boolean("emailStatusChange").default(true).notNull(),
+    smsStatusChange: boolean("smsStatusChange").default(false).notNull(),
+    emailDocumentUpdate: boolean("emailDocumentUpdate").default(true).notNull(),
+    smsDocumentUpdate: boolean("smsDocumentUpdate").default(false).notNull(),
+    emailOpposition: boolean("emailOpposition").default(true).notNull(),
+    smsOpposition: boolean("smsOpposition").default(true).notNull(),
+    emailGeneral: boolean("emailGeneral").default(true).notNull(),
+    smsGeneral: boolean("smsGeneral").default(false).notNull(),
+    // Timestamps
+    updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
+  },
+  table => ({
+    userIdx: index("idx_np_user").on(table.userId),
+    uniqueUser: unique("uniq_np_user").on(table.userId),
+  })
+);
+
+export type NotificationPreference = typeof notificationPreferences.$inferSelect;
+export type InsertNotificationPreference = typeof notificationPreferences.$inferInsert;

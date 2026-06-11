@@ -21,6 +21,7 @@ import {
   territoryDocuments, InsertTerritoryDocument,
   territoryStatusHistory, InsertTerritoryStatusHistory,
   citizenNotifications, InsertCitizenNotification,
+  notificationPreferences, InsertNotificationPreference,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1385,4 +1386,42 @@ export async function getDistinctLandTitleOperators(): Promise<string[]> {
     .from(landTitleApplications)
     .where(sql`${landTitleApplications.operatorName} IS NOT NULL AND ${landTitleApplications.operatorName} != ''`);
   return rows.map(r => r.operator!).filter(Boolean).sort();
+}
+
+// ─── Notification Preferences ───────────────────────────────────────────────
+export async function getNotificationPreferences(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(notificationPreferences)
+    .where(eq(notificationPreferences.userId, userId))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function upsertNotificationPreferences(userId: number, data: Partial<Omit<InsertNotificationPreference, "id" | "userId" | "updatedAt">>) {
+  const db = await getDb();
+  if (!db) return null;
+  const existing = await getNotificationPreferences(userId);
+  if (existing) {
+    await db.update(notificationPreferences)
+      .set({ ...data, updatedAt: Date.now() })
+      .where(eq(notificationPreferences.userId, userId));
+    return { ...existing, ...data, updatedAt: Date.now() };
+  } else {
+    const [result] = await db.insert(notificationPreferences).values({
+      userId,
+      email: data.email ?? null,
+      phone: data.phone ?? null,
+      emailStatusChange: data.emailStatusChange ?? true,
+      smsStatusChange: data.smsStatusChange ?? false,
+      emailDocumentUpdate: data.emailDocumentUpdate ?? true,
+      smsDocumentUpdate: data.smsDocumentUpdate ?? false,
+      emailOpposition: data.emailOpposition ?? true,
+      smsOpposition: data.smsOpposition ?? true,
+      emailGeneral: data.emailGeneral ?? true,
+      smsGeneral: data.smsGeneral ?? false,
+      updatedAt: Date.now(),
+    }).$returningId();
+    return result;
+  }
 }

@@ -37,6 +37,7 @@ const CitizenLandTitleDetail = lazy(() => import("./pages/citizen/CitizenLandTit
 const CitizenLandTitleCreate = lazy(() => import("./pages/citizen/CitizenLandTitleCreate"));
 const TrackApplication = lazy(() => import("./pages/TrackApplication"));
 const WorkflowPage = lazy(() => import("./pages/WorkflowPage"));
+const NotificationSettings = lazy(() => import("./pages/citizen/NotificationSettings"));
 
 function RouteFallback() {
   return (
@@ -132,6 +133,11 @@ function Router() {
       <Route path="/citizen/workflow">
         <CitizenLayout>
           <WorkflowPage />
+        </CitizenLayout>
+      </Route>
+      <Route path="/citizen/notifications">
+        <CitizenLayout>
+          <NotificationSettings />
         </CitizenLayout>
       </Route>
 
