@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { adminProcedure, protectedProcedure, router } from "./_core/trpc";
+import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { notifyOwner } from "./_core/notification";
 import {
   createAuditEvent,
@@ -886,7 +886,53 @@ const adminLandTitleRouter = router({
 
 // ─── Combined Router ────────────────────────────────────────────────
 
+// ─── Public Router (no auth) ─────────────────────────────────────────────────
+
+const publicLandTitleRouter = router({
+  /** Track an application by its reference number (no auth required) */
+  track: publicProcedure
+    .input(z.object({ reference: z.string().min(3).max(30) }))
+    .query(async ({ input }) => {
+      const { reference } = input;
+      const apps = await listAllLandTitleApplications(
+        undefined, // statusFilter
+        undefined, // phaseFilter
+        50,
+        0
+      );
+      // Filter by applicationNumber match
+      const matchedApp = apps.find(a => a.applicationNumber === reference || a.applicationNumber === reference.toUpperCase());
+      if (!matchedApp) {
+        return { found: false as const };
+      }
+      const app = matchedApp;
+      const steps = await listLandTitleSteps(app.id);
+      return {
+        found: true as const,
+        application: {
+          applicationNumber: app.applicationNumber,
+          status: app.status,
+          applicationType: app.applicationType,
+          landLocality: app.landLocality,
+          landSubPrefecture: app.landSubPrefecture,
+          landDepartment: app.landDepartment,
+          landRegion: app.landRegion,
+          createdAt: app.createdAt,
+          updatedAt: app.updatedAt,
+        },
+        steps: steps.map(s => ({
+          stepType: s.stepType,
+          status: s.status,
+          startedAt: s.startedAt,
+          completedAt: s.completedAt,
+          notes: s.notes,
+        })),
+      };
+    }),
+});
+
 export const landTitleRouter = router({
   citizen: citizenLandTitleRouter,
   admin: adminLandTitleRouter,
+  public: publicLandTitleRouter,
 });

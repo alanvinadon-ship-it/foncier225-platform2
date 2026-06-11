@@ -1,6 +1,6 @@
 import PublicLayout from "@/components/PublicLayout";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, FileCheck, MapPin, QrCode, Shield, User, Users, Zap } from "lucide-react";
+import { ArrowRight, FileCheck, MapPin, QrCode, Search, Shield, User, Users, Zap } from "lucide-react";
 import { Link } from "wouter";
 
 const HERO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663315306103/5jQVPXrA6y6Zze2FEtSNJt/foncier225-hero-SsiAdeushYBm5vZxeTroBD.webp";
@@ -81,6 +81,12 @@ export default function Home() {
                 <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 font-semibold">
                   <QrCode className="h-4 w-4 mr-2" />
                   Vérifier un document
+                </Button>
+              </Link>
+              <Link href="/suivi">
+                <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 font-semibold">
+                  <Search className="h-4 w-4 mr-2" />
+                  Suivre mon dossier
                 </Button>
               </Link>
             </div>

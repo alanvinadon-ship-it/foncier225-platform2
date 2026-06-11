@@ -35,6 +35,7 @@ const AdminLandTitleDetail = lazy(() => import("./pages/admin/AdminLandTitleDeta
 const CitizenLandTitleList = lazy(() => import("./pages/citizen/CitizenLandTitleList"));
 const CitizenLandTitleDetail = lazy(() => import("./pages/citizen/CitizenLandTitleDetail"));
 const CitizenLandTitleCreate = lazy(() => import("./pages/citizen/CitizenLandTitleCreate"));
+const TrackApplication = lazy(() => import("./pages/TrackApplication"));
 
 function RouteFallback() {
   return (
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/parcelle/:token" component={ParcelPublic} />
       <Route path="/verify" component={Verify} />
+      <Route path="/suivi" component={TrackApplication} />
 
       {/* Citizen routes */}
       <Route path="/citizen">

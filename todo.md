@@ -324,3 +324,13 @@
 - [x] Ajouter le Select type de demande dans la barre de filtres du Dashboard admin
 - [x] dashboardFilterOptions retourne applicationTypes
 - [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)
+
+## v2.11 — Interface publique de suivi de dossier
+
+- [x] Procédure tRPC publique landTitle.public.track (recherche par numéro de référence)
+- [x] Retourner statut, étapes complétées, dates clés (sans données sensibles)
+- [x] Page publique /suivi avec formulaire de recherche
+- [x] Affichage résultat avec chronologie simplifiée du dossier
+- [x] Route dans App.tsx (accessible sans authentification)
+- [x] Bouton "Suivre mon dossier" ajouté sur la page d'accueil
+- [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)
