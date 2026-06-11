@@ -30,6 +30,11 @@ const CitizenParcels = lazy(() => import("./pages/citizen/CitizenParcels"));
 const CitizenProfile = lazy(() => import("./pages/citizen/CitizenProfile"));
 const CitizenTimeline = lazy(() => import("./pages/citizen/CitizenTimeline"));
 const DelimitationVillageoise = lazy(() => import("./pages/admin/DelimitationVillageoise"));
+const AdminLandTitleList = lazy(() => import("./pages/admin/AdminLandTitleList"));
+const AdminLandTitleDetail = lazy(() => import("./pages/admin/AdminLandTitleDetail"));
+const CitizenLandTitleList = lazy(() => import("./pages/citizen/CitizenLandTitleList"));
+const CitizenLandTitleDetail = lazy(() => import("./pages/citizen/CitizenLandTitleDetail"));
+const CitizenLandTitleCreate = lazy(() => import("./pages/citizen/CitizenLandTitleCreate"));
 
 function RouteFallback() {
   return (
@@ -80,6 +85,22 @@ function Router() {
           <CitizenDocuments />
         </CitizenLayout>
       </Route>
+      <Route path="/citizen/land-title">
+        <CitizenLayout>
+          <CitizenLandTitleList />
+        </CitizenLayout>
+      </Route>
+      <Route path="/citizen/land-title/new">
+        <CitizenLayout>
+          <CitizenLandTitleCreate />
+        </CitizenLayout>
+      </Route>
+      <Route path="/citizen/land-title/:id">
+        <CitizenLayout>
+          <CitizenLandTitleDetail />
+        </CitizenLayout>
+      </Route>
+
       <Route path="/citizen/credit-habitat">
         <CitizenLayout>
           <CitizenCreditFiles />
@@ -137,6 +158,16 @@ function Router() {
       <Route path="/admin/audit">
         <DashboardLayout>
           <AuditAdmin />
+        </DashboardLayout>
+      </Route>
+      <Route path="/admin/land-title">
+        <DashboardLayout>
+          <AdminLandTitleList />
+        </DashboardLayout>
+      </Route>
+      <Route path="/admin/land-title/:id">
+        <DashboardLayout>
+          <AdminLandTitleDetail />
         </DashboardLayout>
       </Route>
       <Route path="/admin/delimitation">

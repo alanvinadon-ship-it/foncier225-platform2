@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Banknote, FileText, Home, LayoutDashboard, LogOut, MapPin, PanelLeft, Clock, User } from "lucide-react";
+import { Banknote, FileText, Home, Landmark, LayoutDashboard, LogOut, MapPin, PanelLeft, Clock, User } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
@@ -34,6 +34,7 @@ const menuItems = [
   { icon: MapPin, label: "Mes parcelles", path: "/citizen/parcels" },
   { icon: Clock, label: "Timeline", path: "/citizen/timeline" },
   { icon: FileText, label: "Mes documents", path: "/citizen/documents" },
+  { icon: Landmark, label: "Titre foncier", path: "/citizen/land-title" },
   { icon: Banknote, label: "Crédit habitat", path: "/citizen/credit-habitat" },
   { icon: User, label: "Mon profil", path: "/citizen/profile" },
 ];

@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { FileCheck, Home, LayoutDashboard, LogOut, Map, MapPin, PanelLeft, Shield, Users } from "lucide-react";
+import { FileCheck, Home, Landmark, LayoutDashboard, LogOut, Map, MapPin, PanelLeft, Shield, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -35,7 +35,8 @@ const menuItems = [
   { icon: FileCheck, label: "Documents", path: "/admin/documents" },
   { icon: Users, label: "Utilisateurs", path: "/admin/users" },
   { icon: Shield, label: "Journal d'audit", path: "/admin/audit" },
-  { icon: Map, label: "D\u00e9limitation villageoise", path: "/admin/delimitation" },
+  { icon: Landmark, label: "Titre foncier", path: "/admin/land-title" },
+  { icon: Map, label: "Délimitation villageoise", path: "/admin/delimitation" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";

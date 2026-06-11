@@ -224,3 +224,30 @@
 - [x] Routeur tRPC titre-foncier avec procédures admin + citoyen
 - [x] Tests vitest pour le routeur titre-foncier
 - [x] Vérifier le fonctionnement complet (0 erreurs TypeScript, 198 tests PASS)
+
+## v2.1 — Chronologie visuelle citoyen Titre Foncier
+
+- [x] Composant LandTitleTimeline.tsx : chronologie verticale animée avec les 17 statuts
+- [x] Couleurs et icônes distinctes par phase (CF vert/orange, TF bleu/violet)
+- [x] Indicateur de statut actuel (pulsation, surbrillance)
+- [x] Intégration dans la page détail dossier citoyen (/citizen/land-title/:id)
+- [x] Page liste des dossiers titre foncier citoyen (/citizen/land-title)
+- [x] Routing et sidebar CitizenLayout mis à jour
+
+## v2.2 — Vue admin interactive Titre Foncier
+
+- [x] Page admin liste dossiers titre foncier avec filtres (statut, phase, recherche)
+- [x] Page admin détail dossier avec gestion des oppositions (ajout, résolution)
+- [x] Prévisualisation des documents uploadés (PDF, images) dans modale
+- [x] Boutons d'avancement de statut avec confirmation
+- [x] Routing et sidebar DashboardLayout mis à jour
+
+## v2.3 — Module Crédit Habitat UI (animations + validation)
+
+- [x] Page liste dossiers crédit (/citizen/credit-habitat) avec animations de transition
+- [x] Page création dossier crédit (/citizen/credit-habitat/new) avec validation temps réel
+- [x] Page détail dossier crédit (/citizen/credit-habitat/:id) avec checklist dynamique
+- [x] Composant CreditDocumentUploader avec upload S3
+- [x] Animations fluides (framer-motion) sur les transitions d'état
+- [x] Validation formulaire en temps réel (zod + react-hook-form)
+- [x] Routing et sidebar CitizenLayout mis à jour

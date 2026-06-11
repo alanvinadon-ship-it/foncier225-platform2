@@ -3,6 +3,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
+import { motion } from "framer-motion";
 import { Banknote, FolderOpen, PlusCircle } from "lucide-react";
 import { Link } from "wouter";
 
@@ -78,8 +79,14 @@ export default function CitizenCreditFiles() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {data.map(file => (
-            <Link key={file.id} href={`/citizen/credit-habitat/${file.id}`}>
+          {data.map((file, index) => (
+            <motion.div
+              key={file.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.06, duration: 0.3 }}
+            >
+            <Link href={`/citizen/credit-habitat/${file.id}`}>
               <Card className="cursor-pointer gap-4 py-5 transition-colors hover:border-ci-orange/40 hover:bg-accent/20">
                 <CardContent className="grid gap-4 px-5 sm:grid-cols-[1.4fr_1fr_auto] sm:items-center">
                   <div className="space-y-2">
@@ -111,6 +118,7 @@ export default function CitizenCreditFiles() {
                 </CardContent>
               </Card>
             </Link>
+            </motion.div>
           ))}
         </div>
       )}
