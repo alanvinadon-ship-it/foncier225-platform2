@@ -29,7 +29,7 @@ const CitizenParcelDetail = lazy(() => import("./pages/citizen/CitizenParcelDeta
 const CitizenParcels = lazy(() => import("./pages/citizen/CitizenParcels"));
 const CitizenProfile = lazy(() => import("./pages/citizen/CitizenProfile"));
 const CitizenTimeline = lazy(() => import("./pages/citizen/CitizenTimeline"));
-const DelimitationVillageoise = lazy(() => import("./pages/citizen/DelimitationVillageoise"));
+const DelimitationVillageoise = lazy(() => import("./pages/admin/DelimitationVillageoise"));
 
 function RouteFallback() {
   return (
@@ -69,11 +69,7 @@ function Router() {
           <CitizenParcelDetail />
         </CitizenLayout>
       </Route>
-      <Route path="/citizen/delimitation">
-        <CitizenLayout>
-          <DelimitationVillageoise />
-        </CitizenLayout>
-      </Route>
+
       <Route path="/citizen/timeline">
         <CitizenLayout>
           <CitizenTimeline />
@@ -141,6 +137,11 @@ function Router() {
       <Route path="/admin/audit">
         <DashboardLayout>
           <AuditAdmin />
+        </DashboardLayout>
+      </Route>
+      <Route path="/admin/delimitation">
+        <DashboardLayout>
+          <DelimitationVillageoise />
         </DashboardLayout>
       </Route>
 

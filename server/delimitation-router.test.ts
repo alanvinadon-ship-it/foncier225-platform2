@@ -45,8 +45,8 @@ import { router } from "./_core/trpc";
 
 const appRouter = router({ delimitation: delimitationRouter });
 
-const mockUser = { id: 1, name: "Test User", role: "user" as const, openId: "test-open-id", email: "test@test.com" };
-const mockOtherUser = { id: 2, name: "Other User", role: "user" as const, openId: "other-open-id", email: "other@test.com" };
+const mockUser = { id: 1, name: "Test User", role: "admin" as const, openId: "test-open-id", email: "test@test.com" };
+const mockOtherUser = { id: 2, name: "Other User", role: "admin" as const, openId: "other-open-id", email: "other@test.com" };
 
 function createCaller(user: typeof mockUser | null = mockUser) {
   return appRouter.createCaller({

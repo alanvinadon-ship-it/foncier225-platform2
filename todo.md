@@ -185,3 +185,12 @@
 - [x] Afficher les documents justificatifs dans la section chronologique (timeline) avec possibilité d'upload par étape
 - [x] Intégrer un outil de mesure de distance et de surface directement sur la carte de détail (boutons Distance/Surface + calcul Haversine/Shoelace)
 - [x] Ajouter une option de prévisualisation du PDF généré avant le téléchargement définitif (modale fullscreen avec iframe + bouton télécharger)
+
+## v1.3.5 — Transfert Délimitation Villageoise vers l'Administration
+
+- [x] Déplacer la page DelimitationVillageoise.tsx de client/src/pages/citizen/ vers client/src/pages/admin/
+- [x] Retirer l'entrée "Délimitation villageoise" du sidebar CitizenLayout
+- [x] Ajouter l'entrée "Délimitation villageoise" dans le sidebar DashboardLayout (admin)
+- [x] Mettre à jour les routes dans App.tsx (de /citizen/delimitation vers /admin/delimitation)
+- [x] Procédures tRPC déjà protégées par protectedProcedure (accès authentifié requis)
+- [x] Vérifier le fonctionnement et les tests (0 erreurs TypeScript, 164 tests PASS)

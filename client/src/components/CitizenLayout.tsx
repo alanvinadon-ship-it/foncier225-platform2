@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Banknote, FileText, Home, LayoutDashboard, LogOut, MapPin, PanelLeft, Clock, User, Map } from "lucide-react";
+import { Banknote, FileText, Home, LayoutDashboard, LogOut, MapPin, PanelLeft, Clock, User } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
@@ -32,7 +32,6 @@ const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663315306103/5jQVP
 const menuItems = [
   { icon: LayoutDashboard, label: "Tableau de bord", path: "/citizen" },
   { icon: MapPin, label: "Mes parcelles", path: "/citizen/parcels" },
-  { icon: Map, label: "Délimitation villageoise", path: "/citizen/delimitation" },
   { icon: Clock, label: "Timeline", path: "/citizen/timeline" },
   { icon: FileText, label: "Mes documents", path: "/citizen/documents" },
   { icon: Banknote, label: "Crédit habitat", path: "/citizen/credit-habitat" },
