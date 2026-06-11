@@ -44,6 +44,8 @@ const AdminSigDashboard = lazy(() => import("./pages/admin/AdminSigDashboard"));
 const CitizenUrbanAcdList = lazy(() => import("./pages/citizen/CitizenUrbanAcdList"));
 const CitizenUrbanAcdCreate = lazy(() => import("./pages/citizen/CitizenUrbanAcdCreate"));
 const CitizenUrbanAcdDetail = lazy(() => import("./pages/citizen/CitizenUrbanAcdDetail"));
+const AdminUrbanAcdList = lazy(() => import("./pages/admin/AdminUrbanAcdList"));
+const AdminUrbanAcdDetail = lazy(() => import("./pages/admin/AdminUrbanAcdDetail"));
 
 function RouteFallback() {
   return (
@@ -229,6 +231,16 @@ function Router() {
       <Route path="/admin/sig-dashboard">
         <DashboardLayout>
           <AdminSigDashboard />
+        </DashboardLayout>
+      </Route>
+      <Route path="/admin/urban-acd">
+        <DashboardLayout>
+          <AdminUrbanAcdList />
+        </DashboardLayout>
+      </Route>
+      <Route path="/admin/urban-acd/:id">
+        <DashboardLayout>
+          <AdminUrbanAcdDetail />
         </DashboardLayout>
       </Route>
 

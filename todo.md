@@ -485,3 +485,21 @@
 - [x] Ajouter lien "Foncier Urbain" (Building2) dans le menu citoyen (CitizenLayout)
 - [x] Procédures tRPC getDetail + cancel ajoutées au citizenAcdRouter
 - [x] Tests TypeScript (0 erreurs) et 229 tests PASS (10 fichiers)
+
+## v3.2 — Phase C : Interface Admin ACD (Foncier Urbain)
+
+### Pages admin
+- [x] Page liste dossiers ACD (/admin/urban-acd) avec tableau, filtres statut/phase, recherche
+- [x] Page détail dossier ACD (/admin/urban-acd/:id) avec infos complètes, Gantt, documents, oppositions
+
+### Fonctionnalités admin
+- [x] Boutons d'avancement de statut avec confirmation (transitions valides uniquement)
+- [x] Gestion des oppositions : ajout, consultation, résolution avec motif
+- [x] Affichage des documents uploadés par le citoyen avec liens externes
+- [x] Statistiques KPI en haut de la page liste (total, par phase, titres délivrés)
+- [x] Historique des étapes avec timeline colorée
+
+### Intégration
+- [x] Ajouter routes /admin/urban-acd et /admin/urban-acd/:id dans App.tsx
+- [x] Ajouter lien "Foncier Urbain (ACD)" avec icône Building2 dans le menu admin (DashboardLayout)
+- [x] Tests TypeScript (0 erreurs) et 229 tests PASS (10 fichiers)
