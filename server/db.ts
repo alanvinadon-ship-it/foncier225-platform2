@@ -1582,3 +1582,102 @@ export async function getAllUrbanAcdApplications() {
   if (!db) return [];
   return db.select().from(urbanAcdApplications);
 }
+
+
+// ─── Unified Dashboard Stats (Rural + Urban) ─────────────────────────────────
+
+export async function getUnifiedDashboardStats() {
+  const db = await getDb();
+  if (!db) {
+    return {
+      rural: { total: 0, completed: 0, rejected: 0, inProgress: 0, avgProcessingDays: 0, completionRate: 0 },
+      urban: { total: 0, completed: 0, rejected: 0, inProgress: 0, avgProcessingDays: 0, completionRate: 0 },
+      monthlyComparison: [] as { month: string; rural: number; urban: number }[],
+    };
+  }
+
+  // Rural (Land Title / Certificat Foncier) stats
+  const [ruralTotal] = await db.select({ count: sql<number>`count(*)` }).from(landTitleApplications);
+  const [ruralCompleted] = await db.select({ count: sql<number>`count(*)` }).from(landTitleApplications)
+    .where(inArray(landTitleApplications.status, ["cf_delivered", "tf_delivered"]));
+  const [ruralRejected] = await db.select({ count: sql<number>`count(*)` }).from(landTitleApplications)
+    .where(inArray(landTitleApplications.status, ["cf_rejected", "tf_rejected"]));
+  const [ruralAvg] = await db.select({
+    avgDays: sql<number>`COALESCE(AVG((${landTitleApplications.updatedAt} - ${landTitleApplications.createdAt}) / 86400000), 0)`,
+  }).from(landTitleApplications)
+    .where(inArray(landTitleApplications.status, ["cf_delivered", "tf_delivered", "cf_rejected", "tf_rejected"]));
+
+  const ruralTotalCount = ruralTotal?.count ?? 0;
+  const ruralCompletedCount = ruralCompleted?.count ?? 0;
+  const ruralRejectedCount = ruralRejected?.count ?? 0;
+  const ruralInProgress = ruralTotalCount - ruralCompletedCount - ruralRejectedCount;
+
+  // Urban (ACD) stats
+  const [urbanTotal] = await db.select({ count: sql<number>`count(*)` }).from(urbanAcdApplications);
+  const [urbanCompleted] = await db.select({ count: sql<number>`count(*)` }).from(urbanAcdApplications)
+    .where(eq(urbanAcdApplications.status, "acd_delivered"));
+  const [urbanRejected] = await db.select({ count: sql<number>`count(*)` }).from(urbanAcdApplications)
+    .where(eq(urbanAcdApplications.status, "acd_rejected"));
+  const [urbanAvg] = await db.select({
+    avgDays: sql<number>`COALESCE(AVG((${urbanAcdApplications.updatedAt} - ${urbanAcdApplications.createdAt}) / 86400000), 0)`,
+  }).from(urbanAcdApplications)
+    .where(inArray(urbanAcdApplications.status, ["acd_delivered", "acd_rejected"]));
+
+  const urbanTotalCount = urbanTotal?.count ?? 0;
+  const urbanCompletedCount = urbanCompleted?.count ?? 0;
+  const urbanRejectedCount = urbanRejected?.count ?? 0;
+  const urbanInProgress = urbanTotalCount - urbanCompletedCount - urbanRejectedCount;
+
+  // Monthly comparison (last 12 months)
+  const twelveMonthsAgo = Date.now() - 365 * 86400000;
+
+  const ruralMonthly = await db.select({
+    month: sql<string>`DATE_FORMAT(FROM_UNIXTIME(${landTitleApplications.createdAt} / 1000), '%Y-%m')`,
+    count: sql<number>`count(*)`,
+  }).from(landTitleApplications)
+    .where(gte(landTitleApplications.createdAt, twelveMonthsAgo))
+    .groupBy(sql`DATE_FORMAT(FROM_UNIXTIME(${landTitleApplications.createdAt} / 1000), '%Y-%m')`)
+    .orderBy(sql`DATE_FORMAT(FROM_UNIXTIME(${landTitleApplications.createdAt} / 1000), '%Y-%m')`);
+
+  const urbanMonthly = await db.select({
+    month: sql<string>`DATE_FORMAT(FROM_UNIXTIME(${urbanAcdApplications.createdAt} / 1000), '%Y-%m')`,
+    count: sql<number>`count(*)`,
+  }).from(urbanAcdApplications)
+    .where(gte(urbanAcdApplications.createdAt, twelveMonthsAgo))
+    .groupBy(sql`DATE_FORMAT(FROM_UNIXTIME(${urbanAcdApplications.createdAt} / 1000), '%Y-%m')`)
+    .orderBy(sql`DATE_FORMAT(FROM_UNIXTIME(${urbanAcdApplications.createdAt} / 1000), '%Y-%m')`);
+
+  // Merge monthly data
+  const monthMap = new Map<string, { rural: number; urban: number }>();
+  for (const row of ruralMonthly) {
+    monthMap.set(row.month, { rural: row.count, urban: 0 });
+  }
+  for (const row of urbanMonthly) {
+    const existing = monthMap.get(row.month) || { rural: 0, urban: 0 };
+    existing.urban = row.count;
+    monthMap.set(row.month, existing);
+  }
+  const monthlyComparison = Array.from(monthMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, data]) => ({ month, ...data }));
+
+  return {
+    rural: {
+      total: ruralTotalCount,
+      completed: ruralCompletedCount,
+      rejected: ruralRejectedCount,
+      inProgress: ruralInProgress,
+      avgProcessingDays: Math.round(ruralAvg?.avgDays ?? 0),
+      completionRate: ruralTotalCount > 0 ? Math.round((ruralCompletedCount / ruralTotalCount) * 1000) / 10 : 0,
+    },
+    urban: {
+      total: urbanTotalCount,
+      completed: urbanCompletedCount,
+      rejected: urbanRejectedCount,
+      inProgress: urbanInProgress,
+      avgProcessingDays: Math.round(urbanAvg?.avgDays ?? 0),
+      completionRate: urbanTotalCount > 0 ? Math.round((urbanCompletedCount / urbanTotalCount) * 1000) / 10 : 0,
+    },
+    monthlyComparison,
+  };
+}

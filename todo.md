@@ -519,3 +519,22 @@
 - [x] Ajouter bouton "Nouvelle demande" dans le menu citoyen (CitizenLayout)
 - [x] Lien depuis la page d'accueil publique
 - [x] Tests TypeScript et validation (0 erreurs, 229 tests PASS)
+
+## v3.4 — Tableau de bord admin unifié (rural + urbain)
+
+### Backend
+- [x] Procédure tRPC admin.unifiedDashboardStats avec stats fusionnées rural/urbain
+- [x] Calcul délais moyens rural (CF) et urbain (ACD)
+- [x] Calcul taux de complétion rural et urbain
+- [x] Répartition par mois (dossiers créés rural vs urbain)
+
+### Page dashboard unifié
+- [x] Section KPI comparative : total dossiers rural vs urbain, taux complétion, délais moyens
+- [x] Graphique barres comparatif : nombre de dossiers par mois (rural vs urbain)
+- [x] Graphique donut : répartition globale rural/urbain
+- [x] Graphique barres : délais moyens par procédure
+- [x] Tableau récapitulatif avec indicateurs clés
+
+### Intégration
+- [x] Page dédiée /admin/unified-dashboard avec lien dans le menu admin (DashboardLayout)
+- [x] Tests TypeScript (0 erreurs) et 229 tests PASS

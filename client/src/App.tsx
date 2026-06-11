@@ -44,6 +44,7 @@ const AdminSigDashboard = lazy(() => import("./pages/admin/AdminSigDashboard"));
 const CitizenUrbanAcdList = lazy(() => import("./pages/citizen/CitizenUrbanAcdList"));
 const CitizenUrbanAcdCreate = lazy(() => import("./pages/citizen/CitizenUrbanAcdCreate"));
 const CitizenUrbanAcdDetail = lazy(() => import("./pages/citizen/CitizenUrbanAcdDetail"));
+const AdminUnifiedDashboard = lazy(() => import("./pages/admin/UnifiedDashboard"));
 const AdminUrbanAcdList = lazy(() => import("./pages/admin/AdminUrbanAcdList"));
 const AdminUrbanAcdDetail = lazy(() => import("./pages/admin/AdminUrbanAcdDetail"));
 const NewApplication = lazy(() => import("./pages/citizen/NewApplication"));
@@ -187,6 +188,11 @@ function Router() {
       <Route path="/admin">
         <DashboardLayout>
           <AdminDashboard />
+        </DashboardLayout>
+      </Route>
+      <Route path="/admin/unified-dashboard">
+        <DashboardLayout>
+          <AdminUnifiedDashboard />
         </DashboardLayout>
       </Route>
       <Route path="/admin/parcels">

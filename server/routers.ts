@@ -59,6 +59,7 @@ import {
   getCreditStats,
   getDistinctLandTitleRegions,
   getDistinctLandTitleOperators,
+  getUnifiedDashboardStats,
   getNotificationPreferences,
   upsertNotificationPreferences,
   getSystemConfig,
@@ -422,6 +423,10 @@ const adminRouter = router({
     dateTo: z.number().optional(),
   }).optional()).query(async ({ input }) => {
     return getCreditStats(input ?? {});
+  }),
+
+  unifiedDashboardStats: adminProcedure.query(async () => {
+    return getUnifiedDashboardStats();
   }),
 
   dashboardFilterOptions: adminProcedure.query(async () => {
