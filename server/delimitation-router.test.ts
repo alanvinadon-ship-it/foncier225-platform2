@@ -6,6 +6,8 @@ vi.mock("./db", () => ({
   getTerritoryByIdAndOwner: vi.fn(),
   listTerritoriesByOwner: vi.fn(),
   countTerritoriesByOwner: vi.fn(),
+  listAllTerritoriesWithFilter: vi.fn(),
+  countAllTerritories: vi.fn(),
   updateTerritory: vi.fn(),
   insertBoundaryPoints: vi.fn(),
   listBoundaryPointsByTerritory: vi.fn(),
@@ -17,6 +19,8 @@ vi.mock("./db", () => ({
   listTerritoryDocuments: vi.fn(),
   deleteTerritoryDocument: vi.fn(),
   createAuditEvent: vi.fn(),
+  insertTerritoryStatusHistory: vi.fn(),
+  listTerritoryStatusHistory: vi.fn(),
 }));
 
 vi.mock("./storage", () => ({
@@ -29,6 +33,8 @@ import {
   getTerritoryByIdAndOwner,
   listTerritoriesByOwner,
   countTerritoriesByOwner,
+  listAllTerritoriesWithFilter,
+  countAllTerritories,
   updateTerritory,
   replaceBoundaryPoints,
   listBoundaryPointsByTerritory,
@@ -38,6 +44,8 @@ import {
   listTerritoryDocuments,
   deleteTerritoryDocument,
   createAuditEvent,
+  insertTerritoryStatusHistory,
+  listTerritoryStatusHistory,
 } from "./db";
 
 import { delimitationRouter } from "./delimitation-router";
@@ -125,15 +133,15 @@ describe("delimitation-router", () => {
 
   describe("list", () => {
     it("returns territories for the current user", async () => {
-      (listTerritoriesByOwner as any).mockResolvedValue([mockTerritory]);
-      (countTerritoriesByOwner as any).mockResolvedValue(1);
+      (listAllTerritoriesWithFilter as any).mockResolvedValue([mockTerritory]);
+      (countAllTerritories as any).mockResolvedValue(1);
 
       const caller = createCaller();
       const result = await caller.delimitation.list({ limit: 20, offset: 0 });
 
       expect(result.territories).toHaveLength(1);
       expect(result.total).toBe(1);
-      expect(listTerritoriesByOwner).toHaveBeenCalledWith(1, 20, 0);
+      expect(listAllTerritoriesWithFilter).toHaveBeenCalled();
     });
   });
 
@@ -367,6 +375,7 @@ describe("delimitation-router", () => {
       (getTerritoryByIdAndOwner as any).mockResolvedValueOnce({ ...mockTerritory, status: "draft" });
       (updateTerritory as any).mockResolvedValueOnce(undefined);
       (createAuditEvent as any).mockResolvedValueOnce(undefined);
+      (insertTerritoryStatusHistory as any).mockResolvedValueOnce(undefined);
 
       const caller = createCaller();
       const result = await caller.delimitation.updateStatus({

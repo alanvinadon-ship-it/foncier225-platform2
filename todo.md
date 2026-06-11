@@ -202,3 +202,12 @@
 - [x] Afficher les 6 statuts : Brouillon, En cours (Collecte), En révision, Validé (Chef), Validé (Officiel), Synchronisé SIFOR
 - [x] Enregistrer un audit event à chaque changement de statut manuel (delimitation.territory.status_changed)
 - [x] Vérifier le fonctionnement et les tests (0 erreurs TypeScript, 164 tests PASS)
+
+## v1.3.7 — Filtres, badges et historique de statut
+
+- [x] Ajouter des filtres (par statut) et une option de tri (date, nom, statut) dans la liste principale des projets de délimitation
+- [x] Associer des couleurs distinctes sous forme de badges pour chaque statut dans le tableau (gris/bleu/ambre/violet/vert/émeraude)
+- [x] Créer une table territory_status_history en DB pour stocker l'historique des changements de statut
+- [x] Ajouter une procédure tRPC statusHistory pour récupérer l'historique de statut d'un territoire
+- [x] Afficher l'historique détaillé des changements de statut avec la date et l'auteur dans l'interface du projet
+- [x] Vérifier le fonctionnement et les tests (0 erreurs TypeScript, 167 tests PASS)

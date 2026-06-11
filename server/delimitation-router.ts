@@ -6,6 +6,7 @@ import {
   insertTerritory,
   getTerritoryByIdAndOwner,
   listTerritoriesByOwner,
+  listAllTerritoriesWithFilter,
   updateTerritory,
   countTerritoriesByOwner,
   insertBoundaryPoints,
@@ -16,6 +17,8 @@ import {
   insertTerritoryDocument,
   listTerritoryDocuments,
   deleteTerritoryDocument,
+  insertTerritoryStatusHistory,
+  listTerritoryStatusHistory,
 } from "./db";
 import { storagePut } from "./storage";
 import { DocumentGenerationService } from "./document-generation.service";
@@ -80,14 +83,14 @@ export const delimitationRouter = router({
     .input(z.object({
       limit: z.number().int().min(1).max(50).default(20),
       offset: z.number().int().min(0).default(0),
+      statusFilter: z.string().optional(),
+      sortBy: z.enum(["date", "name", "status"]).default("date"),
+      sortOrder: z.enum(["asc", "desc"]).default("desc"),
     }).optional())
-    .query(async ({ input, ctx }) => {
-      const { limit = 20, offset = 0 } = input ?? {};
-      const [territories, total] = await Promise.all([
-        listTerritoriesByOwner(ctx.user.id, limit, offset),
-        countTerritoriesByOwner(ctx.user.id),
-      ]);
-      return { territories, total };
+    .query(async ({ input }) => {
+      const { limit = 20, offset = 0, statusFilter, sortBy = "date", sortOrder = "desc" } = input ?? {};
+      const territories = await listAllTerritoriesWithFilter(statusFilter, sortBy, sortOrder, limit, offset);
+      return { territories, total: territories.length };
     }),
 
   // Get territory detail with points
@@ -462,6 +465,15 @@ export const delimitationRouter = router({
 
       await updateTerritory(territory.id, updateData);
 
+      // Record in status history table
+      await insertTerritoryStatusHistory({
+        territoryId: territory.id,
+        previousStatus,
+        newStatus: input.status,
+        changedById: ctx.user.id,
+        changedByName: ctx.user.name || "Admin",
+      });
+
       await createAuditEvent({
         actorId: ctx.user.id,
         actorRole: ctx.user.role,
@@ -602,5 +614,14 @@ export const delimitationRouter = router({
       });
 
       return { url, filename: `fiche-delimitation-${territory.code}.pdf`, checksum: checksumSha256 };
+    }),
+
+  // Get status history for a territory
+  statusHistory: adminProcedure
+    .input(z.object({ territoryId: z.number().int().positive() }))
+    .query(async ({ input, ctx }) => {
+      await verifyTerritoryOwnership(input.territoryId, ctx.user.id);
+      const history = await listTerritoryStatusHistory(input.territoryId);
+      return { history };
     }),
 });

@@ -188,6 +188,11 @@ export default function DelimitationVillageoise() {
   const [editValues, setEditValues] = useState<{ lat: string; lng: string; landmark: string }>({ lat: "", lng: "", landmark: "" });
   const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
 
+  // Filter & sort state
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [sortBy, setSortBy] = useState<"date" | "name" | "status">("date");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
   // Form state
   const [villageName, setVillageName] = useState("");
   const [chiefName, setChiefName] = useState("");
@@ -200,11 +205,16 @@ export default function DelimitationVillageoise() {
   const utils = trpc.useUtils();
 
   const { data: territoriesData, isLoading: isLoadingList } = trpc.delimitation.list.useQuery(
-    { limit: 20, offset: 0 },
+    { limit: 20, offset: 0, statusFilter, sortBy, sortOrder },
     { enabled: showList }
   );
 
   const { data: territoryDetail, isLoading: isLoadingDetail, isError: isErrorDetail } = trpc.delimitation.getById.useQuery(
+    { territoryId: activeTerritoryId! },
+    { enabled: !!activeTerritoryId }
+  );
+
+  const { data: statusHistoryData } = trpc.delimitation.statusHistory.useQuery(
     { territoryId: activeTerritoryId! },
     { enabled: !!activeTerritoryId }
   );
@@ -970,6 +980,49 @@ ${boundaryPoints.map((p) => `  <wpt lat="${p.lat}" lon="${p.lng}">
           </Button>
         </div>
 
+        {/* Filtres et tri */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-medium whitespace-nowrap">Statut :</Label>
+                <select
+                  value={statusFilter || ""}
+                  onChange={(e) => setStatusFilter(e.target.value || undefined)}
+                  className="border rounded-md px-3 py-1.5 text-sm bg-background"
+                >
+                  <option value="">Tous</option>
+                  <option value="draft">Brouillon</option>
+                  <option value="collecting">En cours (Collecte)</option>
+                  <option value="submitted">En révision</option>
+                  <option value="validated_chief">Validé (Chef)</option>
+                  <option value="official">Validé (Officiel)</option>
+                  <option value="synced">Synchronisé SIFOR</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-medium whitespace-nowrap">Trier par :</Label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as "date" | "name" | "status")}
+                  className="border rounded-md px-3 py-1.5 text-sm bg-background"
+                >
+                  <option value="date">Date</option>
+                  <option value="name">Nom</option>
+                  <option value="status">Statut</option>
+                </select>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+              >
+                {sortOrder === "asc" ? "↑ Croissant" : "↓ Décroissant"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {isLoadingList ? (
           <Card>
             <CardContent className="p-8 text-center text-muted-foreground">
@@ -979,7 +1032,7 @@ ${boundaryPoints.map((p) => `  <wpt lat="${p.lat}" lon="${p.lng}">
         ) : territoriesData && territoriesData.territories.length > 0 ? (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Mes territoires ({territoriesData.total})</CardTitle>
+              <CardTitle className="text-lg">Territoires ({territoriesData.territories.length})</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
@@ -1327,6 +1380,30 @@ ${boundaryPoints.map((p) => `  <wpt lat="${p.lat}" lon="${p.lng}">
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Historique détaillé des changements de statut */}
+              <div className="pt-3 border-t">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Historique des changements de statut</p>
+                {statusHistoryData?.history && statusHistoryData.history.length > 0 ? (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {statusHistoryData.history.map((entry: any, idx: number) => (
+                      <div key={idx} className="flex items-start gap-2 text-xs">
+                        <div className="mt-1 h-1.5 w-1.5 rounded-full bg-ci-green shrink-0" />
+                        <div className="flex-1">
+                          <p className="font-medium">
+                            {getStatusLabel(entry.previousStatus)} → {getStatusLabel(entry.newStatus)}
+                          </p>
+                          <p className="text-muted-foreground">
+                            par {entry.changedByName} — {new Date(entry.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">Aucun changement de statut enregistré</p>
+                )}
               </div>
             </CardContent>
           </Card>

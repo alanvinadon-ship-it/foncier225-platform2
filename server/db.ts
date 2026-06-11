@@ -19,6 +19,7 @@ import {
   villageTerritories, InsertVillageTerritory, VillageTerritory,
   territoryBoundaryPoints, InsertTerritoryBoundaryPoint,
   territoryDocuments, InsertTerritoryDocument,
+  territoryStatusHistory, InsertTerritoryStatusHistory,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -865,4 +866,47 @@ export async function deleteTerritoryDocument(docId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(territoryDocuments).where(eq(territoryDocuments.id, docId));
+}
+
+// ─── Territory Status History ────────────────────────────────────────
+
+export async function insertTerritoryStatusHistory(entry: InsertTerritoryStatusHistory) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(territoryStatusHistory).values(entry);
+}
+
+export async function listTerritoryStatusHistory(territoryId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(territoryStatusHistory)
+    .where(eq(territoryStatusHistory.territoryId, territoryId))
+    .orderBy(desc(territoryStatusHistory.createdAt));
+}
+
+export async function listAllTerritoriesWithFilter(
+  statusFilter?: string,
+  sortBy: "date" | "name" | "status" = "date",
+  sortOrder: "asc" | "desc" = "desc",
+  limit = 50,
+  offset = 0
+) {
+  const db = await getDb();
+  if (!db) return [];
+  const whereClause = statusFilter
+    ? eq(villageTerritories.status, statusFilter as any)
+    : undefined;
+  const orderClause = sortBy === "name"
+    ? (sortOrder === "asc" ? villageTerritories.name : desc(villageTerritories.name))
+    : sortBy === "status"
+      ? (sortOrder === "asc" ? villageTerritories.status : desc(villageTerritories.status))
+      : (sortOrder === "asc" ? villageTerritories.createdAt : desc(villageTerritories.createdAt));
+  
+  const query = db.select().from(villageTerritories);
+  if (whereClause) {
+    return query.where(whereClause).orderBy(orderClause).limit(limit).offset(offset);
+  }
+  return query.orderBy(orderClause).limit(limit).offset(offset);
 }

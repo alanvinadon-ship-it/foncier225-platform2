@@ -492,3 +492,24 @@ export const territoryDocuments = mysqlTable(
 
 export type TerritoryDocument = typeof territoryDocuments.$inferSelect;
 export type InsertTerritoryDocument = typeof territoryDocuments.$inferInsert;
+
+export const territoryStatusHistory = mysqlTable(
+  "territory_status_history",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    territoryId: int("territoryId").notNull().references(() => villageTerritories.id, { onDelete: "cascade" }),
+    previousStatus: varchar("previousStatus", { length: 50 }).notNull(),
+    newStatus: varchar("newStatus", { length: 50 }).notNull(),
+    changedById: int("changedById").references(() => users.id, { onDelete: "set null" }),
+    changedByName: varchar("changedByName", { length: 255 }),
+    reason: varchar("reason", { length: 512 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    territoryIdx: index("idx_tsh_territory").on(table.territoryId),
+    dateIdx: index("idx_tsh_date").on(table.createdAt),
+  })
+);
+
+export type TerritoryStatusHistory = typeof territoryStatusHistory.$inferSelect;
+export type InsertTerritoryStatusHistory = typeof territoryStatusHistory.$inferInsert;
