@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Check, ChevronRight, Upload, Trash2, Landmark, UserCheck, ShieldCheck, RefreshCw } from "lucide-react";
+import { MapPin, Check, ChevronRight, Upload, Trash2, Landmark, UserCheck, ShieldCheck, RefreshCw, FileUp } from "lucide-react";
 import { toast } from "sonner";
 
 // Types
@@ -54,6 +54,8 @@ export default function DelimitationVillageoise() {
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const polylineRef = useRef<any>(null);
+
+  const [importError, setImportError] = useState<string | null>(null);
 
   // Form state
   const [villageName, setVillageName] = useState("Abobo-Gare");
@@ -157,6 +159,131 @@ export default function DelimitationVillageoise() {
       const updated = prev.filter((_, i) => i !== index);
       return updated.map((p, i) => ({ ...p, number: i + 1 }));
     });
+  };
+
+  // GPX/CSV Import
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportError(null);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (!content) {
+        setImportError("Impossible de lire le fichier.");
+        return;
+      }
+
+      const ext = file.name.toLowerCase().split(".").pop();
+      let importedPoints: BoundaryPoint[] = [];
+
+      try {
+        if (ext === "gpx") {
+          importedPoints = parseGPX(content);
+        } else if (ext === "csv") {
+          importedPoints = parseCSV(content);
+        } else {
+          setImportError("Format non supporté. Utilisez .gpx ou .csv");
+          return;
+        }
+
+        if (importedPoints.length === 0) {
+          setImportError("Aucun point valide trouvé dans le fichier.");
+          return;
+        }
+
+        // Merge with existing points, renumber
+        setBoundaryPoints((prev) => {
+          const merged = [...prev, ...importedPoints];
+          return merged.map((p, i) => ({ ...p, number: i + 1 }));
+        });
+
+        toast.success(`${importedPoints.length} point(s) importé(s) depuis ${file.name}`);
+      } catch (err) {
+        setImportError(`Erreur de parsing : ${err instanceof Error ? err.message : "format invalide"}`);
+      }
+    };
+
+    reader.onerror = () => setImportError("Erreur lors de la lecture du fichier.");
+    reader.readAsText(file);
+    // Reset input so same file can be re-imported
+    e.target.value = "";
+  };
+
+  const parseGPX = (content: string): BoundaryPoint[] => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(content, "application/xml");
+    const points: BoundaryPoint[] = [];
+
+    // Parse <wpt> elements (waypoints)
+    const waypoints = doc.querySelectorAll("wpt");
+    waypoints.forEach((wpt) => {
+      const lat = parseFloat(wpt.getAttribute("lat") || "");
+      const lng = parseFloat(wpt.getAttribute("lon") || "");
+      const name = wpt.querySelector("name")?.textContent || "";
+      const desc = wpt.querySelector("desc")?.textContent || "";
+      if (!isNaN(lat) && !isNaN(lng)) {
+        points.push({ number: 0, lat, lng, landmark: name || desc || `Waypoint` });
+      }
+    });
+
+    // If no waypoints, try <trkpt> (track points)
+    if (points.length === 0) {
+      const trkpts = doc.querySelectorAll("trkpt");
+      trkpts.forEach((trkpt) => {
+        const lat = parseFloat(trkpt.getAttribute("lat") || "");
+        const lng = parseFloat(trkpt.getAttribute("lon") || "");
+        const name = trkpt.querySelector("name")?.textContent || "";
+        if (!isNaN(lat) && !isNaN(lng)) {
+          points.push({ number: 0, lat, lng, landmark: name || `Track point` });
+        }
+      });
+    }
+
+    // Also try <rtept> (route points)
+    if (points.length === 0) {
+      const rtepts = doc.querySelectorAll("rtept");
+      rtepts.forEach((rtept) => {
+        const lat = parseFloat(rtept.getAttribute("lat") || "");
+        const lng = parseFloat(rtept.getAttribute("lon") || "");
+        const name = rtept.querySelector("name")?.textContent || "";
+        if (!isNaN(lat) && !isNaN(lng)) {
+          points.push({ number: 0, lat, lng, landmark: name || `Route point` });
+        }
+      });
+    }
+
+    return points;
+  };
+
+  const parseCSV = (content: string): BoundaryPoint[] => {
+    const lines = content.trim().split(/\r?\n/);
+    if (lines.length < 2) throw new Error("Le fichier CSV doit contenir au moins un en-tête et une ligne de données.");
+
+    // Parse header
+    const header = lines[0].toLowerCase().split(/[,;\t]/).map((h) => h.trim());
+    const latIdx = header.findIndex((h) => ["lat", "latitude", "y"].includes(h));
+    const lngIdx = header.findIndex((h) => ["lng", "lon", "longitude", "long", "x"].includes(h));
+    const descIdx = header.findIndex((h) => ["description", "desc", "name", "nom", "landmark", "repere", "repère"].includes(h));
+
+    if (latIdx === -1 || lngIdx === -1) {
+      throw new Error("Colonnes 'lat' et 'lng' (ou 'latitude'/'longitude') requises dans l'en-tête.");
+    }
+
+    const points: BoundaryPoint[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(/[,;\t]/).map((c) => c.trim());
+      const lat = parseFloat(cols[latIdx]);
+      const lng = parseFloat(cols[lngIdx]);
+      const desc = descIdx !== -1 ? cols[descIdx] || `Point ${i}` : `Point ${i}`;
+
+      if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        points.push({ number: 0, lat, lng, landmark: desc });
+      }
+    }
+
+    return points;
   };
 
   const goToStep = (step: number) => {
@@ -400,8 +527,40 @@ export default function DelimitationVillageoise() {
               <CardContent className="space-y-4">
                 <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
                   <p className="text-sm text-blue-800">
-                    <strong>Instructions :</strong> Cliquez sur la carte pour ajouter les points de borne du territoire. Minimum 4 points requis pour former un polygone valide.
+                    <strong>Instructions :</strong> Cliquez sur la carte pour ajouter les points de borne, ou importez un fichier GPX/CSV. Minimum 4 points requis.
                   </p>
+                </div>
+
+                {/* GPX/CSV Import */}
+                <div className="border-2 border-dashed border-ci-green/40 rounded-lg p-4 bg-green-50/50">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-ci-green flex items-center gap-2">
+                        <FileUp className="h-4 w-4" />
+                        Importer un fichier GPX ou CSV
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        GPX : waypoints, trackpoints ou route points. CSV : colonnes lat, lng (+ description optionnelle).
+                      </p>
+                    </div>
+                    <label className="cursor-pointer">
+                      <Button variant="outline" size="sm" className="border-ci-green text-ci-green hover:bg-ci-green hover:text-white" asChild>
+                        <span>
+                          <FileUp className="h-4 w-4 mr-1" />
+                          Choisir un fichier
+                        </span>
+                      </Button>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept=".gpx,.csv"
+                        onChange={handleFileImport}
+                      />
+                    </label>
+                  </div>
+                  {importError && (
+                    <p className="text-xs text-destructive mt-2 font-medium">{importError}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

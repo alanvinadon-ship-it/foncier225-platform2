@@ -127,3 +127,12 @@
 - [x] Intégrer Leaflet pour la carte interactive
 - [x] Workflow 5 étapes : initialisation, collecte points, validation chef, reconnaissance, synchronisation SIFOR
 - [x] Vérifier le fonctionnement sur la plateforme
+
+## v1.2.1 — Import GPX/CSV pour Délimitation Villageoise
+
+- [x] Ajouter un bouton d'import fichier (GPX ou CSV) dans l'étape 2 de collecte des points
+- [x] Parser les fichiers GPX (format XML standard avec waypoints/trackpoints)
+- [x] Parser les fichiers CSV (colonnes lat, lng, description)
+- [x] Charger automatiquement les points sur la carte après import
+- [x] Afficher un feedback (nombre de points importés, erreurs éventuelles)
+- [x] Vérifier le fonctionnement (0 erreurs TypeScript)
