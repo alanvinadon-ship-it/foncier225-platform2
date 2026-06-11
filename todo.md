@@ -444,3 +444,26 @@
 
 ### Validation
 - [x] Tests TypeScript et validation (0 erreurs, 198 tests PASS)
+
+## v3.0 — Phase A : Fondations Foncier Urbain (Module ACD)
+
+### Schéma DB
+- [x] Ajouter champ `landType` (URBAN|RURAL) à la table `parcels`
+- [x] Créer table `urban_parcel_details` (lot, îlot, lotissement, commune, quartier, usage)
+- [x] Créer table `urban_acd_applications` (demandes ACD avec 3 phases et 15 statuts)
+- [x] Créer table `urban_acd_steps` (étapes workflow ACD)
+- [x] Créer table `urban_acd_documents` (documents spécifiques ACD)
+- [x] Créer table `urban_acd_oppositions` (oppositions urbaines)
+- [x] Étendre enum `role` avec agent_mclu, geometre_urbain, conservateur
+- [x] Pousser les migrations (pnpm db:push)
+
+### Backend
+- [x] Créer machine d'états ACD (shared/acd-workflow.ts) — 16 statuts, 3 phases, transitions, documents requis
+- [x] Créer guards RBAC (mcluProcedure, geometreProcedure, conservateurProcedure)
+- [x] Créer helpers DB pour CRUD ACD (15 fonctions dans server/db.ts)
+- [x] Créer routeur tRPC urban-acd-router.ts (citizenAcdRouter + adminAcdRouter)
+- [x] Connecter urbanAcdRouter dans appRouter (server/routers.ts)
+
+### Tests
+- [x] Tests unitaires machine d'états ACD (31 tests : statuts, phases, transitions, terminaux)
+- [x] Validation TypeScript (0 erreurs) et 229 tests PASS (10 fichiers)

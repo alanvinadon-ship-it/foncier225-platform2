@@ -60,3 +60,57 @@ export const bankProcedure = t.procedure.use(
     });
   }),
 );
+
+/** Guard pour les agents MCLU (foncier urbain) + admin */
+export const mcluProcedure = t.procedure.use(
+  t.middleware(async opts => {
+    const { ctx, next } = opts;
+
+    if (!ctx.user || (ctx.user.role !== 'agent_mclu' && ctx.user.role !== 'admin')) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Accès réservé aux agents MCLU" });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user,
+      },
+    });
+  }),
+);
+
+/** Guard pour les géomètres urbains agréés + admin */
+export const geometreProcedure = t.procedure.use(
+  t.middleware(async opts => {
+    const { ctx, next } = opts;
+
+    if (!ctx.user || (ctx.user.role !== 'geometre_urbain' && ctx.user.role !== 'admin')) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Accès réservé aux géomètres urbains" });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user,
+      },
+    });
+  }),
+);
+
+/** Guard pour le conservateur foncier + admin */
+export const conservateurProcedure = t.procedure.use(
+  t.middleware(async opts => {
+    const { ctx, next } = opts;
+
+    if (!ctx.user || (ctx.user.role !== 'conservateur' && ctx.user.role !== 'admin')) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Accès réservé au conservateur foncier" });
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user,
+      },
+    });
+  }),
+);

@@ -131,7 +131,7 @@ export default function ParcelPublic() {
               <h2 className="font-semibold text-lg mb-4">Informations publiques</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <InfoRow label="Référence" value={parcel.reference} />
-                <InfoRow label="Zone" value={parcel.zoneCode} />
+                <InfoRow label="Zone" value={parcel.zoneCode || "Non renseignée"} />
                 <InfoRow label="Surface approx." value={parcel.surfaceApprox || "Non renseignée"} />
                 <InfoRow label="Localisation" value={parcel.localisation || "Non renseignée"} />
                 <InfoRow label="Statut" value={statusCfg.label} />

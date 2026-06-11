@@ -9,6 +9,7 @@ import { bankCreditRouter } from "./bank-credit-router";
 import { delimitationRouter } from "./delimitation-router";
 import { landTitleRouter } from "./land-title-router";
 import { creditRouter } from "./credit-router";
+import { urbanAcdRouter } from "./urban-acd-router";
 import { GeneratedDocumentService } from "./generated-document.service";
 import {
   checkRateLimit,
@@ -989,6 +990,7 @@ export const appRouter = router({
   delimitation: delimitationRouter,
   landTitle: landTitleRouter,
   admin: adminRouter,
+  urbanAcd: urbanAcdRouter,
 });
 
 export type AppRouter = typeof appRouter;

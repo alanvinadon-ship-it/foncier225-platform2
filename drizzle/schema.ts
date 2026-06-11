@@ -18,7 +18,7 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["citizen", "agent_terrain", "bank", "admin"]).default("citizen").notNull(),
+  role: mysqlEnum("role", ["citizen", "agent_terrain", "agent_mclu", "geometre_urbain", "conservateur", "bank", "admin"]).default("citizen").notNull(),
   zoneCodes: json("zoneCodes").$type<string[]>(),
   isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -33,7 +33,8 @@ export const parcels = mysqlTable("parcels", {
   id: int("id").autoincrement().primaryKey(),
   publicToken: varchar("publicToken", { length: 64 }).notNull().unique(),
   reference: varchar("reference", { length: 64 }).notNull().unique(),
-  zoneCode: varchar("zoneCode", { length: 32 }).notNull(),
+  zoneCode: varchar("zoneCode", { length: 20 }),
+  landType: mysqlEnum("landType", ["URBAN", "RURAL"]).default("RURAL").notNull(),
   statusPublic: mysqlEnum("statusPublic", [
     "dossier_en_cours",
     "en_opposition",
@@ -727,3 +728,167 @@ export const systemConfig = mysqlTable(
 
 export type SystemConfig = typeof systemConfig.$inferSelect;
 export type InsertSystemConfig = typeof systemConfig.$inferInsert;
+
+// ============================================================
+// MODULE FONCIER URBAIN (ACD — Arrêté de Concession Définitive)
+// ============================================================
+
+export const urbanParcelDetails = mysqlTable(
+  "urban_parcel_details",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    parcelId: int("parcelId").notNull().references(() => parcels.id, { onDelete: "cascade" }),
+    lotNumber: varchar("lotNumber", { length: 50 }),
+    ilotNumber: varchar("ilotNumber", { length: 50 }),
+    lotissementName: varchar("lotissementName", { length: 255 }),
+    lotissementApprovalRef: varchar("lotissementApprovalRef", { length: 100 }),
+    lotissementApprovalDate: bigint("lotissementApprovalDate", { mode: "number" }),
+    communeName: varchar("communeName", { length: 255 }),
+    quartierName: varchar("quartierName", { length: 255 }),
+    planCadastralRef: varchar("planCadastralRef", { length: 100 }),
+    surfaceM2: int("surfaceM2"),
+    usageType: mysqlEnum("usageType", ["habitation", "commerce", "industriel", "mixte", "equipement"]).default("habitation").notNull(),
+    createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+    updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
+  },
+  table => ({
+    parcelIdx: unique("uniq_upd_parcel").on(table.parcelId),
+  })
+);
+
+export type UrbanParcelDetail = typeof urbanParcelDetails.$inferSelect;
+export type InsertUrbanParcelDetail = typeof urbanParcelDetails.$inferInsert;
+
+export const urbanAcdApplications = mysqlTable(
+  "urban_acd_applications",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    applicationNumber: varchar("applicationNumber", { length: 50 }).notNull().unique(),
+    userId: int("userId").notNull().references(() => users.id, { onDelete: "restrict" }),
+    parcelId: int("parcelId").references(() => parcels.id, { onDelete: "set null" }),
+    phase: mysqlEnum("phase", ["provisional", "development", "definitive"]).default("provisional").notNull(),
+    status: varchar("status", { length: 40 }).default("acd_draft").notNull(),
+    // Demandeur
+    applicantFullName: varchar("applicantFullName", { length: 255 }).notNull(),
+    applicantNationality: varchar("applicantNationality", { length: 100 }),
+    applicantIdType: varchar("applicantIdType", { length: 50 }),
+    applicantIdNumber: varchar("applicantIdNumber", { length: 100 }),
+    applicantType: mysqlEnum("applicantType", ["personne_physique", "personne_morale"]).default("personne_physique").notNull(),
+    companyName: varchar("companyName", { length: 255 }),
+    companyRccm: varchar("companyRccm", { length: 100 }),
+    // Terrain
+    lotNumber: varchar("lotNumber", { length: 50 }),
+    ilotNumber: varchar("ilotNumber", { length: 50 }),
+    lotissementName: varchar("lotissementName", { length: 255 }),
+    commune: varchar("commune", { length: 255 }),
+    quartier: varchar("quartier", { length: 255 }),
+    surfaceM2: int("surfaceM2"),
+    usagePrevu: mysqlEnum("usagePrevu", ["habitation", "commerce", "industriel", "mixte"]).default("habitation").notNull(),
+    // ACP (Concession Provisoire)
+    acpNumber: varchar("acpNumber", { length: 100 }),
+    acpSignedAt: bigint("acpSignedAt", { mode: "number" }),
+    acpExpiryAt: bigint("acpExpiryAt", { mode: "number" }),
+    developmentDeadline: bigint("developmentDeadline", { mode: "number" }),
+    // ACD (Concession Définitive)
+    acdNumber: varchar("acdNumber", { length: 100 }),
+    acdSignedAt: bigint("acdSignedAt", { mode: "number" }),
+    journalOfficielRef: varchar("journalOfficielRef", { length: 100 }),
+    journalOfficielDate: bigint("journalOfficielDate", { mode: "number" }),
+    // Meta
+    notes: text("notes"),
+    createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+    updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
+  },
+  table => ({
+    userIdx: index("idx_uacd_user").on(table.userId),
+    statusIdx: index("idx_uacd_status").on(table.status),
+    phaseIdx: index("idx_uacd_phase").on(table.phase),
+    parcelIdx: index("idx_uacd_parcel").on(table.parcelId),
+  })
+);
+
+export type UrbanAcdApplication = typeof urbanAcdApplications.$inferSelect;
+export type InsertUrbanAcdApplication = typeof urbanAcdApplications.$inferInsert;
+
+export const urbanAcdSteps = mysqlTable(
+  "urban_acd_steps",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    applicationId: int("appId").notNull().references(() => urbanAcdApplications.id, { onDelete: "cascade" }),
+    stepType: varchar("stepType", { length: 60 }).notNull(),
+    status: mysqlEnum("status", ["pending", "in_progress", "completed", "skipped"]).default("pending").notNull(),
+    startedAt: bigint("startedAt", { mode: "number" }),
+    completedAt: bigint("completedAt", { mode: "number" }),
+    completedBy: int("completedBy").references(() => users.id, { onDelete: "set null" }),
+    notes: text("notes"),
+    metadata: json("metadata").$type<Record<string, unknown>>(),
+    createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+  },
+  table => ({
+    applicationIdx: index("idx_uas_application").on(table.applicationId),
+    stepTypeIdx: index("idx_uas_step_type").on(table.stepType),
+  })
+);
+
+export type UrbanAcdStep = typeof urbanAcdSteps.$inferSelect;
+export type InsertUrbanAcdStep = typeof urbanAcdSteps.$inferInsert;
+
+export const urbanAcdDocuments = mysqlTable(
+  "urban_acd_documents",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    applicationId: int("appId").notNull().references(() => urbanAcdApplications.id, { onDelete: "cascade" }),
+    documentType: varchar("documentType", { length: 60 }).notNull(),
+    documentCategory: mysqlEnum("documentCategory", [
+      "identite",
+      "propriete_lot",
+      "urbanisme",
+      "technique",
+      "mise_en_valeur",
+      "complementaire",
+    ]).default("complementaire").notNull(),
+    label: varchar("label", { length: 255 }).notNull(),
+    fileUrl: text("fileUrl").notNull(),
+    fileKey: varchar("fileKey", { length: 500 }).notNull(),
+    mimeType: varchar("mimeType", { length: 100 }),
+    fileSizeBytes: int("fileSizeBytes"),
+    sha256: varchar("sha256", { length: 64 }),
+    uploadedBy: int("uploadedBy").notNull().references(() => users.id, { onDelete: "restrict" }),
+    stepId: int("stepId").references(() => urbanAcdSteps.id, { onDelete: "set null" }),
+    verified: boolean("verified").default(false).notNull(),
+    verifiedBy: int("verifiedBy").references(() => users.id, { onDelete: "set null" }),
+    verifiedAt: bigint("verifiedAt", { mode: "number" }),
+    createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+  },
+  table => ({
+    applicationIdx: index("idx_uad_application").on(table.applicationId),
+    docTypeIdx: index("idx_uad_doc_type").on(table.documentType),
+    categoryIdx: index("idx_uad_category").on(table.documentCategory),
+  })
+);
+
+export type UrbanAcdDocument = typeof urbanAcdDocuments.$inferSelect;
+export type InsertUrbanAcdDocument = typeof urbanAcdDocuments.$inferInsert;
+
+export const urbanAcdOppositions = mysqlTable(
+  "urban_acd_oppositions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    applicationId: int("appId").notNull().references(() => urbanAcdApplications.id, { onDelete: "cascade" }),
+    opponentName: varchar("opponentName", { length: 255 }).notNull(),
+    opponentContact: varchar("opponentContact", { length: 255 }),
+    reason: text("reason").notNull(),
+    status: mysqlEnum("status", ["pending", "confirmed", "dismissed"]).default("pending").notNull(),
+    resolutionNotes: text("resolutionNotes"),
+    resolvedBy: int("resolvedBy").references(() => users.id, { onDelete: "set null" }),
+    resolvedAt: bigint("resolvedAt", { mode: "number" }),
+    createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+  },
+  table => ({
+    applicationIdx: index("idx_uao_application").on(table.applicationId),
+    statusIdx: index("idx_uao_status").on(table.status),
+  })
+);
+
+export type UrbanAcdOpposition = typeof urbanAcdOppositions.$inferSelect;
+export type InsertUrbanAcdOpposition = typeof urbanAcdOppositions.$inferInsert;

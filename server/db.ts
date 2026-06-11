@@ -23,6 +23,10 @@ import {
   citizenNotifications, InsertCitizenNotification,
   notificationPreferences, InsertNotificationPreference,
   systemConfig,
+  urbanAcdApplications, InsertUrbanAcdApplication,
+  urbanAcdSteps, InsertUrbanAcdStep,
+  urbanAcdDocuments, InsertUrbanAcdDocument,
+  urbanAcdOppositions, InsertUrbanAcdOpposition,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1462,4 +1466,119 @@ export async function upsertSystemConfig(key: string, value: Record<string, unkn
     });
   }
   return value;
+}
+
+// ============================================================
+// HELPERS — MODULE FONCIER URBAIN (ACD)
+// ============================================================
+
+export async function createUrbanAcdApplication(data: InsertUrbanAcdApplication) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(urbanAcdApplications).values(data);
+  return Number(result.insertId);
+}
+
+export async function getUrbanAcdApplicationById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [app] = await db.select().from(urbanAcdApplications).where(eq(urbanAcdApplications.id, id));
+  return app || null;
+}
+
+export async function getUrbanAcdApplicationByIdAndUser(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [app] = await db.select().from(urbanAcdApplications).where(and(eq(urbanAcdApplications.id, id), eq(urbanAcdApplications.userId, userId)));
+  return app || null;
+}
+
+export async function listUrbanAcdApplicationsByUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(urbanAcdApplications).where(eq(urbanAcdApplications.userId, userId)).orderBy(desc(urbanAcdApplications.createdAt));
+}
+
+export async function listUrbanAcdApplications(filters?: { status?: string; phase?: string }, limit = 20, offset = 0) {
+  const db = await getDb();
+  if (!db) return { items: [], total: 0 };
+  const conditions = [];
+  if (filters?.status) conditions.push(eq(urbanAcdApplications.status, filters.status));
+  if (filters?.phase) conditions.push(eq(urbanAcdApplications.phase, filters.phase as any));
+
+  const query = conditions.length > 0
+    ? db.select().from(urbanAcdApplications).where(and(...conditions))
+    : db.select().from(urbanAcdApplications);
+
+  const items = await (query as any).orderBy(desc(urbanAcdApplications.updatedAt)).limit(limit).offset(offset);
+
+  const countQuery = conditions.length > 0
+    ? db.select({ total: sql`count(*)` }).from(urbanAcdApplications).where(and(...conditions))
+    : db.select({ total: sql`count(*)` }).from(urbanAcdApplications);
+  const [{ total }] = await countQuery;
+
+  return { items, total: Number(total) };
+}
+
+export async function updateUrbanAcdApplication(id: number, data: Partial<{ status: string; phase: string; acpNumber: string; acpSignedAt: number; acpExpiryAt: number; developmentDeadline: number; acdNumber: string; acdSignedAt: number; journalOfficielRef: string; journalOfficielDate: number; notes: string; updatedAt: number }>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(urbanAcdApplications).set(data as any).where(eq(urbanAcdApplications.id, id));
+}
+
+export async function createUrbanAcdStep(data: InsertUrbanAcdStep) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(urbanAcdSteps).values(data);
+  return Number(result.insertId);
+}
+
+export async function listUrbanAcdSteps(applicationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(urbanAcdSteps).where(eq(urbanAcdSteps.applicationId, applicationId)).orderBy(urbanAcdSteps.createdAt);
+}
+
+export async function updateUrbanAcdStep(applicationId: number, stepType: string, data: Partial<{ status: string; completedAt: number; completedBy: number; notes: string }>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(urbanAcdSteps).set(data as any).where(and(eq(urbanAcdSteps.applicationId, applicationId), eq(urbanAcdSteps.stepType, stepType)));
+}
+
+export async function createUrbanAcdDocument(data: InsertUrbanAcdDocument) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(urbanAcdDocuments).values(data);
+  return Number(result.insertId);
+}
+
+export async function listUrbanAcdDocuments(applicationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(urbanAcdDocuments).where(eq(urbanAcdDocuments.applicationId, applicationId)).orderBy(urbanAcdDocuments.createdAt);
+}
+
+export async function createUrbanAcdOpposition(data: InsertUrbanAcdOpposition) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(urbanAcdOppositions).values(data);
+  return Number(result.insertId);
+}
+
+export async function listUrbanAcdOppositions(applicationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(urbanAcdOppositions).where(eq(urbanAcdOppositions.applicationId, applicationId)).orderBy(urbanAcdOppositions.createdAt);
+}
+
+export async function updateUrbanAcdOpposition(id: number, data: Partial<{ status: string; resolutionNotes: string; resolvedBy: number; resolvedAt: number }>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(urbanAcdOppositions).set(data as any).where(eq(urbanAcdOppositions.id, id));
+}
+
+export async function getAllUrbanAcdApplications() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(urbanAcdApplications);
 }
