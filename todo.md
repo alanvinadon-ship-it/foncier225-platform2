@@ -576,3 +576,16 @@
 
 ### Validation
 - [x] Tests TypeScript (0 erreurs) et 229 tests PASS
+
+## v3.7 — Page Workflow complet ACD (De la demande à l'ACD) avec GANTT
+
+- [x] Page /citizen/urban-workflow avec processus complet ACD en 3 phases
+- [x] Diagramme GANTT interactif réutilisant AcdWorkflowGantt (13 étapes, 3 phases)
+- [x] Détail de chaque étape : durée, acteurs, documents requis, description
+- [x] Phase 1 — Concession Provisoire (ACP) : 5 étapes
+- [x] Phase 2 — Mise en valeur : 3 étapes
+- [x] Phase 3 — Concession Définitive (ACD) : 5 étapes
+- [x] Références légales (Décret n°2013-482, Code du domaine de l'État)
+- [x] Route /citizen/urban-workflow dans App.tsx
+- [x] Lien dans le menu Foncier Urbain (CitizenLayout)
+- [x] Tests TypeScript (0 erreurs) et 229 tests PASS

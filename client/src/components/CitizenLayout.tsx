@@ -77,6 +77,7 @@ const menuCategories: MenuCategory[] = [
     key: "urban",
     items: [
       { icon: Building2, label: "Foncier urbain (ACD)", path: "/citizen/urban-acd", badge: false },
+      { icon: GitBranch, label: "Processus ACD", path: "/citizen/urban-workflow", badge: false },
     ],
   },
 ];
