@@ -264,11 +264,12 @@ const citizenLandTitleRouter = router({
       return { success: true };
     }),
 
-  // Upload a document
+  // Upload a document (with AFOR category)
   uploadDocument: protectedProcedure
     .input(z.object({
       applicationId: z.number(),
       documentType: z.string().min(1).max(50),
+      documentCategory: z.enum(["identite", "propriete_historique", "mandat", "formulaire_officiel", "technique", "complementaire"]).default("complementaire"),
       label: z.string().min(1).max(255),
       fileUrl: z.string().url(),
       fileKey: z.string().min(1),
@@ -284,6 +285,7 @@ const citizenLandTitleRouter = router({
       const doc = await createLandTitleDocument({
         applicationId: input.applicationId,
         documentType: input.documentType,
+        documentCategory: input.documentCategory,
         label: input.label,
         fileUrl: input.fileUrl,
         fileKey: input.fileKey,
@@ -301,7 +303,71 @@ const citizenLandTitleRouter = router({
         action: "landTitle.document.uploaded",
         targetType: "land_title_document",
         targetId: doc.id,
-        details: { applicationId: input.applicationId, documentType: input.documentType },
+        details: { applicationId: input.applicationId, documentType: input.documentType, category: input.documentCategory },
+      });
+      return doc;
+    }),
+
+  // Upload document file (base64 → S3 → create record)
+  uploadDocumentFile: protectedProcedure
+    .input(z.object({
+      applicationId: z.number(),
+      documentType: z.string().min(1).max(50),
+      documentCategory: z.enum(["identite", "propriete_historique", "mandat", "formulaire_officiel", "technique", "complementaire"]),
+      label: z.string().min(1).max(255),
+      fileName: z.string().min(1).max(255),
+      fileBase64: z.string().min(1),
+      contentType: z.string().min(1).max(100),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const app = await getLandTitleApplicationById(input.applicationId);
+      if (!app || app.userId !== ctx.user.id) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Dossier introuvable ou accès non autorisé" });
+      }
+
+      // Validate mime type
+      const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "image/jpg"];
+      if (!allowedTypes.includes(input.contentType)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Format non autorisé. Utilisez PDF, JPG ou PNG." });
+      }
+
+      const buffer = Buffer.from(input.fileBase64, "base64");
+      if (buffer.length === 0) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Le fichier transmis est vide." });
+      }
+      const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+      if (buffer.length > MAX_SIZE) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Le fichier dépasse la taille maximale de 10 Mo." });
+      }
+
+      const { randomUUID } = await import("crypto");
+      const extension = input.fileName.split(".").pop() || "bin";
+      const fileKey = `land-title/${ctx.user.id}/${input.applicationId}/${input.documentType}-${randomUUID()}.${extension}`;
+
+      const { storagePut } = await import("./storage");
+      const { url } = await storagePut(fileKey, buffer, input.contentType);
+
+      const doc = await createLandTitleDocument({
+        applicationId: input.applicationId,
+        documentType: input.documentType,
+        documentCategory: input.documentCategory,
+        label: input.label,
+        fileUrl: url,
+        fileKey,
+        mimeType: input.contentType,
+        fileSizeBytes: buffer.length,
+        uploadedBy: ctx.user.id,
+        verified: false,
+        createdAt: Date.now(),
+      });
+
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: "landTitle.document.uploaded",
+        targetType: "land_title_document",
+        targetId: doc.id,
+        details: { applicationId: input.applicationId, documentType: input.documentType, category: input.documentCategory },
       });
       return doc;
     }),
@@ -331,6 +397,28 @@ const citizenLandTitleRouter = router({
         details: { applicationId: app.id },
       });
       return { success: true };
+    }),
+
+  // Get document completeness for AFOR liasse
+  getDocumentCompleteness: protectedProcedure
+    .input(z.object({ applicationId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      const app = await getLandTitleApplicationById(input.applicationId);
+      if (!app || app.userId !== ctx.user.id) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Dossier introuvable ou accès non autorisé" });
+      }
+      const documents = await listLandTitleDocuments(app.id);
+      // Group by category
+      const byCategory: Record<string, typeof documents> = {};
+      for (const doc of documents) {
+        const cat = (doc as any).documentCategory || "complementaire";
+        if (!byCategory[cat]) byCategory[cat] = [];
+        byCategory[cat].push(doc);
+      }
+      return {
+        totalDocuments: documents.length,
+        byCategory,
+      };
     }),
 
   // Request immatriculation (Phase 2)

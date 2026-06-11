@@ -1,0 +1,2 @@
+ALTER TABLE `land_title_documents` ADD `documentCategory` enum('identite','propriete_historique','mandat','formulaire_officiel','technique','complementaire') DEFAULT 'complementaire' NOT NULL;--> statement-breakpoint
+CREATE INDEX `idx_ltd_category` ON `land_title_documents` (`documentCategory`);

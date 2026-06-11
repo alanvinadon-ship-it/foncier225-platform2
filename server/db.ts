@@ -1120,6 +1120,25 @@ export async function updateLandTitleDocument(id: number, data: Partial<Omit<Ins
   await db.update(landTitleDocuments).set(data).where(eq(landTitleDocuments.id, id));
 }
 
+export async function listLandTitleDocumentsByCategory(applicationId: number, category: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(landTitleDocuments)
+    .where(and(
+      eq(landTitleDocuments.applicationId, applicationId),
+      eq(landTitleDocuments.documentCategory, category as any)
+    ))
+    .orderBy(desc(landTitleDocuments.createdAt));
+}
+
+export async function countLandTitleDocumentsByApplication(applicationId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.select({ count: sql<number>`count(*)` }).from(landTitleDocuments)
+    .where(eq(landTitleDocuments.applicationId, applicationId));
+  return result[0]?.count ?? 0;
+}
+
 // ─── Land Title Oppositions ────────────────────────────────────────
 export async function createLandTitleOpposition(opp: InsertLandTitleOpposition) {
   const db = await getDb();

@@ -14,10 +14,20 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { Link, useParams } from "wouter";
+import LandTitleDocumentUploader from "@/components/LandTitleDocumentUploader";
+import type { ApplicantProfile } from "@shared/afor-documents";
+
+function deriveProfile(data: any): ApplicantProfile {
+  const appType = data.applicationType;
+  if (appType === "groupement" || appType === "community") return "groupement";
+  if (appType === "personne_morale" || appType === "company") return "personne_morale";
+  return "individuel";
+}
 
 export default function CitizenLandTitleDetail() {
   const params = useParams<{ id: string }>();
   const appId = parseInt(params.id || "0", 10);
+  const utils = trpc.useUtils();
   const { data, isLoading, error } = trpc.landTitle.citizen.getById.useQuery(
     { id: appId },
     { enabled: appId > 0 }
@@ -201,37 +211,29 @@ export default function CitizenLandTitleDetail() {
             </Card>
           </motion.div>
 
-          {/* Documents */}
+          {/* Documents — Tunnel AFOR */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-indigo-600" />
-                  Documents ({data.documents?.length || 0})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {(!data.documents || data.documents.length === 0) ? (
-                  <p className="text-xs text-muted-foreground">Aucun document uploadé</p>
-                ) : (
-                  <div className="space-y-2">
-                    {data.documents.map((doc: any) => (
-                      <div key={doc.id} className="flex items-center gap-2 text-xs">
-                        <Upload className="h-3 w-3 text-muted-foreground shrink-0" />
-                        <span className="truncate flex-1">{doc.label}</span>
-                        {doc.verified && (
-                          <span className="text-ci-green text-[10px] font-medium">Vérifié</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <LandTitleDocumentUploader
+              applicationId={appId}
+              applicantProfile={deriveProfile(data)}
+              existingDocuments={(data.documents || []).map((doc: any) => ({
+                id: doc.id,
+                documentType: doc.documentType,
+                documentCategory: doc.documentCategory || "complementaire",
+                label: doc.label,
+                fileUrl: doc.fileUrl,
+                mimeType: doc.mimeType,
+                verified: doc.verified,
+              }))}
+              editable={["cf_draft", "cf_submitted"].includes(data.status)}
+              onDocumentUploaded={() => {
+                utils.landTitle.citizen.getById.invalidate({ id: appId });
+              }}
+            />
           </motion.div>
 
           {/* Oppositions */}

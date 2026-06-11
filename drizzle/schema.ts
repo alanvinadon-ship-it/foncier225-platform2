@@ -595,6 +595,14 @@ export const landTitleDocuments = mysqlTable(
     id: int("id").autoincrement().primaryKey(),
     applicationId: int("appId").notNull().references(() => landTitleApplications.id, { onDelete: "cascade" }),
     documentType: varchar("documentType", { length: 50 }).notNull(),
+    documentCategory: mysqlEnum("documentCategory", [
+      "identite",
+      "propriete_historique",
+      "mandat",
+      "formulaire_officiel",
+      "technique",
+      "complementaire",
+    ]).default("complementaire").notNull(),
     label: varchar("label", { length: 255 }).notNull(),
     fileUrl: text("fileUrl").notNull(),
     fileKey: varchar("fileKey", { length: 500 }).notNull(),
@@ -611,6 +619,7 @@ export const landTitleDocuments = mysqlTable(
   table => ({
     applicationIdx: index("idx_ltd_application").on(table.applicationId),
     docTypeIdx: index("idx_ltd_doc_type").on(table.documentType),
+    categoryIdx: index("idx_ltd_category").on(table.documentCategory),
     uploadedByIdx: index("idx_ltd_uploaded_by").on(table.uploadedBy),
   })
 );

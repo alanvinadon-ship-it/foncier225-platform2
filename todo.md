@@ -261,3 +261,16 @@
 - [x] Mettre à jour le formulaire citoyen de création (sélecteur de parcelle)
 - [x] Afficher les infos parcelle dans la page détail citoyen et admin
 - [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)
+
+## v2.5 — Liasse Foncière AFOR (Tunnel Upload Phase 1)
+
+- [x] Enrichir les enums DocumentType avec catégories AFOR (identite, propriete_historique, mandat, formulaire_officiel, technique)
+- [x] Ajouter colonne documentCategory à la table land_title_documents
+- [x] Ajouter les constantes AFOR (documents requis par profil : individuel, groupement, personne morale)
+- [x] Pousser la migration DB
+- [x] Mettre à jour les helpers DB pour filtrer par catégorie
+- [x] Mettre à jour le routeur tRPC pour l'upload catégorisé avec validation (uploadDocumentFile base64→S3)
+- [x] Créer le composant LandTitleDocumentUploader (tunnel guidé par catégorie)
+- [x] Intégrer le tunnel dans la page détail citoyen (étape ouverture dossier)
+- [x] Afficher la complétude du dossier par catégorie (barre de progression animée)
+- [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)
