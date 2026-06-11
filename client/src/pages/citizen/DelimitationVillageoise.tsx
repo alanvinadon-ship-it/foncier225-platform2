@@ -1,0 +1,727 @@
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { MapPin, Check, ChevronRight, Upload, Trash2, Landmark, UserCheck, ShieldCheck, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+
+// Types
+interface BoundaryPoint {
+  number: number;
+  lat: number;
+  lng: number;
+  landmark: string;
+}
+
+interface Territory {
+  name: string;
+  code: string;
+  chiefName: string;
+  chiefPhone: string;
+  estimatedArea: number;
+  status: "draft" | "delimited" | "validated" | "official" | "synced";
+  createdAt: string;
+}
+
+interface UploadedFile {
+  name: string;
+  size: string;
+  type: string;
+}
+
+// Steps configuration
+const STEPS = [
+  { id: 1, label: "Initialisation", icon: Landmark, description: "Créer un nouveau territoire" },
+  { id: 2, label: "Collecte points", icon: MapPin, description: "Ajouter les bornes GPS" },
+  { id: 3, label: "Validation chef", icon: UserCheck, description: "Signature du chef" },
+  { id: 4, label: "Reconnaissance", icon: ShieldCheck, description: "Admin AFOR" },
+  { id: 5, label: "Synchronisation", icon: RefreshCw, description: "SIFOR-CI" },
+];
+
+export default function DelimitationVillageoise() {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [territory, setTerritory] = useState<Territory | null>(null);
+  const [boundaryPoints, setBoundaryPoints] = useState<BoundaryPoint[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [syncProgress, setSyncProgress] = useState(0);
+  const [siforCode, setSiforCode] = useState("");
+  const [isSyncing, setIsSyncing] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  const polylineRef = useRef<any>(null);
+
+  // Form state
+  const [villageName, setVillageName] = useState("Abobo-Gare");
+  const [villageCode, setVillageCode] = useState("ABJ-ABOBO-001");
+  const [chiefName, setChiefName] = useState("Kouadio Yao");
+  const [chiefPhone, setChiefPhone] = useState("+225 07 12 34 56 78");
+  const [estimatedArea, setEstimatedArea] = useState("250");
+  const [landmarkDesc, setLandmarkDesc] = useState("");
+  const [chiefComments, setChiefComments] = useState("");
+
+  // Initialize map when step 2 is active
+  useEffect(() => {
+    if (currentStep === 2 && mapRef.current && !mapInstanceRef.current) {
+      // Dynamic import of leaflet
+      import("leaflet").then((L) => {
+        // Fix default icon issue
+        delete (L.Icon.Default.prototype as any)._getIconUrl;
+        L.Icon.Default.mergeOptions({
+          iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+          iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+          shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+        });
+
+        const map = L.map(mapRef.current!, { scrollWheelZoom: true }).setView([5.3600, -4.0083], 13);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "© OpenStreetMap contributors",
+          maxZoom: 19,
+        }).addTo(map);
+
+        map.on("click", (e: any) => {
+          const { lat, lng } = e.latlng;
+          addPoint(lat, lng, L, map);
+        });
+
+        mapInstanceRef.current = map;
+      });
+    }
+
+    return () => {
+      if (currentStep !== 2 && mapInstanceRef.current) {
+        // Don't destroy the map, just leave it
+      }
+    };
+  }, [currentStep]);
+
+  // Redraw map markers/polyline when points change
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    import("leaflet").then((L) => {
+      const map = mapInstanceRef.current;
+      // Clear existing markers
+      markersRef.current.forEach((m) => map.removeLayer(m));
+      markersRef.current = [];
+      if (polylineRef.current) map.removeLayer(polylineRef.current);
+
+      // Add markers
+      boundaryPoints.forEach((point) => {
+        const marker = L.circleMarker([point.lat, point.lng], {
+          radius: 10,
+          fillColor: "#228B22",
+          color: "#FFA500",
+          weight: 3,
+          opacity: 1,
+          fillOpacity: 0.8,
+        })
+          .bindPopup(`<strong>Point ${point.number}</strong><br/>${point.landmark}`)
+          .addTo(map);
+        markersRef.current.push(marker);
+      });
+
+      // Draw polyline
+      if (boundaryPoints.length > 1) {
+        const coords = boundaryPoints.map((p) => [p.lat, p.lng] as [number, number]);
+        if (boundaryPoints.length >= 4) {
+          coords.push(coords[0]); // Close polygon
+        }
+        polylineRef.current = L.polyline(coords, {
+          color: "#FFA500",
+          weight: 3,
+          dashArray: boundaryPoints.length >= 4 ? undefined : "5, 10",
+        }).addTo(map);
+      }
+    });
+  }, [boundaryPoints]);
+
+  const addPoint = useCallback((lat: number, lng: number, L: any, map: any) => {
+    setBoundaryPoints((prev) => {
+      const newPoint: BoundaryPoint = {
+        number: prev.length + 1,
+        lat: parseFloat(lat.toFixed(6)),
+        lng: parseFloat(lng.toFixed(6)),
+        landmark: landmarkDesc || `Point ${prev.length + 1}`,
+      };
+      return [...prev, newPoint];
+    });
+    setLandmarkDesc("");
+  }, [landmarkDesc]);
+
+  const removePoint = (index: number) => {
+    setBoundaryPoints((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      return updated.map((p, i) => ({ ...p, number: i + 1 }));
+    });
+  };
+
+  const goToStep = (step: number) => {
+    if (step <= currentStep || completedSteps.includes(step - 1)) {
+      setCurrentStep(step);
+    }
+  };
+
+  const completeStep = (step: number) => {
+    setCompletedSteps((prev) => [...prev, step]);
+    setCurrentStep(step + 1);
+  };
+
+  // Step 1: Initialize territory
+  const handleInitialize = () => {
+    if (!villageName || !villageCode || !chiefName) {
+      toast.error("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+
+    setTerritory({
+      name: villageName,
+      code: villageCode,
+      chiefName,
+      chiefPhone,
+      estimatedArea: parseFloat(estimatedArea),
+      status: "draft",
+      createdAt: new Date().toLocaleDateString("fr-FR"),
+    });
+
+    toast.success("Territoire créé avec succès");
+    completeStep(1);
+  };
+
+  // Step 2: Submit points
+  const handleSubmitPoints = () => {
+    if (boundaryPoints.length < 4) {
+      toast.error("Minimum 4 points de borne requis");
+      return;
+    }
+
+    setTerritory((prev) => prev ? { ...prev, status: "delimited" } : null);
+    toast.success(`${boundaryPoints.length} points de borne soumis`);
+    completeStep(2);
+  };
+
+  // Step 3: Chief validation
+  const handleChiefValidation = () => {
+    setTerritory((prev) => prev ? { ...prev, status: "validated" } : null);
+    toast.success("Territoire validé par le chef du village");
+    completeStep(3);
+  };
+
+  // Step 4: Official recognition
+  const handleRecognition = () => {
+    setTerritory((prev) => prev ? { ...prev, status: "official" } : null);
+    toast.success("Territoire reconnu officiellement par l'AFOR");
+    completeStep(4);
+  };
+
+  // Step 5: SIFOR sync
+  const handleSync = () => {
+    setIsSyncing(true);
+    setSyncProgress(0);
+
+    const interval = setInterval(() => {
+      setSyncProgress((prev) => {
+        const next = prev + Math.random() * 15;
+        if (next >= 100) {
+          clearInterval(interval);
+          const code = "SIFOR-CI-" + Math.random().toString(36).substring(2, 11).toUpperCase();
+          setSiforCode(code);
+          setIsSyncing(false);
+          setTerritory((prev) => prev ? { ...prev, status: "synced" } : null);
+          setCompletedSteps((prev) => [...prev, 5]);
+          toast.success("Synchronisation SIFOR-CI réussie !");
+          return 100;
+        }
+        return next;
+      });
+    }, 300);
+  };
+
+  // File upload simulation
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const newFiles = files.map((f) => ({
+      name: f.name,
+      size: (f.size / 1024).toFixed(1) + " KB",
+      type: f.type,
+    }));
+    setUploadedFiles((prev) => [...prev, ...newFiles]);
+    toast.success(`${files.length} document(s) ajouté(s)`);
+  };
+
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+      draft: { label: "Brouillon", variant: "secondary" },
+      delimited: { label: "Délimité", variant: "outline" },
+      validated: { label: "Validé", variant: "default" },
+      official: { label: "Officiel", variant: "default" },
+      synced: { label: "Synchronisé SIFOR", variant: "default" },
+    };
+    const config = variants[status] || variants.draft;
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const calculatedArea = boundaryPoints.length >= 4
+    ? Math.round(parseFloat(estimatedArea) * (0.8 + Math.random() * 0.4))
+    : null;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-ci-green flex items-center gap-2">
+          <MapPin className="h-6 w-6" />
+          Délimitation Villageoise
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Simulation du workflow de délimitation d'un territoire villageois
+        </p>
+      </div>
+
+      {/* Progress steps */}
+      <div className="flex items-center gap-1 overflow-x-auto pb-2">
+        {STEPS.map((step, index) => {
+          const isActive = currentStep === step.id;
+          const isCompleted = completedSteps.includes(step.id);
+          const Icon = step.icon;
+
+          return (
+            <div key={step.id} className="flex items-center">
+              <button
+                onClick={() => goToStep(step.id)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm whitespace-nowrap ${
+                  isActive
+                    ? "bg-ci-green text-white shadow-md"
+                    : isCompleted
+                    ? "bg-green-50 text-green-700 border border-green-200"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {isCompleted ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Icon className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">{step.label}</span>
+                <span className="sm:hidden">{step.id}</span>
+              </button>
+              {index < STEPS.length - 1 && (
+                <ChevronRight className="h-4 w-4 text-muted-foreground mx-1 shrink-0" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Step content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main content */}
+        <div className="lg:col-span-2">
+          {/* Step 1: Initialization */}
+          {currentStep === 1 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-ci-green">Initialisation du territoire</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Agent terrain :</strong> Créez un nouveau territoire villageois en fournissant les informations de base du village et de son chef.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="village-name">Nom du village *</Label>
+                    <Input
+                      id="village-name"
+                      value={villageName}
+                      onChange={(e) => setVillageName(e.target.value)}
+                      placeholder="Ex: Abobo-Gare"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="village-code">Code du territoire *</Label>
+                    <Input
+                      id="village-code"
+                      value={villageCode}
+                      onChange={(e) => setVillageCode(e.target.value)}
+                      placeholder="Ex: ABJ-ABOBO-001"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="chief-name">Nom du chef du village *</Label>
+                    <Input
+                      id="chief-name"
+                      value={chiefName}
+                      onChange={(e) => setChiefName(e.target.value)}
+                      placeholder="Ex: Kouadio Yao"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="chief-phone">Téléphone du chef</Label>
+                    <Input
+                      id="chief-phone"
+                      value={chiefPhone}
+                      onChange={(e) => setChiefPhone(e.target.value)}
+                      placeholder="Ex: +225 07 XX XX XX XX"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="estimated-area">Surface estimée (hectares)</Label>
+                    <Input
+                      id="estimated-area"
+                      type="number"
+                      value={estimatedArea}
+                      onChange={(e) => setEstimatedArea(e.target.value)}
+                      placeholder="Ex: 250"
+                      min="1"
+                    />
+                  </div>
+                </div>
+
+                <Button onClick={handleInitialize} className="w-full bg-ci-green hover:bg-ci-green/90">
+                  <Landmark className="h-4 w-4 mr-2" />
+                  Créer le territoire
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 2: Collect points */}
+          {currentStep === 2 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-ci-green">Collecte des points de borne</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Instructions :</strong> Cliquez sur la carte pour ajouter les points de borne du territoire. Minimum 4 points requis pour former un polygone valide.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="landmark-desc">Description du repère (prochain point)</Label>
+                  <Input
+                    id="landmark-desc"
+                    value={landmarkDesc}
+                    onChange={(e) => setLandmarkDesc(e.target.value)}
+                    placeholder="Ex: Arbre baobab, Maison du chef, Rivière..."
+                  />
+                </div>
+
+                {/* Map container */}
+                <div
+                  ref={mapRef}
+                  className="w-full h-[400px] rounded-lg border border-border overflow-hidden"
+                  style={{ zIndex: 0 }}
+                />
+
+                {/* Points list */}
+                {boundaryPoints.length > 0 && (
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                    {boundaryPoints.map((point, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-muted rounded-lg border-l-4 border-ci-orange"
+                      >
+                        <div>
+                          <span className="font-semibold text-ci-green">Point {point.number}</span>
+                          <span className="text-xs text-muted-foreground ml-2">
+                            {point.lat}, {point.lng}
+                          </span>
+                          <p className="text-xs text-muted-foreground">{point.landmark}</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removePoint(index)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <Button
+                  onClick={handleSubmitPoints}
+                  disabled={boundaryPoints.length < 4}
+                  className="w-full bg-ci-green hover:bg-ci-green/90"
+                >
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Soumettre les points ({boundaryPoints.length}/4 minimum)
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 3: Chief validation */}
+          {currentStep === 3 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-ci-green">Validation par le chef du village</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+                  <p className="text-sm text-green-800">
+                    <strong>Chef du village :</strong> Consultez le résumé de la délimitation et validez les limites du territoire.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-xs text-muted-foreground">Points de borne</p>
+                    <p className="text-2xl font-bold text-ci-green">{boundaryPoints.length}</p>
+                  </div>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-xs text-muted-foreground">Surface calculée</p>
+                    <p className="text-2xl font-bold text-ci-green">{calculatedArea || "—"} ha</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="chief-comments">Commentaires du chef</Label>
+                  <Textarea
+                    id="chief-comments"
+                    value={chiefComments}
+                    onChange={(e) => setChiefComments(e.target.value)}
+                    placeholder="Confirmez que les limites sont correctes ou indiquez les corrections nécessaires..."
+                    rows={3}
+                  />
+                </div>
+
+                <Button onClick={handleChiefValidation} className="w-full bg-ci-green hover:bg-ci-green/90">
+                  <UserCheck className="h-4 w-4 mr-2" />
+                  Valider et signer électroniquement
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 4: Official recognition */}
+          {currentStep === 4 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-ci-green">Reconnaissance officielle (Admin AFOR)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+                  <p className="text-sm text-green-800">
+                    <strong>Validation du chef reçue.</strong> Téléchargez les documents d'appui et reconnaissez officiellement le territoire.
+                  </p>
+                </div>
+
+                {/* File upload */}
+                <div>
+                  <Label>Documents d'appui</Label>
+                  <label className="mt-2 flex flex-col items-center justify-center border-2 border-dashed border-ci-green/50 rounded-lg p-6 cursor-pointer hover:bg-ci-green/5 transition-colors">
+                    <Upload className="h-8 w-8 text-ci-green mb-2" />
+                    <span className="text-sm font-medium">Cliquez pour ajouter des documents</span>
+                    <span className="text-xs text-muted-foreground mt-1">PV de délimitation, cartes, autorisations...</span>
+                    <input
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={handleFileUpload}
+                      accept=".pdf,.jpg,.jpeg,.png"
+                    />
+                  </label>
+                </div>
+
+                {uploadedFiles.length > 0 && (
+                  <div className="space-y-2">
+                    {uploadedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg border-l-4 border-green-500">
+                        <div>
+                          <p className="text-sm font-medium">{file.name}</p>
+                          <p className="text-xs text-muted-foreground">{file.size}</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setUploadedFiles((prev) => prev.filter((_, i) => i !== index))}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <Button onClick={handleRecognition} className="w-full bg-ci-green hover:bg-ci-green/90">
+                  <ShieldCheck className="h-4 w-4 mr-2" />
+                  Reconnaître officiellement
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Step 5: SIFOR sync */}
+          {currentStep === 5 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-ci-green">Synchronisation avec SIFOR-CI</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+                  <p className="text-sm text-green-800">
+                    <strong>Reconnaissance officielle complétée.</strong> Synchronisez maintenant les données avec le registre national SIFOR-CI.
+                  </p>
+                </div>
+
+                {/* Progress bar */}
+                {(isSyncing || syncProgress > 0) && (
+                  <div className="space-y-2">
+                    <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-ci-green to-ci-orange transition-all duration-300 rounded-full"
+                        style={{ width: `${Math.min(syncProgress, 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-center text-sm text-muted-foreground">
+                      {Math.round(Math.min(syncProgress, 100))}%
+                    </p>
+                  </div>
+                )}
+
+                {siforCode && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                    <p className="text-sm text-green-700 mb-1">Code SIFOR-CI attribué</p>
+                    <p className="text-2xl font-bold text-ci-green font-mono">{siforCode}</p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Attestation officielle générée avec QR code de vérification
+                    </p>
+                  </div>
+                )}
+
+                {!siforCode && (
+                  <Button
+                    onClick={handleSync}
+                    disabled={isSyncing}
+                    className="w-full bg-ci-green hover:bg-ci-green/90"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? "animate-spin" : ""}`} />
+                    {isSyncing ? "Synchronisation en cours..." : "Lancer la synchronisation"}
+                  </Button>
+                )}
+
+                {siforCode && (
+                  <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                    <p className="text-sm text-blue-800">
+                      <strong>Workflow terminé !</strong> Le territoire a été délimité, validé, reconnu officiellement et synchronisé avec le SIFOR-CI. L'attestation est disponible pour téléchargement.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Sidebar summary */}
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Résumé du territoire</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {territory ? (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Statut</span>
+                    {getStatusBadge(territory.status)}
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Village</span>
+                    <p className="font-medium">{territory.name}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Code</span>
+                    <p className="font-mono text-sm">{territory.code}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Chef</span>
+                    <p className="font-medium">{territory.chiefName}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Surface estimée</span>
+                    <p className="font-medium">{territory.estimatedArea} ha</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Créé le</span>
+                    <p className="font-medium">{territory.createdAt}</p>
+                  </div>
+                  {boundaryPoints.length > 0 && (
+                    <div>
+                      <span className="text-xs text-muted-foreground">Points de borne</span>
+                      <p className="font-medium">{boundaryPoints.length}</p>
+                    </div>
+                  )}
+                  {siforCode && (
+                    <div>
+                      <span className="text-xs text-muted-foreground">Code SIFOR-CI</span>
+                      <p className="font-mono text-sm font-bold text-ci-green">{siforCode}</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Aucun territoire créé
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Audit trail</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {completedSteps.includes(1) && (
+                  <div className="text-xs border-l-2 border-ci-green pl-3 py-1">
+                    <p className="font-medium">Territoire créé</p>
+                    <p className="text-muted-foreground">{territory?.createdAt}</p>
+                  </div>
+                )}
+                {completedSteps.includes(2) && (
+                  <div className="text-xs border-l-2 border-ci-orange pl-3 py-1">
+                    <p className="font-medium">{boundaryPoints.length} points collectés</p>
+                    <p className="text-muted-foreground">Délimitation soumise</p>
+                  </div>
+                )}
+                {completedSteps.includes(3) && (
+                  <div className="text-xs border-l-2 border-blue-500 pl-3 py-1">
+                    <p className="font-medium">Validé par le chef</p>
+                    <p className="text-muted-foreground">Signature électronique</p>
+                  </div>
+                )}
+                {completedSteps.includes(4) && (
+                  <div className="text-xs border-l-2 border-purple-500 pl-3 py-1">
+                    <p className="font-medium">Reconnu officiellement</p>
+                    <p className="text-muted-foreground">Admin AFOR</p>
+                  </div>
+                )}
+                {completedSteps.includes(5) && (
+                  <div className="text-xs border-l-2 border-green-600 pl-3 py-1">
+                    <p className="font-medium">Synchronisé SIFOR-CI</p>
+                    <p className="text-muted-foreground font-mono">{siforCode}</p>
+                  </div>
+                )}
+                {completedSteps.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center py-2">Aucun événement</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}

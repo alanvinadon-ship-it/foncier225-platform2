@@ -118,3 +118,12 @@
 - [x] Correction test verify : accent supprimé (vérification → verification)
 - [x] Correction test bank-credit-router : mocks manquants (listCreditRequestsByFile, etc.)
 - [x] Validation : 132 tests PASS, 0 erreurs TypeScript, serveur OK
+
+## v1.2 — Délimitation Villageoise (Simulation Interactive)
+
+- [x] Créer la page DelimitationVillageoise.tsx dans client/src/pages/citizen/
+- [x] Ajouter l'entrée "Délimitation villageoise" dans le sidebar CitizenLayout (accessible à tous les rôles)
+- [x] Ajouter la route /citizen/delimitation dans App.tsx
+- [x] Intégrer Leaflet pour la carte interactive
+- [x] Workflow 5 étapes : initialisation, collecte points, validation chef, reconnaissance, synchronisation SIFOR
+- [x] Vérifier le fonctionnement sur la plateforme

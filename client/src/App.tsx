@@ -29,6 +29,7 @@ const CitizenParcelDetail = lazy(() => import("./pages/citizen/CitizenParcelDeta
 const CitizenParcels = lazy(() => import("./pages/citizen/CitizenParcels"));
 const CitizenProfile = lazy(() => import("./pages/citizen/CitizenProfile"));
 const CitizenTimeline = lazy(() => import("./pages/citizen/CitizenTimeline"));
+const DelimitationVillageoise = lazy(() => import("./pages/citizen/DelimitationVillageoise"));
 
 function RouteFallback() {
   return (
@@ -66,6 +67,11 @@ function Router() {
       <Route path="/citizen/parcels/:id">
         <CitizenLayout>
           <CitizenParcelDetail />
+        </CitizenLayout>
+      </Route>
+      <Route path="/citizen/delimitation">
+        <CitizenLayout>
+          <DelimitationVillageoise />
         </CitizenLayout>
       </Route>
       <Route path="/citizen/timeline">
