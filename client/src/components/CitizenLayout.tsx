@@ -27,25 +27,40 @@ import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { Button } from "./ui/button";
 import NotificationBell from "./NotificationBell";
+import { trpc } from "@/lib/trpc";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663315306103/5jQVPXrA6y6Zze2FEtSNJt/foncier225-logo-8Tu2AjJfXPzkTY5ufdWVtP.webp";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Tableau de bord", path: "/citizen" },
-  { icon: MapPin, label: "Mes parcelles", path: "/citizen/parcels" },
-  { icon: Search, label: "Suivi dossier", path: "/citizen/suivi" },
-  { icon: GitBranch, label: "Processus", path: "/citizen/workflow" },
-  { icon: Clock, label: "Timeline", path: "/citizen/timeline" },
-  { icon: FileText, label: "Mes documents", path: "/citizen/documents" },
-  { icon: Landmark, label: "Titre foncier", path: "/citizen/land-title" },
-  { icon: Banknote, label: "Crédit habitat", path: "/citizen/credit-habitat" },
-  { icon: User, label: "Mon profil", path: "/citizen/profile" },
+  { icon: LayoutDashboard, label: "Tableau de bord", path: "/citizen", badge: false },
+  { icon: MapPin, label: "Mes parcelles", path: "/citizen/parcels", badge: false },
+  { icon: Search, label: "Suivi dossier", path: "/citizen/suivi", badge: true },
+  { icon: GitBranch, label: "Processus", path: "/citizen/workflow", badge: false },
+  { icon: Clock, label: "Timeline", path: "/citizen/timeline", badge: false },
+  { icon: FileText, label: "Mes documents", path: "/citizen/documents", badge: false },
+  { icon: Landmark, label: "Titre foncier", path: "/citizen/land-title", badge: false },
+  { icon: Banknote, label: "Crédit habitat", path: "/citizen/credit-habitat", badge: false },
+  { icon: User, label: "Mon profil", path: "/citizen/profile", badge: false },
 ];
 
 const SIDEBAR_WIDTH_KEY = "citizen-sidebar-width";
 const DEFAULT_WIDTH = 260;
 const MIN_WIDTH = 200;
 const MAX_WIDTH = 400;
+
+/** Badge showing unread status_change notifications count in the sidebar */
+function NotificationBadge() {
+  const { data: unreadCount } = trpc.citizen.unreadNotificationsCount.useQuery(undefined, {
+    refetchInterval: 30000, // Poll every 30s
+  });
+  const count = unreadCount ?? 0;
+  if (count === 0) return null;
+  return (
+    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground animate-pulse">
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
 
 export default function CitizenLayout({
   children,
@@ -186,7 +201,8 @@ function CitizenLayoutContent({
                       className="h-10 transition-all font-normal"
                     >
                       <item.icon className={`h-4 w-4 ${isActive ? "text-ci-orange" : ""}`} />
-                      <span>{item.label}</span>
+                      <span className="flex-1">{item.label}</span>
+                      {item.badge && <NotificationBadge />}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );

@@ -380,3 +380,10 @@
 - [x] Remplacer le bouton "Suivre mon dossier" par "Mon espace citoyen" sur la page d'accueil
 - [x] Mettre à jour le bouton CTA "Comment ça marche ?" vers /citizen/workflow
 - [x] Tests TypeScript et validation (0 erreurs, 198 tests PASS)
+
+## v2.13.5 — Badge de notification changement d'étape dans le menu citoyen
+
+- [x] Réutiliser la procédure tRPC existante unreadNotificationsCount (déjà en place)
+- [x] Ajouter un badge numérique animé (pulse) sur l'item "Suivi dossier" dans CitizenLayout
+- [x] Badge se met à jour automatiquement (polling 30s) et disparaît quand count=0
+- [x] Tests TypeScript et validation (0 erreurs, 198 tests PASS)
