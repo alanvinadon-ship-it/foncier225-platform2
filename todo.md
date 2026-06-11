@@ -144,3 +144,9 @@
 - [x] Permettre la suppression individuelle avec bouton dédié
 - [x] Synchroniser les modifications avec la carte (mise à jour des marqueurs via state React)
 - [x] Vérifier le fonctionnement et les tests (145 tests PASS, 0 erreurs TypeScript)
+
+## v1.2.3 — Améliorations tableau GPS
+
+- [x] Export GPX/CSV : bouton pour exporter les points validés/modifiés vers un fichier GPX ou CSV téléchargeable
+- [x] Interaction carte ↔ tableau : surbrillance de la ligne du tableau au clic sur un marqueur carte (et inversement)
+- [x] Encart superficie/périmètre : affichage automatique de la superficie (hectares) et du périmètre (km) du polygone formé par les points GPS actuels

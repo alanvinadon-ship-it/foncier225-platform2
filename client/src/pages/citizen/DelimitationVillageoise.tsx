@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Check, ChevronRight, Upload, Trash2, Landmark, UserCheck, ShieldCheck, RefreshCw, FileUp, Pencil, X, Save } from "lucide-react";
+import { MapPin, Check, ChevronRight, Upload, Trash2, Landmark, UserCheck, ShieldCheck, RefreshCw, FileUp, Pencil, X, Save, Download, Ruler } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -66,6 +66,7 @@ export default function DelimitationVillageoise() {
   const [importError, setImportError] = useState<string | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editValues, setEditValues] = useState<{ lat: string; lng: string; landmark: string }>({ lat: "", lng: "", landmark: "" });
+  const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
 
   // Form state
   const [villageName, setVillageName] = useState("Abobo-Gare");
@@ -122,17 +123,22 @@ export default function DelimitationVillageoise() {
       if (polylineRef.current) map.removeLayer(polylineRef.current);
 
       // Add markers
-      boundaryPoints.forEach((point) => {
+      boundaryPoints.forEach((point, idx) => {
+        const isHighlighted = idx === highlightedIndex;
         const marker = L.circleMarker([point.lat, point.lng], {
-          radius: 10,
-          fillColor: "#228B22",
-          color: "#FFA500",
-          weight: 3,
+          radius: isHighlighted ? 14 : 10,
+          fillColor: isHighlighted ? "#FFA500" : "#228B22",
+          color: isHighlighted ? "#FF4500" : "#FFA500",
+          weight: isHighlighted ? 4 : 3,
           opacity: 1,
-          fillOpacity: 0.8,
+          fillOpacity: isHighlighted ? 1 : 0.8,
         })
           .bindPopup(`<strong>Point ${point.number}</strong><br/>${point.landmark}`)
           .addTo(map);
+        marker.on("click", (e: any) => {
+          e.originalEvent?.stopPropagation?.();
+          setHighlightedIndex((prev) => prev === idx ? null : idx);
+        });
         markersRef.current.push(marker);
       });
 
@@ -149,7 +155,7 @@ export default function DelimitationVillageoise() {
         }).addTo(map);
       }
     });
-  }, [boundaryPoints]);
+  }, [boundaryPoints, highlightedIndex]);
 
   const addPoint = useCallback((lat: number, lng: number, L: any, map: any) => {
     setBoundaryPoints((prev) => {
@@ -198,6 +204,82 @@ export default function DelimitationVillageoise() {
   const cancelEdit = () => {
     setEditingIndex(null);
   };
+
+  // Export GPX
+  const exportGPX = () => {
+    if (boundaryPoints.length === 0) return;
+    const gpxContent = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Foncier225" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>${territory?.name || "Territoire"}</name>
+    <time>${new Date().toISOString()}</time>
+  </metadata>
+${boundaryPoints.map((p) => `  <wpt lat="${p.lat}" lon="${p.lng}">
+    <name>Point ${p.number}</name>
+    <desc>${p.landmark}</desc>
+  </wpt>`).join("\n")}
+</gpx>`;
+    downloadFile(gpxContent, `delimitation-${territory?.code || "points"}.gpx`, "application/gpx+xml");
+    toast.success(`${boundaryPoints.length} points export\u00e9s en GPX`);
+  };
+
+  // Export CSV
+  const exportCSV = () => {
+    if (boundaryPoints.length === 0) return;
+    const header = "numero,latitude,longitude,description";
+    const rows = boundaryPoints.map((p) => `${p.number},${p.lat},${p.lng},"${p.landmark.replace(/"/g, '""')}"`);
+    const csvContent = [header, ...rows].join("\n");
+    downloadFile(csvContent, `delimitation-${territory?.code || "points"}.csv`, "text/csv");
+    toast.success(`${boundaryPoints.length} points export\u00e9s en CSV`);
+  };
+
+  const downloadFile = (content: string, filename: string, mimeType: string) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Geometry calculations
+  const calculateArea = useMemo(() => {
+    if (boundaryPoints.length < 3) return 0;
+    // Shoelface formula with geodesic approximation
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    let area = 0;
+    const n = boundaryPoints.length;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      const lat1 = toRad(boundaryPoints[i].lat);
+      const lat2 = toRad(boundaryPoints[j].lat);
+      const dLng = toRad(boundaryPoints[j].lng - boundaryPoints[i].lng);
+      area += dLng * (2 + Math.sin(lat1) + Math.sin(lat2));
+    }
+    area = Math.abs((area * 6371000 * 6371000) / 2);
+    return area / 10000; // Convert to hectares
+  }, [boundaryPoints]);
+
+  const calculatePerimeter = useMemo(() => {
+    if (boundaryPoints.length < 2) return 0;
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    let perimeter = 0;
+    const n = boundaryPoints.length;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      const lat1 = toRad(boundaryPoints[i].lat);
+      const lat2 = toRad(boundaryPoints[j].lat);
+      const dLat = lat2 - lat1;
+      const dLng = toRad(boundaryPoints[j].lng - boundaryPoints[i].lng);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      perimeter += 6371 * c; // km
+    }
+    return perimeter;
+  }, [boundaryPoints]);
 
   // GPX/CSV Import
   const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -650,7 +732,11 @@ export default function DelimitationVillageoise() {
                         </TableHeader>
                         <TableBody>
                           {boundaryPoints.map((point, index) => (
-                            <TableRow key={index} className={editingIndex === index ? "bg-ci-green/5" : ""}>
+                            <TableRow
+                              key={index}
+                              className={`cursor-pointer transition-colors ${editingIndex === index ? "bg-ci-green/5" : highlightedIndex === index ? "bg-ci-orange/10 ring-1 ring-ci-orange" : "hover:bg-muted/50"}`}
+                              onClick={() => setHighlightedIndex((prev) => prev === index ? null : index)}
+                            >
                               <TableCell className="text-center font-semibold text-ci-green">
                                 {point.number}
                               </TableCell>
@@ -719,6 +805,41 @@ export default function DelimitationVillageoise() {
                         </TableBody>
                       </Table>
                     </div>
+                  </div>
+                )}
+
+                {/* Superficie & Périmètre */}
+                {boundaryPoints.length >= 3 && (
+                  <div className="flex items-center gap-4 p-3 bg-gradient-to-r from-ci-green/5 to-ci-orange/5 rounded-lg border border-ci-green/20">
+                    <Ruler className="h-5 w-5 text-ci-green shrink-0" />
+                    <div className="flex flex-wrap gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Superficie :</span>{" "}
+                        <span className="font-semibold text-ci-green">{calculateArea.toFixed(2)} ha</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">P\u00e9rim\u00e8tre :</span>{" "}
+                        <span className="font-semibold text-ci-orange">{calculatePerimeter.toFixed(3)} km</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Points :</span>{" "}
+                        <span className="font-semibold">{boundaryPoints.length}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Export buttons */}
+                {boundaryPoints.length > 0 && (
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={exportGPX} className="flex-1 border-ci-green text-ci-green hover:bg-ci-green hover:text-white">
+                      <Download className="h-4 w-4 mr-1" />
+                      Exporter GPX
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={exportCSV} className="flex-1 border-ci-orange text-ci-orange hover:bg-ci-orange hover:text-white">
+                      <Download className="h-4 w-4 mr-1" />
+                      Exporter CSV
+                    </Button>
                   </div>
                 )}
 
