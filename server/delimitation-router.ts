@@ -356,6 +356,14 @@ export const delimitationRouter = router({
         "photo_borne",
         "autre",
       ]),
+      step: z.enum([
+        "initialisation",
+        "collecte",
+        "soumission",
+        "validation_chef",
+        "officialisation",
+        "synchronisation",
+      ]).optional(),
       fileBase64: z.string(),
       fileName: z.string(),
       mimeType: z.string(),
@@ -374,6 +382,7 @@ export const delimitationRouter = router({
         territoryId: territory.id,
         title: input.title,
         documentType: input.documentType,
+        step: input.step || "collecte",
         fileUrl: url,
         fileKey,
         mimeType: input.mimeType,
@@ -419,6 +428,28 @@ export const delimitationRouter = router({
       });
 
       return { success: true };
+    }),
+
+  // List documents by step
+  listDocumentsByStep: protectedProcedure
+    .input(z.object({
+      territoryId: z.number().int().positive(),
+      step: z.enum([
+        "initialisation",
+        "collecte",
+        "soumission",
+        "validation_chef",
+        "officialisation",
+        "synchronisation",
+      ]).optional(),
+    }))
+    .query(async ({ input, ctx }) => {
+      await verifyTerritoryOwnership(input.territoryId, ctx.user.id);
+      const allDocs = await listTerritoryDocuments(input.territoryId);
+      if (input.step) {
+        return allDocs.filter(d => (d as any).step === input.step);
+      }
+      return allDocs;
     }),
 
   // Export territory as GeoJSON

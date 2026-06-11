@@ -473,11 +473,20 @@ export const territoryDocuments = mysqlTable(
     fileKey: varchar("fileKey", { length: 256 }),
     mimeType: varchar("mimeType", { length: 64 }),
     fileSize: int("fileSize"),
+    step: mysqlEnum("step", [
+      "initialisation",
+      "collecte",
+      "soumission",
+      "validation_chef",
+      "officialisation",
+      "synchronisation",
+    ]).default("collecte"),
     uploadedById: int("uploadedById").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   table => ({
     territoryIdx: index("idx_tdoc_territory").on(table.territoryId),
+    stepIdx: index("idx_tdoc_step").on(table.step),
   })
 );
 

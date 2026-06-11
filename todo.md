@@ -177,3 +177,11 @@
 - [x] Ajouter un sélecteur de fond de carte sur la vue détaillée (satellite vs routière) — boutons Routière/Satellite avec tuiles Esri World Imagery
 - [x] Ajouter un indicateur de progression et notifications de succès lors des exports PDF et GeoJSON — spinner animé + message de succès
 - [x] Intégrer une section chronologique dans le panneau latéral pour retracer l'historique des changements de statut — timeline avec dates et pastilles colorées
+
+## v1.3.4 — Documents par étape, Outil mesure carte, Prévisualisation PDF
+
+- [x] Ajouter une colonne `step` à la table territory_documents pour lier les documents à une étape spécifique
+- [x] Mettre à jour le routeur tRPC pour filtrer les documents par étape et permettre l'upload par étape (listDocumentsByStep)
+- [x] Afficher les documents justificatifs dans la section chronologique (timeline) avec possibilité d'upload par étape
+- [x] Intégrer un outil de mesure de distance et de surface directement sur la carte de détail (boutons Distance/Surface + calcul Haversine/Shoelace)
+- [x] Ajouter une option de prévisualisation du PDF généré avant le téléchargement définitif (modale fullscreen avec iframe + bouton télécharger)

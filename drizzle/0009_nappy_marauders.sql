@@ -1,0 +1,2 @@
+ALTER TABLE `territory_documents` ADD `step` enum('initialisation','collecte','soumission','validation_chef','officialisation','synchronisation') DEFAULT 'collecte';--> statement-breakpoint
+CREATE INDEX `idx_tdoc_step` ON `territory_documents` (`step`);

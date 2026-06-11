@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Check, ChevronRight, Upload, Trash2, Landmark, UserCheck, ShieldCheck, RefreshCw, FileUp, Pencil, X, Save, Download, Ruler, Plus, FileDown, Eye, FileText, Globe } from "lucide-react";
+import { MapPin, Check, ChevronRight, Upload, Trash2, Landmark, UserCheck, ShieldCheck, RefreshCw, FileUp, Pencil, X, Save, Download, Ruler, Plus, FileDown, Eye, FileText, Globe, Paperclip, Image } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -45,10 +45,14 @@ const STATUS_TO_STEP: Record<string, number> = {
 };
 
 // Detail map component for visualizing the polygon with layer switcher
-function DetailMapView({ points, detailMapRef, detailMapInstanceRef }: {
+function DetailMapView({ points, detailMapRef, detailMapInstanceRef, measureMode, measurePoints, setMeasurePoints, calculateMeasure }: {
   points: { pointNumber: number; latitude: string; longitude: string; landmark?: string | null }[];
   detailMapRef: React.RefObject<HTMLDivElement | null>;
   detailMapInstanceRef: React.MutableRefObject<any>;
+  measureMode?: "none" | "distance" | "area";
+  measurePoints?: { lat: number; lng: number }[];
+  setMeasurePoints?: React.Dispatch<React.SetStateAction<{ lat: number; lng: number }[]>>;
+  calculateMeasure?: (pts: { lat: number; lng: number }[], mode: "distance" | "area") => void;
 }) {
   const [mapLayer, setMapLayer] = useState<"road" | "satellite">("road");
   const tileLayerRef = useRef<any>(null);
@@ -114,6 +118,18 @@ function DetailMapView({ points, detailMapRef, detailMapInstanceRef }: {
       // Fit bounds
       map.fitBounds(polygon.getBounds().pad(0.1));
 
+      // Measurement click handler
+      if (measureMode && measureMode !== "none" && setMeasurePoints && calculateMeasure) {
+        map.getContainer().style.cursor = "crosshair";
+        map.on("click", (e: any) => {
+          setMeasurePoints((prev) => {
+            const newPts = [...prev, { lat: e.latlng.lat, lng: e.latlng.lng }];
+            calculateMeasure(newPts, measureMode);
+            return newPts;
+          });
+        });
+      }
+
       detailMapInstanceRef.current = map;
     });
 
@@ -123,7 +139,7 @@ function DetailMapView({ points, detailMapRef, detailMapInstanceRef }: {
         detailMapInstanceRef.current = null;
       }
     };
-  }, [points, mapLayer]);
+  }, [points, mapLayer, measureMode, measurePoints?.length]);
 
   return (
     <div className="space-y-2">
@@ -267,6 +283,28 @@ export default function DelimitationVillageoise() {
     { territoryId: activeTerritoryId! },
     { enabled: false }
   );
+
+  const uploadDocMutation = trpc.delimitation.uploadDocument.useMutation({
+    onSuccess: () => {
+      toast.success("Document ajout\u00e9 avec succ\u00e8s");
+      utils.delimitation.listDocumentsByStep.invalidate();
+      utils.delimitation.getById.invalidate({ territoryId: activeTerritoryId! });
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const { data: stepDocuments } = trpc.delimitation.listDocumentsByStep.useQuery(
+    { territoryId: activeTerritoryId! },
+    { enabled: !!activeTerritoryId }
+  );
+
+  // PDF preview state
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+
+  // Measurement tool state
+  const [measureMode, setMeasureMode] = useState<"none" | "distance" | "area">("none");
+  const [measurePoints, setMeasurePoints] = useState<{ lat: number; lng: number }[]>([]);
+  const [measureResult, setMeasureResult] = useState<string>("");
 
   // Load territory detail into local state
   useEffect(() => {
@@ -760,6 +798,86 @@ ${boundaryPoints.map((p) => `  <wpt lat="${p.lat}" lon="${p.lng}">
     }
   };
 
+  // Upload document for a specific step
+  const handleUploadStepDocument = (step: string) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*,.pdf,.doc,.docx";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file || !activeTerritoryId) return;
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("Fichier trop volumineux (max 10 Mo)");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = (reader.result as string).split(",")[1];
+        uploadDocMutation.mutate({
+          territoryId: activeTerritoryId,
+          title: file.name,
+          documentType: "autre",
+          step: step as any,
+          fileBase64: base64,
+          fileName: file.name,
+          mimeType: file.type,
+          fileSize: file.size,
+        });
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  };
+
+  // Measurement helpers
+  const haversineDistance = (p1: { lat: number; lng: number }, p2: { lat: number; lng: number }) => {
+    const R = 6371;
+    const dLat = ((p2.lat - p1.lat) * Math.PI) / 180;
+    const dLng = ((p2.lng - p1.lng) * Math.PI) / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos((p1.lat * Math.PI) / 180) * Math.cos((p2.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  const calculateMeasure = (pts: { lat: number; lng: number }[], mode: "distance" | "area") => {
+    if (mode === "distance" && pts.length >= 2) {
+      let total = 0;
+      for (let i = 1; i < pts.length; i++) {
+        total += haversineDistance(pts[i - 1], pts[i]);
+      }
+      if (total < 1) setMeasureResult(`${(total * 1000).toFixed(1)} m`);
+      else setMeasureResult(`${total.toFixed(3)} km`);
+    } else if (mode === "area" && pts.length >= 3) {
+      // Shoelace formula
+      let area = 0;
+      for (let i = 0; i < pts.length; i++) {
+        const j = (i + 1) % pts.length;
+        area += pts[i].lng * pts[j].lat;
+        area -= pts[j].lng * pts[i].lat;
+      }
+      area = Math.abs(area) / 2;
+      const avgLat = pts.reduce((s, p) => s + p.lat, 0) / pts.length;
+      const mPerDegLat = 111320;
+      const mPerDegLng = 111320 * Math.cos((avgLat * Math.PI) / 180);
+      const areaM2 = area * mPerDegLat * mPerDegLng;
+      const areaHa = areaM2 / 10000;
+      if (areaHa < 1) setMeasureResult(`${areaM2.toFixed(0)} m\u00b2`);
+      else setMeasureResult(`${areaHa.toFixed(2)} ha`);
+    }
+  };
+
+  // PDF preview handler (separate from export - does NOT open in new tab)
+  const previewPdfMutation = trpc.delimitation.exportPdf.useMutation({
+    onSuccess: (data) => {
+      setPdfPreviewUrl(data.url);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const handlePreviewPdf = () => {
+    if (!activeTerritoryId) return;
+    previewPdfMutation.mutate({ territoryId: activeTerritoryId });
+  };
+
   const handleStartNew = () => {
     setActiveTerritoryId(null);
     setShowList(false);
@@ -1044,6 +1162,10 @@ ${boundaryPoints.map((p) => `  <wpt lat="${p.lat}" lon="${p.lng}">
                 {exportPdfMutation.isSuccess && (
                   <p className="text-xs text-green-600 flex items-center gap-1"><Check className="h-3 w-3" /> PDF g\u00e9n\u00e9r\u00e9 avec succ\u00e8s</p>
                 )}
+                <Button variant="outline" size="sm" className="w-full justify-start gap-2" onClick={handlePreviewPdf} disabled={previewPdfMutation.isPending}>
+                  <Eye className="h-4 w-4 text-amber-600" />
+                  Pr\u00e9visualiser le PDF
+                </Button>
                 <Button variant="outline" size="sm" className="w-full justify-start gap-2" onClick={handleExportGeoJSON} disabled={geojsonExporting}>
                   <Globe className="h-4 w-4 text-blue-600" />
                   {geojsonExporting ? (
@@ -1058,52 +1180,97 @@ ${boundaryPoints.map((p) => `  <wpt lat="${p.lat}" lon="${p.lng}">
                 )}
               </div>
 
-              {/* Timeline / Historique des statuts */}
+              {/* Timeline / Historique des statuts avec documents */}
               <div className="pt-3 border-t">
-                <p className="text-xs font-medium text-muted-foreground mb-2">Historique</p>
-                <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Historique & Documents</p>
+                <div className="space-y-3">
+                  {/* Cr\u00e9ation / Initialisation */}
                   {territoryDetail.territory.createdAt && (
                     <div className="flex items-start gap-2">
                       <div className="mt-1 h-2 w-2 rounded-full bg-gray-400 shrink-0" />
-                      <div className="text-xs">
+                      <div className="text-xs flex-1">
                         <p className="font-medium">Cr\u00e9ation</p>
                         <p className="text-muted-foreground">{new Date(territoryDetail.territory.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                        {stepDocuments?.filter((d: any) => d.step === "initialisation").map((doc: any) => (
+                          <a key={doc.id} href={doc.fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-600 hover:underline mt-1">
+                            <Paperclip className="h-3 w-3" />{doc.title}
+                          </a>
+                        ))}
+                        <button onClick={() => handleUploadStepDocument("initialisation")} className="flex items-center gap-1 text-muted-foreground hover:text-foreground mt-1">
+                          <Plus className="h-3 w-3" /> Joindre
+                        </button>
                       </div>
                     </div>
                   )}
+                  {/* Soumission */}
                   {territoryDetail.territory.status !== "draft" && territoryDetail.territory.status !== "collecting" && (
                     <div className="flex items-start gap-2">
                       <div className="mt-1 h-2 w-2 rounded-full bg-amber-500 shrink-0" />
-                      <div className="text-xs">
+                      <div className="text-xs flex-1">
                         <p className="font-medium">Points soumis</p>
                         <p className="text-muted-foreground">Dossier en r\u00e9vision</p>
+                        {stepDocuments?.filter((d: any) => d.step === "soumission").map((doc: any) => (
+                          <a key={doc.id} href={doc.fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-600 hover:underline mt-1">
+                            <Paperclip className="h-3 w-3" />{doc.title}
+                          </a>
+                        ))}
+                        <button onClick={() => handleUploadStepDocument("soumission")} className="flex items-center gap-1 text-muted-foreground hover:text-foreground mt-1">
+                          <Plus className="h-3 w-3" /> Joindre
+                        </button>
                       </div>
                     </div>
                   )}
+                  {/* Validation chef */}
                   {(territoryDetail.territory.status === "validated_chief" || territoryDetail.territory.status === "official" || territoryDetail.territory.status === "synced") && territoryDetail.territory.chiefSignedAt && (
                     <div className="flex items-start gap-2">
                       <div className="mt-1 h-2 w-2 rounded-full bg-purple-500 shrink-0" />
-                      <div className="text-xs">
+                      <div className="text-xs flex-1">
                         <p className="font-medium">Valid\u00e9 par le chef</p>
                         <p className="text-muted-foreground">{new Date(territoryDetail.territory.chiefSignedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                        {stepDocuments?.filter((d: any) => d.step === "validation_chef").map((doc: any) => (
+                          <a key={doc.id} href={doc.fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-600 hover:underline mt-1">
+                            <Paperclip className="h-3 w-3" />{doc.title}
+                          </a>
+                        ))}
+                        <button onClick={() => handleUploadStepDocument("validation_chef")} className="flex items-center gap-1 text-muted-foreground hover:text-foreground mt-1">
+                          <Plus className="h-3 w-3" /> Joindre
+                        </button>
                       </div>
                     </div>
                   )}
+                  {/* Officialisation */}
                   {(territoryDetail.territory.status === "official" || territoryDetail.territory.status === "synced") && territoryDetail.territory.officializedAt && (
                     <div className="flex items-start gap-2">
                       <div className="mt-1 h-2 w-2 rounded-full bg-green-500 shrink-0" />
-                      <div className="text-xs">
+                      <div className="text-xs flex-1">
                         <p className="font-medium">Reconnaissance officielle</p>
                         <p className="text-muted-foreground">{new Date(territoryDetail.territory.officializedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                        {stepDocuments?.filter((d: any) => d.step === "officialisation").map((doc: any) => (
+                          <a key={doc.id} href={doc.fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-600 hover:underline mt-1">
+                            <Paperclip className="h-3 w-3" />{doc.title}
+                          </a>
+                        ))}
+                        <button onClick={() => handleUploadStepDocument("officialisation")} className="flex items-center gap-1 text-muted-foreground hover:text-foreground mt-1">
+                          <Plus className="h-3 w-3" /> Joindre
+                        </button>
                       </div>
                     </div>
                   )}
+                  {/* Synchronisation */}
                   {territoryDetail.territory.status === "synced" && territoryDetail.territory.syncedAt && (
                     <div className="flex items-start gap-2">
                       <div className="mt-1 h-2 w-2 rounded-full bg-emerald-600 shrink-0" />
-                      <div className="text-xs">
+                      <div className="text-xs flex-1">
                         <p className="font-medium">Synchronis\u00e9 SIFOR-CI</p>
                         <p className="text-muted-foreground">{new Date(territoryDetail.territory.syncedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                        {stepDocuments?.filter((d: any) => d.step === "synchronisation").map((doc: any) => (
+                          <a key={doc.id} href={doc.fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-600 hover:underline mt-1">
+                            <Paperclip className="h-3 w-3" />{doc.title}
+                          </a>
+                        ))}
+                        <button onClick={() => handleUploadStepDocument("synchronisation")} className="flex items-center gap-1 text-muted-foreground hover:text-foreground mt-1">
+                          <Plus className="h-3 w-3" /> Joindre
+                        </button>
                       </div>
                     </div>
                   )}
@@ -1112,13 +1279,70 @@ ${boundaryPoints.map((p) => `  <wpt lat="${p.lat}" lon="${p.lng}">
             </CardContent>
           </Card>
 
-          {/* Detail map */}
+          {/* Detail map with measurement tools */}
           <Card className="lg:col-span-2">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Aper\u00e7u du polygone</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Aper\u00e7u du polygone</CardTitle>
+                <div className="flex gap-1">
+                  <Button
+                    variant={measureMode === "distance" ? "default" : "outline"}
+                    size="sm"
+                    className={measureMode === "distance" ? "bg-ci-green hover:bg-ci-green/90 h-7 text-xs" : "h-7 text-xs"}
+                    onClick={() => {
+                      if (measureMode === "distance") {
+                        setMeasureMode("none");
+                        setMeasurePoints([]);
+                        setMeasureResult("");
+                      } else {
+                        setMeasureMode("distance");
+                        setMeasurePoints([]);
+                        setMeasureResult("");
+                      }
+                    }}
+                  >
+                    <Ruler className="h-3 w-3 mr-1" /> Distance
+                  </Button>
+                  <Button
+                    variant={measureMode === "area" ? "default" : "outline"}
+                    size="sm"
+                    className={measureMode === "area" ? "bg-ci-green hover:bg-ci-green/90 h-7 text-xs" : "h-7 text-xs"}
+                    onClick={() => {
+                      if (measureMode === "area") {
+                        setMeasureMode("none");
+                        setMeasurePoints([]);
+                        setMeasureResult("");
+                      } else {
+                        setMeasureMode("area");
+                        setMeasurePoints([]);
+                        setMeasureResult("");
+                      }
+                    }}
+                  >
+                    <MapPin className="h-3 w-3 mr-1" /> Surface
+                  </Button>
+                </div>
+              </div>
+              {measureMode !== "none" && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  {measureMode === "distance" ? "Cliquez sur la carte pour mesurer une distance (min. 2 points)" : "Cliquez sur la carte pour mesurer une surface (min. 3 points)"}
+                  {measureResult && <span className="ml-2 font-bold text-ci-green">{measureResult}</span>}
+                  {measurePoints.length > 0 && (
+                    <button className="ml-2 text-red-500 hover:underline" onClick={() => { setMeasurePoints([]); setMeasureResult(""); }}>R\u00e9initialiser</button>
+                  )}
+                </p>
+              )}
             </CardHeader>
             <CardContent>
-              <DetailMapView points={territoryDetail.points} detailMapRef={detailMapRef} detailMapInstanceRef={detailMapInstanceRef} />
+              <DetailMapView
+                points={territoryDetail.points}
+                detailMapRef={detailMapRef}
+                detailMapInstanceRef={detailMapInstanceRef}
+                measureMode={measureMode}
+                measurePoints={measurePoints}
+                setMeasurePoints={setMeasurePoints}
+                calculateMeasure={calculateMeasure}
+              />
             </CardContent>
           </Card>
         </div>
@@ -1498,6 +1722,28 @@ ${boundaryPoints.map((p) => `  <wpt lat="${p.lat}" lon="${p.lng}">
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* PDF Preview Modal */}
+      {pdfPreviewUrl && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setPdfPreviewUrl(null)}>
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-semibold text-lg">Pr\u00e9visualisation du PDF</h3>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => window.open(pdfPreviewUrl, "_blank")}>
+                  <Download className="h-4 w-4 mr-1" /> T\u00e9l\u00e9charger
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setPdfPreviewUrl(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="flex-1 p-2">
+              <iframe src={pdfPreviewUrl} className="w-full h-full rounded border" title="Pr\u00e9visualisation PDF" />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
