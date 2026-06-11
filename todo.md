@@ -420,3 +420,27 @@
 - [x] Ajouter lien "Configuration SIG" dans le menu latéral admin (DashboardLayout)
 - [x] Ajouter la route /admin/sig-config dans App.tsx
 - [x] Tests TypeScript et validation (0 erreurs, 198 tests PASS)
+
+## v2.17 — Fonctionnalités SIG avancées (Couches WMS/WFS, Shapefile, Dashboard SIG)
+
+### Superposition des couches SIG sur la carte
+- [x] Créer composant SigLayerOverlay qui charge dynamiquement les couches WMS/WFS selon la config admin
+- [x] Intégrer le composant sur la carte des parcelles et la délimitation villageoise
+- [x] Ajouter un panneau de contrôle des couches (toggle visibilité, opacité)
+
+### Import/Export Shapefile
+- [x] Créer procédure tRPC importShapefile (parsing shpjs, conversion en boundary points, calcul turf)
+- [x] Créer procédure tRPC exportGeoJSONFile (territoire unique + upload S3)
+- [x] Créer procédure tRPC exportAllParcelsGeoJSON (bulk export parcelles)
+- [x] Intégration dans le module de délimitation (delimitation-router.ts)
+
+### Tableau de bord SIG
+- [x] Créer page /admin/sig-dashboard avec statistiques spatiales (KPIs, répartitions)
+- [x] Afficher KPIs : parcelles totales, surface, territoires délimités, zones cadastrales
+- [x] Répartition par statut (parcelles et territoires) avec barres de progression
+- [x] Top 10 zones cadastrales et territoires
+- [x] Indicateur connexion SIG + bouton export GeoJSON global
+- [x] Ajouter la route /admin/sig-dashboard et le lien dans le menu admin (DashboardLayout)
+
+### Validation
+- [x] Tests TypeScript et validation (0 erreurs, 198 tests PASS)

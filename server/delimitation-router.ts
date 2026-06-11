@@ -624,4 +624,195 @@ export const delimitationRouter = router({
       const history = await listTerritoryStatusHistory(input.territoryId);
       return { history };
     }),
+
+  // ─── Shapefile Import ────────────────────────────────────────
+  importShapefile: adminProcedure
+    .input(z.object({
+      territoryId: z.number().int().positive(),
+      fileBase64: z.string(),
+      fileName: z.string(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const territory = await verifyTerritoryOwnership(input.territoryId, ctx.user.id);
+      const shpjs = await import("shpjs");
+
+      // Decode base64 to buffer
+      const buffer = Buffer.from(input.fileBase64, "base64");
+
+      // Parse shapefile
+      let geojson: any;
+      try {
+        geojson = await shpjs.default(buffer);
+      } catch (e) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Fichier Shapefile invalide ou corrompu. Assurez-vous d'envoyer un fichier .zip contenant .shp, .shx et .dbf.",
+        });
+      }
+
+      // Extract coordinates from features
+      const features = Array.isArray(geojson) ? geojson[0]?.features || [] : geojson?.features || [];
+      if (!features.length) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Aucune entité géographique trouvée dans le fichier." });
+      }
+
+      // Convert features to boundary points
+      const points: { latitude: string; longitude: string; pointNumber: number; source: "manual" | "gpx_import" | "csv_import" }[] = [];
+      let pointIndex = 0;
+      for (const feature of features) {
+        const geom = feature.geometry;
+        if (!geom) continue;
+        let coords: number[][] = [];
+        if (geom.type === "Polygon") {
+          coords = geom.coordinates[0] || [];
+        } else if (geom.type === "MultiPolygon") {
+          coords = geom.coordinates[0]?.[0] || [];
+        } else if (geom.type === "LineString") {
+          coords = geom.coordinates || [];
+        } else if (geom.type === "Point") {
+          coords = [geom.coordinates];
+        }
+        for (const c of coords) {
+          pointIndex++;
+          points.push({
+            latitude: String(c[1]),
+            longitude: String(c[0]),
+            pointNumber: pointIndex,
+            source: "csv_import",
+          });
+        }
+      }
+
+      if (!points.length) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Aucun point de coordonnées extractible du fichier." });
+      }
+
+      // Replace boundary points
+      await replaceBoundaryPoints(
+        input.territoryId,
+        points.map((p) => ({
+          ...p,
+          territoryId: input.territoryId,
+        }))
+      );
+
+      // Calculate area using turf
+      const turf = await import("@turf/turf");
+      if (points.length >= 3) {
+        const ring = [...points.map(p => [Number(p.longitude), Number(p.latitude)] as [number, number]), [Number(points[0].longitude), Number(points[0].latitude)] as [number, number]];
+        const polygon = turf.polygon([ring]);
+        const areaHa = turf.area(polygon) / 10000;
+        const perimeterKm = turf.length(turf.lineString(ring), { units: "kilometers" });
+        // Store calculated values (update territory)
+        await updateTerritory(input.territoryId, {
+          calculatedAreaHa: String(Math.round(areaHa * 100) / 100),
+          calculatedPerimeterKm: String(Math.round(perimeterKm * 100) / 100),
+        });
+      }
+
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: "delimitation.shapefile.imported",
+        targetType: "village_territory",
+        targetId: input.territoryId,
+        details: { fileName: input.fileName, pointsImported: points.length },
+      });
+
+      return { success: true, pointsImported: points.length, fileName: input.fileName };
+    }),
+
+  // ─── Shapefile/GeoJSON Export to S3 ─────────────────────────────
+  exportGeoJSONFile: adminProcedure
+    .input(z.object({ territoryId: z.number().int().positive() }))
+    .mutation(async ({ input, ctx }) => {
+      const territory = await verifyTerritoryOwnership(input.territoryId, ctx.user.id);
+      const points = await listBoundaryPointsByTerritory(input.territoryId);
+
+      if (!points.length) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Aucun point de bornage pour ce territoire." });
+      }
+
+      const coordinates = points.map(p => [Number(p.longitude), Number(p.latitude)]);
+      // Close the polygon
+      if (coordinates.length >= 3) {
+        coordinates.push(coordinates[0]);
+      }
+
+      const geojson = {
+        type: "FeatureCollection",
+        features: [{
+          type: "Feature",
+          properties: {
+            name: territory.name,
+            code: territory.code,
+            chiefName: territory.chiefName,
+            areaHa: territory.calculatedAreaHa,
+            perimeterKm: territory.calculatedPerimeterKm,
+            status: territory.status,
+          },
+          geometry: coordinates.length >= 4
+            ? { type: "Polygon", coordinates: [coordinates] }
+            : { type: "LineString", coordinates },
+        }],
+      };
+
+      // Upload to S3
+      const filename = `export-${territory.code}-${Date.now()}.geojson`;
+      const fileBuffer = Buffer.from(JSON.stringify(geojson, null, 2));
+      const { url } = await storagePut(`exports/geojson/${filename}`, fileBuffer, "application/geo+json");
+
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: "delimitation.geojson.exported",
+        targetType: "village_territory",
+        targetId: input.territoryId,
+        details: { filename },
+      });
+
+      return { url, filename };
+    }),
+
+  // ─── Bulk Parcels Export (all parcels as GeoJSON) ───────────────
+  exportAllParcelsGeoJSON: adminProcedure
+    .mutation(async ({ ctx }) => {
+      const { listParcels: listAllParcels } = await import("./db");
+      const parcels = await listAllParcels(10000, 0);
+
+      const features = parcels.map(p => ({
+        type: "Feature" as const,
+        properties: {
+          reference: p.reference,
+          zoneCode: p.zoneCode,
+          localisation: p.localisation,
+          surfaceApprox: p.surfaceApprox,
+          status: p.statusPublic,
+          createdAt: p.createdAt,
+        },
+        geometry: {
+          type: "Point" as const,
+          coordinates: [0, 0], // Parcels don't have lat/lng in schema
+        },
+      }));
+
+      const geojson = {
+        type: "FeatureCollection",
+        features,
+      };
+
+      const filename = `export-parcelles-${Date.now()}.geojson`;
+      const fileBuffer = Buffer.from(JSON.stringify(geojson, null, 2));
+      const { url } = await storagePut(`exports/geojson/${filename}`, fileBuffer, "application/geo+json");
+
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: "parcels.geojson.exported",
+        targetType: "parcel",
+        details: { count: features.length },
+      });
+
+      return { url, filename, count: features.length };
+    }),
 });

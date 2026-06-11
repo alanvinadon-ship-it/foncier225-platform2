@@ -40,6 +40,7 @@ const WorkflowPage = lazy(() => import("./pages/WorkflowPage"));
 const NotificationSettings = lazy(() => import("./pages/citizen/NotificationSettings"));
 const AdminNotifications = lazy(() => import("./pages/admin/AdminNotifications"));
 const AdminSigConfig = lazy(() => import("./pages/admin/AdminSigConfig"));
+const AdminSigDashboard = lazy(() => import("./pages/admin/AdminSigDashboard"));
 
 function RouteFallback() {
   return (
@@ -204,6 +205,11 @@ function Router() {
       <Route path="/admin/sig-config">
         <DashboardLayout>
           <AdminSigConfig />
+        </DashboardLayout>
+      </Route>
+      <Route path="/admin/sig-dashboard">
+        <DashboardLayout>
+          <AdminSigDashboard />
         </DashboardLayout>
       </Route>
 

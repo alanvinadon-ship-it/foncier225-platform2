@@ -894,6 +894,80 @@ const adminRouter = router({
       // Simulation de test de connexion (en production, appeler l'endpoint du provider)
       return { success: true, message: `Connexion au service ${input.provider} réussie` };
     }),
+
+  // ─── SIG Dashboard Stats ─────────────────────────────────────
+  sigDashboardStats: adminProcedure.query(async () => {
+    const { listParcels: listAllParcels, countParcels: countAllParcels } = await import("./db");
+    const { listAllTerritoriesWithFilter } = await import("./db");
+
+    // Parcel stats
+    const totalParcels = await countAllParcels();
+    const parcels = await listAllParcels(10000, 0);
+
+    // Surface totale approximative (surfaceApprox is varchar)
+    const totalSurface = parcels.reduce((sum, p) => sum + (parseFloat(p.surfaceApprox || "0") || 0), 0);
+
+    // Répartition par zone
+    const zoneMap = new Map<string, number>();
+    parcels.forEach(p => {
+      const zone = p.zoneCode || "Non définie";
+      zoneMap.set(zone, (zoneMap.get(zone) || 0) + 1);
+    });
+    const parcelsByZone = Array.from(zoneMap.entries())
+      .map(([zone, count]) => ({ zone, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    // Répartition par statut
+    const statusMap = new Map<string, number>();
+    parcels.forEach(p => {
+      const status = p.statusPublic || "inconnu";
+      statusMap.set(status, (statusMap.get(status) || 0) + 1);
+    });
+    const parcelsByStatus = Array.from(statusMap.entries())
+      .map(([status, count]) => ({ status, count }));
+
+    // Territory stats
+    const territories = await listAllTerritoriesWithFilter(undefined, "date", "desc", 10000, 0);
+    const totalTerritories = territories.length;
+    const totalDelimitedArea = territories.reduce((sum, t) => sum + (Number(t.calculatedAreaHa) || 0), 0);
+    const territoriesByStatus = new Map<string, number>();
+    territories.forEach(t => {
+      const status = t.status || "brouillon";
+      territoriesByStatus.set(status, (territoriesByStatus.get(status) || 0) + 1);
+    });
+    const terrByStatus = Array.from(territoriesByStatus.entries())
+      .map(([status, count]) => ({ status, count }));
+
+    // Répartition par nom (village/territoire)
+    const nameMap = new Map<string, number>();
+    territories.forEach(t => {
+      const name = t.name || "Non défini";
+      nameMap.set(name, (nameMap.get(name) || 0) + 1);
+    });
+    const territoriesByName = Array.from(nameMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    // SIG config status
+    const sigConfig = await getSystemConfig("sig_provider");
+    const sigEnabled = sigConfig?.enabled === true && sigConfig?.provider !== "none";
+    const sigProvider = (sigConfig?.provider as string) || "none";
+
+    return {
+      totalParcels,
+      totalSurface: Math.round(totalSurface * 100) / 100,
+      parcelsByZone,
+      parcelsByStatus,
+      totalTerritories,
+      totalDelimitedArea: Math.round(totalDelimitedArea * 100) / 100,
+      terrByStatus,
+      territoriesByName,
+      sigEnabled,
+      sigProvider,
+    };
+  }),
 });
 
 // ─── App Router ──────────────────────────────────────────────────────
