@@ -831,6 +831,69 @@ const adminRouter = router({
       // Simulation d'envoi test (en production, appeler l'API Orange)
       return { success: true, message: `SMS de test envoyé au ${input.recipientPhone}` };
     }),
+
+  // ─── SIG Configuration ─────────────────────────────────────────
+  getSigConfig: adminProcedure.query(async () => {
+    const config = await getSystemConfig("sig_provider");
+    return config ?? {
+      provider: "none",
+      enabled: false,
+      arcgisOnline: { portalUrl: "https://www.arcgis.com", clientId: "", clientSecret: "", orgId: "" },
+      arcgisEnterprise: { serverUrl: "", username: "", password: "", webAdaptorUrl: "" },
+      geoserver: { baseUrl: "", workspace: "foncier225", username: "admin", password: "" },
+      qgisServer: { wmsUrl: "", wfsUrl: "", authToken: "" },
+      custom: { url: "", apiKey: "", headers: "" },
+    };
+  }),
+
+  updateSigConfig: adminProcedure
+    .input(z.object({
+      provider: z.enum(["none", "arcgis_online", "arcgis_enterprise", "geoserver", "qgis_server", "custom"]),
+      enabled: z.boolean(),
+      arcgisOnline: z.object({
+        portalUrl: z.string(),
+        clientId: z.string(),
+        clientSecret: z.string(),
+        orgId: z.string(),
+      }).optional(),
+      arcgisEnterprise: z.object({
+        serverUrl: z.string(),
+        username: z.string(),
+        password: z.string(),
+        webAdaptorUrl: z.string(),
+      }).optional(),
+      geoserver: z.object({
+        baseUrl: z.string(),
+        workspace: z.string(),
+        username: z.string(),
+        password: z.string(),
+      }).optional(),
+      qgisServer: z.object({
+        wmsUrl: z.string(),
+        wfsUrl: z.string(),
+        authToken: z.string(),
+      }).optional(),
+      custom: z.object({
+        url: z.string(),
+        apiKey: z.string(),
+        headers: z.string(),
+      }).optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      await upsertSystemConfig("sig_provider", input as unknown as Record<string, unknown>, ctx.user.id);
+      return { success: true };
+    }),
+
+  testSigConnection: adminProcedure
+    .input(z.object({ provider: z.string() }))
+    .mutation(async ({ input }) => {
+      const config = await getSystemConfig("sig_provider");
+      if (!config || !config.enabled) {
+        return { success: false, error: "Configuration SIG non activée" };
+      }
+      // Simulation de test de connexion (en production, appeler l'endpoint du provider)
+      return { success: true, message: `Connexion au service ${input.provider} réussie` };
+    }),
 });
 
 // ─── App Router ──────────────────────────────────────────────────────

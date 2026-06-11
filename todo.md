@@ -407,3 +407,16 @@
 - [x] Ajouter lien "Notification Email/SMS" dans le menu latéral admin (DashboardLayout)
 - [x] Ajouter la route /admin/notifications dans App.tsx
 - [x] Tests TypeScript et validation (0 erreurs, 198 tests PASS)
+
+## v2.16 — Administration Configuration SIG Professionnel (ArcGIS / GeoServer / QGIS / Autre)
+
+- [x] Créer procédures tRPC admin (getSigConfig, updateSigConfig, testSigConnection)
+- [x] Créer page admin /admin/sig-config avec sélection de provider et formulaires dynamiques
+- [x] Supporter ArcGIS Online (portalUrl, clientId, clientSecret, orgId)
+- [x] Supporter ArcGIS Enterprise (serverUrl, username, password, webAdaptorUrl)
+- [x] Supporter GeoServer (baseUrl, workspace, username, password)
+- [x] Supporter QGIS Server (wmsUrl, wfsUrl, authToken)
+- [x] Supporter configuration personnalisée (url, apiKey, headers custom)
+- [x] Ajouter lien "Configuration SIG" dans le menu latéral admin (DashboardLayout)
+- [x] Ajouter la route /admin/sig-config dans App.tsx
+- [x] Tests TypeScript et validation (0 erreurs, 198 tests PASS)

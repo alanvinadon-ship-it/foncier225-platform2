@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Bell, FileCheck, Home, Landmark, LayoutDashboard, LogOut, Map, MapPin, PanelLeft, Shield, Users } from "lucide-react";
+import { Bell, FileCheck, Globe, Home, Landmark, LayoutDashboard, LogOut, Map, MapPin, PanelLeft, Shield, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -38,6 +38,7 @@ const menuItems = [
   { icon: Landmark, label: "Titre foncier", path: "/admin/land-title" },
   { icon: Map, label: "Délimitation villageoise", path: "/admin/delimitation" },
   { icon: Bell, label: "Notification Email/SMS", path: "/admin/notifications" },
+  { icon: Globe, label: "Configuration SIG", path: "/admin/sig-config" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
