@@ -16,6 +16,9 @@ import {
   creditRequests, InsertCreditRequest,
   creditOffers, InsertCreditOffer,
   creditDecisions, InsertCreditDecision,
+  villageTerritories, InsertVillageTerritory, VillageTerritory,
+  territoryBoundaryPoints, InsertTerritoryBoundaryPoint,
+  territoryDocuments, InsertTerritoryDocument,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -724,4 +727,142 @@ export async function getLatestCreditDecisionByFile(creditFileId: number) {
     .orderBy(desc(creditDecisions.createdAt))
     .limit(1);
   return result[0];
+}
+
+// ─── Délimitation Villageoise ────────────────────────────────────────
+
+export async function insertTerritory(territory: InsertVillageTerritory) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(villageTerritories).values(territory);
+  const id = Number((result as { insertId?: number }).insertId);
+  const created = await db.select().from(villageTerritories).where(eq(villageTerritories.id, id)).limit(1);
+  return created[0];
+}
+
+export async function getTerritoryById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(villageTerritories).where(eq(villageTerritories.id, id)).limit(1);
+  return result[0];
+}
+
+export async function getTerritoryByIdAndOwner(id: number, ownerId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(villageTerritories)
+    .where(and(eq(villageTerritories.id, id), eq(villageTerritories.createdById, ownerId)))
+    .limit(1);
+  return result[0];
+}
+
+export async function listTerritoriesByOwner(ownerId: number, limit = 20, offset = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(villageTerritories)
+    .where(eq(villageTerritories.createdById, ownerId))
+    .orderBy(desc(villageTerritories.createdAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function listAllTerritories(limit = 50, offset = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(villageTerritories)
+    .orderBy(desc(villageTerritories.createdAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function updateTerritory(id: number, values: Partial<InsertVillageTerritory>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(villageTerritories).set(values).where(eq(villageTerritories.id, id));
+}
+
+export async function countTerritoriesByOwner(ownerId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.select({ count: sql<number>`count(*)` }).from(villageTerritories).where(eq(villageTerritories.createdById, ownerId));
+  return result[0]?.count ?? 0;
+}
+
+// ─── Boundary Points ─────────────────────────────────────────────────
+
+export async function insertBoundaryPoints(points: InsertTerritoryBoundaryPoint[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  if (points.length === 0) return;
+  await db.insert(territoryBoundaryPoints).values(points);
+}
+
+export async function listBoundaryPointsByTerritory(territoryId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(territoryBoundaryPoints)
+    .where(eq(territoryBoundaryPoints.territoryId, territoryId))
+    .orderBy(territoryBoundaryPoints.pointNumber);
+}
+
+export async function updateBoundaryPoint(pointId: number, values: Partial<InsertTerritoryBoundaryPoint>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(territoryBoundaryPoints).set(values).where(eq(territoryBoundaryPoints.id, pointId));
+}
+
+export async function deleteBoundaryPoint(pointId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(territoryBoundaryPoints).where(eq(territoryBoundaryPoints.id, pointId));
+}
+
+export async function deleteAllBoundaryPointsByTerritory(territoryId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(territoryBoundaryPoints).where(eq(territoryBoundaryPoints.territoryId, territoryId));
+}
+
+export async function replaceBoundaryPoints(territoryId: number, points: InsertTerritoryBoundaryPoint[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(territoryBoundaryPoints).where(eq(territoryBoundaryPoints.territoryId, territoryId));
+  if (points.length > 0) {
+    await db.insert(territoryBoundaryPoints).values(points);
+  }
+}
+
+// ─── Territory Documents ─────────────────────────────────────────────
+
+export async function insertTerritoryDocument(doc: InsertTerritoryDocument) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(territoryDocuments).values(doc);
+  const id = Number((result as { insertId?: number }).insertId);
+  const created = await db.select().from(territoryDocuments).where(eq(territoryDocuments.id, id)).limit(1);
+  return created[0];
+}
+
+export async function listTerritoryDocuments(territoryId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(territoryDocuments)
+    .where(eq(territoryDocuments.territoryId, territoryId))
+    .orderBy(desc(territoryDocuments.createdAt));
+}
+
+export async function deleteTerritoryDocument(docId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(territoryDocuments).where(eq(territoryDocuments.id, docId));
 }

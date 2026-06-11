@@ -391,3 +391,95 @@ export const creditDecisions = mysqlTable(
 
 export type CreditDecision = typeof creditDecisions.$inferSelect;
 export type InsertCreditDecision = typeof creditDecisions.$inferInsert;
+
+// ============================================================
+// DÉLIMITATION VILLAGEOISE
+// ============================================================
+
+export const villageTerritories = mysqlTable(
+  "village_territories",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    code: varchar("code", { length: 32 }).notNull().unique(),
+    name: varchar("name", { length: 255 }).notNull(),
+    chiefName: varchar("chiefName", { length: 128 }).notNull(),
+    chiefPhone: varchar("chiefPhone", { length: 32 }),
+    estimatedAreaHa: int("estimatedAreaHa"),
+    calculatedAreaHa: varchar("calculatedAreaHa", { length: 32 }),
+    calculatedPerimeterKm: varchar("calculatedPerimeterKm", { length: 32 }),
+    status: mysqlEnum("status", [
+      "draft",
+      "collecting",
+      "submitted",
+      "validated_chief",
+      "official",
+      "synced",
+    ]).default("draft").notNull(),
+    siforCode: varchar("siforCode", { length: 64 }),
+    chiefSignedAt: timestamp("chiefSignedAt"),
+    chiefComments: text("chiefComments"),
+    officializedAt: timestamp("officializedAt"),
+    syncedAt: timestamp("syncedAt"),
+    createdById: int("createdById").notNull().references(() => users.id, { onDelete: "restrict" }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    statusIdx: index("idx_vt_status").on(table.status),
+    createdByIdx: index("idx_vt_created_by").on(table.createdById),
+  })
+);
+
+export type VillageTerritory = typeof villageTerritories.$inferSelect;
+export type InsertVillageTerritory = typeof villageTerritories.$inferInsert;
+
+export const territoryBoundaryPoints = mysqlTable(
+  "territory_boundary_points",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    territoryId: int("territoryId").notNull().references(() => villageTerritories.id, { onDelete: "cascade" }),
+    pointNumber: int("pointNumber").notNull(),
+    latitude: varchar("latitude", { length: 20 }).notNull(),
+    longitude: varchar("longitude", { length: 20 }).notNull(),
+    landmark: varchar("landmark", { length: 255 }),
+    source: mysqlEnum("source", ["manual", "gpx_import", "csv_import"]).default("manual").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    territoryIdx: index("idx_tbp_territory").on(table.territoryId),
+    orderIdx: index("idx_tbp_order").on(table.territoryId, table.pointNumber),
+  })
+);
+
+export type TerritoryBoundaryPoint = typeof territoryBoundaryPoints.$inferSelect;
+export type InsertTerritoryBoundaryPoint = typeof territoryBoundaryPoints.$inferInsert;
+
+export const territoryDocuments = mysqlTable(
+  "territory_documents",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    territoryId: int("territoryId").notNull().references(() => villageTerritories.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 255 }).notNull(),
+    documentType: mysqlEnum("documentType", [
+      "pv_delimitation",
+      "carte_territoire",
+      "autorisation_prefectorale",
+      "attestation_chef",
+      "photo_borne",
+      "autre",
+    ]).default("autre").notNull(),
+    fileUrl: varchar("fileUrl", { length: 512 }),
+    fileKey: varchar("fileKey", { length: 256 }),
+    mimeType: varchar("mimeType", { length: 64 }),
+    fileSize: int("fileSize"),
+    uploadedById: int("uploadedById").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    territoryIdx: index("idx_tdoc_territory").on(table.territoryId),
+  })
+);
+
+export type TerritoryDocument = typeof territoryDocuments.$inferSelect;
+export type InsertTerritoryDocument = typeof territoryDocuments.$inferInsert;

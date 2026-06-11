@@ -57,6 +57,13 @@
       "when": 1773896145015,
       "tag": "0007_big_black_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1781174939053,
+      "tag": "0008_gorgeous_gargoyle",
+      "breakpoints": true
     }
   ]
 }

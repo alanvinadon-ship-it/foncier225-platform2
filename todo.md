@@ -150,3 +150,18 @@
 - [x] Export GPX/CSV : bouton pour exporter les points validés/modifiés vers un fichier GPX ou CSV téléchargeable
 - [x] Interaction carte ↔ tableau : surbrillance de la ligne du tableau au clic sur un marqueur carte (et inversement)
 - [x] Encart superficie/périmètre : affichage automatique de la superficie (hectares) et du périmètre (km) du polygone formé par les points GPS actuels
+
+## v1.3 — Persistance DB de la délimitation villageoise
+
+- [x] Ajouter les tables village_territories, territory_boundary_points, territory_documents dans drizzle/schema.ts
+- [x] Exécuter pnpm db:push pour créer les tables en base (migration 0008_gorgeous_gargoyle.sql)
+- [x] Créer les helpers DB dans server/db.ts pour CRUD territoires et points (15 helpers)
+- [x] Créer le routeur tRPC delimitation-router.ts avec 11 procédures protégées (create, list, getById, savePoints, updatePoint, deletePoint, submitPoints, validateByChief, officialize, syncSifor, uploadDocument, deleteDocument)
+- [x] Connecter le frontend DelimitationVillageoise.tsx aux procédures tRPC (vue liste + détail workflow)
+- [x] Vérifier le fonctionnement complet (0 erreurs TypeScript, 145 tests PASS)
+
+## v1.3.1 — Corrections sécurité et complétude
+
+- [x] Sécuriser delimitation-router: vérifier l'appartenance des pointId/documentId au territoryId avant update/delete
+- [x] Ajouter des tests Vitest pour delimitation-router (19 tests: create, list, getById, savePoints, submitPoints, validateByChief, officialize, syncSifor, ownership checks)
+- [x] Ajouter états loading/error/empty pour la vue détail de délimitation
