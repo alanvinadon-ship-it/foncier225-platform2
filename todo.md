@@ -303,3 +303,13 @@
 - [x] Graphiques Recharts dans la page admin dashboard (BarChart TF + PieChart Crédit)
 - [x] KPI cards : total dossiers, taux rejet TF, taux approbation crédit, délais moyens
 - [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)
+
+## v2.9 — Filtres interactifs Dashboard admin
+
+- [x] Mettre à jour les helpers DB stats pour accepter des filtres (dateFrom, dateTo, region, operatorName)
+- [x] Mettre à jour les procédures tRPC admin (landTitleStatusDistribution, landTitleStats, creditStatusDistribution, creditStats)
+- [x] Ajouter procédure dashboardFilterOptions (régions + opérateurs distincts)
+- [x] Ajouter les contrôles UI de filtrage (Select période, Select région, Select opérateur)
+- [x] Connecter les filtres aux queries tRPC avec réactivité dynamique
+- [x] Bouton réinitialiser les filtres
+- [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)

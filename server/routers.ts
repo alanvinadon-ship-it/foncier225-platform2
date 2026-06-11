@@ -56,6 +56,8 @@ import {
   getLandTitleStats,
   getCreditStatusDistribution,
   getCreditStats,
+  getDistinctLandTitleRegions,
+  getDistinctLandTitleOperators,
 } from "./db";
 import { storageGet, storagePut } from "./storage";
 
@@ -360,20 +362,43 @@ const adminRouter = router({
     return getParcelStatusDistribution();
   }),
 
-  landTitleStatusDistribution: adminProcedure.query(async () => {
-    return getLandTitleStatusDistribution();
+  landTitleStatusDistribution: adminProcedure.input(z.object({
+    dateFrom: z.number().optional(),
+    dateTo: z.number().optional(),
+    region: z.string().optional(),
+    operatorName: z.string().optional(),
+  }).optional()).query(async ({ input }) => {
+    return getLandTitleStatusDistribution(input ?? {});
   }),
 
-  landTitleStats: adminProcedure.query(async () => {
-    return getLandTitleStats();
+  landTitleStats: adminProcedure.input(z.object({
+    dateFrom: z.number().optional(),
+    dateTo: z.number().optional(),
+    region: z.string().optional(),
+    operatorName: z.string().optional(),
+  }).optional()).query(async ({ input }) => {
+    return getLandTitleStats(input ?? {});
   }),
 
-  creditStatusDistribution: adminProcedure.query(async () => {
-    return getCreditStatusDistribution();
+  creditStatusDistribution: adminProcedure.input(z.object({
+    dateFrom: z.number().optional(),
+    dateTo: z.number().optional(),
+  }).optional()).query(async ({ input }) => {
+    return getCreditStatusDistribution(input ?? {});
   }),
 
-  creditStats: adminProcedure.query(async () => {
-    return getCreditStats();
+  creditStats: adminProcedure.input(z.object({
+    dateFrom: z.number().optional(),
+    dateTo: z.number().optional(),
+  }).optional()).query(async ({ input }) => {
+    return getCreditStats(input ?? {});
+  }),
+
+  dashboardFilterOptions: adminProcedure.query(async () => {
+    return {
+      regions: await getDistinctLandTitleRegions(),
+      operators: await getDistinctLandTitleOperators(),
+    };
   }),
 
   listUsers: adminProcedure.query(async () => {

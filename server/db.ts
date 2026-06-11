@@ -1,4 +1,4 @@
-import { eq, desc, and, sql, gte, inArray } from "drizzle-orm";
+import { eq, desc, and, sql, gte, lte, like, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser, users,
@@ -1265,28 +1265,59 @@ export async function notifyCitizenStatusChange(params: {
 }
 
 // ─── Admin Land Title & Credit Statistics ────────────────────────────
-export async function getLandTitleStatusDistribution() {
+export interface DashboardFilters {
+  dateFrom?: number; // unix ms
+  dateTo?: number;   // unix ms
+  region?: string;
+  operatorName?: string;
+}
+
+function buildLandTitleConditions(filters: DashboardFilters) {
+  const conditions: ReturnType<typeof eq>[] = [];
+  if (filters.dateFrom) conditions.push(gte(landTitleApplications.createdAt, filters.dateFrom));
+  if (filters.dateTo) conditions.push(lte(landTitleApplications.createdAt, filters.dateTo));
+  if (filters.region) conditions.push(eq(landTitleApplications.landRegion, filters.region));
+  if (filters.operatorName) conditions.push(eq(landTitleApplications.operatorName, filters.operatorName));
+  return conditions.length > 0 ? and(...conditions) : undefined;
+}
+
+function buildCreditConditions(filters: DashboardFilters) {
+  const conditions: ReturnType<typeof eq>[] = [];
+  if (filters.dateFrom) conditions.push(gte(creditFiles.createdAt, new Date(filters.dateFrom)));
+  if (filters.dateTo) conditions.push(lte(creditFiles.createdAt, new Date(filters.dateTo)));
+  // creditFiles doesn't have region/operator, but we can filter via joined parcel if needed
+  return conditions.length > 0 ? and(...conditions) : undefined;
+}
+
+export async function getLandTitleStatusDistribution(filters: DashboardFilters = {}) {
   const db = await getDb();
   if (!db) return [];
-  return db.select({
+  const where = buildLandTitleConditions(filters);
+  const q = db.select({
     status: landTitleApplications.status,
     phase: landTitleApplications.phase,
     count: sql<number>`count(*)`,
   }).from(landTitleApplications).groupBy(landTitleApplications.status, landTitleApplications.phase);
+  return where ? q.where(where) : q;
 }
 
-export async function getLandTitleStats() {
+export async function getLandTitleStats(filters: DashboardFilters = {}) {
   const db = await getDb();
   if (!db) return { total: 0, rejected: 0, avgProcessingDays: 0 };
-  const [totalRes] = await db.select({ count: sql<number>`count(*)` }).from(landTitleApplications);
+  const baseWhere = buildLandTitleConditions(filters);
+  const totalQ = db.select({ count: sql<number>`count(*)` }).from(landTitleApplications);
+  const [totalRes] = baseWhere ? await totalQ.where(baseWhere) : await totalQ;
+
+  const rejectedConds = [eq(landTitleApplications.status, "cf_rejected"), ...(baseWhere ? [baseWhere] : [])];
   const [rejectedRes] = await db.select({ count: sql<number>`count(*)` }).from(landTitleApplications)
-    .where(eq(landTitleApplications.status, "cf_rejected"));
-  // Average processing time: from createdAt to updatedAt for completed/rejected dossiers
+    .where(and(...rejectedConds));
+
   const completedStatuses = ["tf_delivered", "cf_rejected"];
+  const avgConds = [inArray(landTitleApplications.status, completedStatuses), ...(baseWhere ? [baseWhere] : [])];
   const [avgRes] = await db.select({
     avgDays: sql<number>`COALESCE(AVG((${landTitleApplications.updatedAt} - ${landTitleApplications.createdAt}) / 86400000), 0)`,
   }).from(landTitleApplications)
-    .where(inArray(landTitleApplications.status, completedStatuses));
+    .where(and(...avgConds));
 
   return {
     total: totalRes?.count ?? 0,
@@ -1295,29 +1326,38 @@ export async function getLandTitleStats() {
   };
 }
 
-export async function getCreditStatusDistribution() {
+export async function getCreditStatusDistribution(filters: DashboardFilters = {}) {
   const db = await getDb();
   if (!db) return [];
-  return db.select({
+  const where = buildCreditConditions(filters);
+  const q = db.select({
     status: creditFiles.status,
     count: sql<number>`count(*)`,
   }).from(creditFiles).groupBy(creditFiles.status);
+  return where ? q.where(where) : q;
 }
 
-export async function getCreditStats() {
+export async function getCreditStats(filters: DashboardFilters = {}) {
   const db = await getDb();
   if (!db) return { total: 0, rejected: 0, approved: 0, avgProcessingDays: 0 };
-  const [totalRes] = await db.select({ count: sql<number>`count(*)` }).from(creditFiles);
+  const baseWhere = buildCreditConditions(filters);
+  const totalQ = db.select({ count: sql<number>`count(*)` }).from(creditFiles);
+  const [totalRes] = baseWhere ? await totalQ.where(baseWhere) : await totalQ;
+
+  const rejectedConds = [eq(creditFiles.status, "REJECTED"), ...(baseWhere ? [baseWhere] : [])];
   const [rejectedRes] = await db.select({ count: sql<number>`count(*)` }).from(creditFiles)
-    .where(eq(creditFiles.status, "REJECTED"));
+    .where(and(...rejectedConds));
+
+  const approvedConds = [eq(creditFiles.status, "APPROVED"), ...(baseWhere ? [baseWhere] : [])];
   const [approvedRes] = await db.select({ count: sql<number>`count(*)` }).from(creditFiles)
-    .where(eq(creditFiles.status, "APPROVED"));
-  // Average processing time for terminal statuses
+    .where(and(...approvedConds));
+
   const terminalStatuses = ["APPROVED", "REJECTED"] as const;
+  const avgConds = [inArray(creditFiles.status, terminalStatuses), ...(baseWhere ? [baseWhere] : [])];
   const [avgRes] = await db.select({
     avgDays: sql<number>`COALESCE(AVG(DATEDIFF(${creditFiles.lastTransitionAt}, ${creditFiles.createdAt})), 0)`,
   }).from(creditFiles)
-    .where(inArray(creditFiles.status, terminalStatuses));
+    .where(and(...avgConds));
 
   return {
     total: totalRes?.count ?? 0,
@@ -1325,4 +1365,22 @@ export async function getCreditStats() {
     approved: approvedRes?.count ?? 0,
     avgProcessingDays: Math.round(avgRes?.avgDays ?? 0),
   };
+}
+
+export async function getDistinctLandTitleRegions(): Promise<string[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.selectDistinct({ region: landTitleApplications.landRegion })
+    .from(landTitleApplications)
+    .where(sql`${landTitleApplications.landRegion} IS NOT NULL AND ${landTitleApplications.landRegion} != ''`);
+  return rows.map(r => r.region!).filter(Boolean).sort();
+}
+
+export async function getDistinctLandTitleOperators(): Promise<string[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.selectDistinct({ operator: landTitleApplications.operatorName })
+    .from(landTitleApplications)
+    .where(sql`${landTitleApplications.operatorName} IS NOT NULL AND ${landTitleApplications.operatorName} != ''`);
+  return rows.map(r => r.operator!).filter(Boolean).sort();
 }

@@ -1,8 +1,11 @@
+import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileCheck, MapPin, Shield, Users, QrCode, Activity, Landmark, Banknote, TrendingUp, Clock, XCircle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { FileCheck, MapPin, Shield, Users, QrCode, Activity, Landmark, Banknote, TrendingUp, Clock, XCircle, Filter, CalendarDays, RotateCcw } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell } from "recharts";
 
 const STAT_CARDS = [
   { key: "users", label: "Utilisateurs", icon: Users, color: "text-ci-green bg-ci-green-light" },
@@ -22,12 +25,14 @@ const STATUS_COLORS: Record<string, string> = {
   cf_approved: "#059669",
   cf_rejected: "#dc2626",
   cf_delivered: "#047857",
+  cf_pending_payment: "#d97706",
   tf_requested: "#6366f1",
   tf_survey: "#a855f7",
   tf_registration: "#ec4899",
   tf_publication: "#14b8a6",
   tf_signing: "#0ea5e9",
   tf_delivered: "#065f46",
+  tf_rejected: "#b91c1c",
   DRAFT: "#94a3b8",
   DOCS_PENDING: "#f59e0b",
   SUBMITTED: "#3b82f6",
@@ -68,19 +73,142 @@ const STATUS_LABELS: Record<string, string> = {
   CLOSED: "Clôturé",
 };
 
+const PERIOD_OPTIONS = [
+  { value: "all", label: "Toute période" },
+  { value: "7d", label: "7 derniers jours" },
+  { value: "30d", label: "30 derniers jours" },
+  { value: "90d", label: "3 derniers mois" },
+  { value: "180d", label: "6 derniers mois" },
+  { value: "365d", label: "12 derniers mois" },
+];
+
+function periodToRange(period: string): { dateFrom?: number; dateTo?: number } {
+  if (period === "all") return {};
+  const days = parseInt(period.replace("d", ""));
+  const now = Date.now();
+  return { dateFrom: now - days * 86400000, dateTo: now };
+}
+
 export default function AdminDashboard() {
+  const [period, setPeriod] = useState("all");
+  const [region, setRegion] = useState("all");
+  const [operator, setOperator] = useState("all");
+
+  const filters = useMemo(() => {
+    const range = periodToRange(period);
+    return {
+      ...range,
+      ...(region !== "all" ? { region } : {}),
+      ...(operator !== "all" ? { operatorName: operator } : {}),
+    };
+  }, [period, region, operator]);
+
+  const creditFilters = useMemo(() => {
+    const range = periodToRange(period);
+    return range.dateFrom ? { dateFrom: range.dateFrom, dateTo: range.dateTo } : undefined;
+  }, [period]);
+
+  const hasFilters = period !== "all" || region !== "all" || operator !== "all";
+
   const { data: stats, isLoading } = trpc.admin.dashboardStats.useQuery();
   const { data: statusDist } = trpc.admin.parcelStatusDistribution.useQuery();
-  const { data: ltDist } = trpc.admin.landTitleStatusDistribution.useQuery();
-  const { data: ltStats } = trpc.admin.landTitleStats.useQuery();
-  const { data: creditDist } = trpc.admin.creditStatusDistribution.useQuery();
-  const { data: creditStats } = trpc.admin.creditStats.useQuery();
+  const { data: filterOptions } = trpc.admin.dashboardFilterOptions.useQuery();
+  const { data: ltDist } = trpc.admin.landTitleStatusDistribution.useQuery(
+    Object.keys(filters).length > 0 ? filters : undefined
+  );
+  const { data: ltStats } = trpc.admin.landTitleStats.useQuery(
+    Object.keys(filters).length > 0 ? filters : undefined
+  );
+  const { data: creditDist } = trpc.admin.creditStatusDistribution.useQuery(creditFilters);
+  const { data: creditStats } = trpc.admin.creditStats.useQuery(creditFilters);
+
+  const resetFilters = () => {
+    setPeriod("all");
+    setRegion("all");
+    setOperator("all");
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Tableau de bord</h1>
         <p className="text-muted-foreground text-sm mt-1">Vue d'ensemble de la plateforme Foncier225</p>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="rounded-lg border bg-card p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Filtres</span>
+          {hasFilters && (
+            <Button variant="ghost" size="sm" onClick={resetFilters} className="ml-auto h-7 text-xs gap-1">
+              <RotateCcw className="h-3 w-3" />
+              Réinitialiser
+            </Button>
+          )}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Period Filter */}
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground flex items-center gap-1">
+              <CalendarDays className="h-3 w-3" />
+              Période
+            </label>
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PERIOD_OPTIONS.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Region Filter */}
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              Région
+            </label>
+            <Select value={region} onValueChange={setRegion}>
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les régions</SelectItem>
+                {filterOptions?.regions.map(r => (
+                  <SelectItem key={r} value={r}>{r}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Operator Filter */}
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground flex items-center gap-1">
+              <Users className="h-3 w-3" />
+              Opérateur
+            </label>
+            <Select value={operator} onValueChange={setOperator}>
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les opérateurs</SelectItem>
+                {filterOptions?.operators.map(o => (
+                  <SelectItem key={o} value={o}>{o}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {hasFilters && (
+          <p className="text-xs text-muted-foreground mt-2 pt-2 border-t">
+            Les statistiques ci-dessous sont filtrées selon vos critères. Les KPI généraux (utilisateurs, parcelles, attestations) ne sont pas affectés par les filtres.
+          </p>
+        )}
       </div>
 
       {/* KPI Cards */}
@@ -154,7 +282,7 @@ export default function AdminDashboard() {
               </BarChart>
             </ChartContainer>
           ) : (
-            <p className="text-sm text-muted-foreground">Aucun dossier titre foncier.</p>
+            <p className="text-sm text-muted-foreground">Aucun dossier titre foncier{hasFilters ? " pour ces critères" : ""}.</p>
           )}
         </div>
 
@@ -185,7 +313,7 @@ export default function AdminDashboard() {
               </PieChart>
             </ChartContainer>
           ) : (
-            <p className="text-sm text-muted-foreground">Aucun dossier crédit habitat.</p>
+            <p className="text-sm text-muted-foreground">Aucun dossier crédit habitat{hasFilters ? " pour ces critères" : ""}.</p>
           )}
         </div>
       </div>
