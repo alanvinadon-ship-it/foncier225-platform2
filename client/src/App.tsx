@@ -41,6 +41,9 @@ const NotificationSettings = lazy(() => import("./pages/citizen/NotificationSett
 const AdminNotifications = lazy(() => import("./pages/admin/AdminNotifications"));
 const AdminSigConfig = lazy(() => import("./pages/admin/AdminSigConfig"));
 const AdminSigDashboard = lazy(() => import("./pages/admin/AdminSigDashboard"));
+const CitizenUrbanAcdList = lazy(() => import("./pages/citizen/CitizenUrbanAcdList"));
+const CitizenUrbanAcdCreate = lazy(() => import("./pages/citizen/CitizenUrbanAcdCreate"));
+const CitizenUrbanAcdDetail = lazy(() => import("./pages/citizen/CitizenUrbanAcdDetail"));
 
 function RouteFallback() {
   return (
@@ -105,6 +108,22 @@ function Router() {
       <Route path="/citizen/land-title/:id">
         <CitizenLayout>
           <CitizenLandTitleDetail />
+        </CitizenLayout>
+      </Route>
+
+      <Route path="/citizen/urban-acd">
+        <CitizenLayout>
+          <CitizenUrbanAcdList />
+        </CitizenLayout>
+      </Route>
+      <Route path="/citizen/urban-acd/new">
+        <CitizenLayout>
+          <CitizenUrbanAcdCreate />
+        </CitizenLayout>
+      </Route>
+      <Route path="/citizen/urban-acd/:id">
+        <CitizenLayout>
+          <CitizenUrbanAcdDetail />
         </CitizenLayout>
       </Route>
 

@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Banknote, Bell as BellIcon, FileText, Home, Landmark, LayoutDashboard, LogOut, MapPin, PanelLeft, Clock, User, Search, GitBranch } from "lucide-react";
+import { Banknote, Bell as BellIcon, Building2, FileText, Home, Landmark, LayoutDashboard, LogOut, MapPin, PanelLeft, Clock, User, Search, GitBranch } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
@@ -39,6 +39,7 @@ const menuItems = [
   { icon: Clock, label: "Timeline", path: "/citizen/timeline", badge: false },
   { icon: FileText, label: "Mes documents", path: "/citizen/documents", badge: false },
   { icon: Landmark, label: "Titre foncier", path: "/citizen/land-title", badge: false },
+  { icon: Building2, label: "Foncier urbain", path: "/citizen/urban-acd", badge: false },
   { icon: Banknote, label: "Crédit habitat", path: "/citizen/credit-habitat", badge: false },
   { icon: BellIcon, label: "Alertes", path: "/citizen/notifications", badge: false },
   { icon: User, label: "Mon profil", path: "/citizen/profile", badge: false },

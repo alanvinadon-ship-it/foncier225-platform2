@@ -467,3 +467,21 @@
 ### Tests
 - [x] Tests unitaires machine d'états ACD (31 tests : statuts, phases, transitions, terminaux)
 - [x] Validation TypeScript (0 erreurs) et 229 tests PASS (10 fichiers)
+
+## v3.1 — Phase B : Interface Citoyen ACD (Foncier Urbain)
+
+### Pages citoyen
+- [x] Page liste dossiers ACD (/citizen/urban-acd) avec statuts, filtres, bouton créer
+- [x] Page création dossier ACD (/citizen/urban-acd/new) avec formulaire multi-étapes
+- [x] Page détail dossier ACD (/citizen/urban-acd/:id) avec Gantt + documents + timeline
+
+### Composants
+- [x] Composant AcdWorkflowGantt (diagramme Gantt 3 phases, 16 étapes, position actuelle, infobulles)
+- [x] Composant AcdDocumentUploader (upload par étape avec checklist documents requis)
+- [x] Composant AcdStatusBadge (badge coloré par phase/statut)
+
+### Intégration
+- [x] Ajouter routes /citizen/urban-acd/* dans App.tsx (3 routes)
+- [x] Ajouter lien "Foncier Urbain" (Building2) dans le menu citoyen (CitizenLayout)
+- [x] Procédures tRPC getDetail + cancel ajoutées au citizenAcdRouter
+- [x] Tests TypeScript (0 erreurs) et 229 tests PASS (10 fichiers)

@@ -198,10 +198,35 @@ const citizenAcdRouter = router({
         createdAt: now,
       });
 
-      return { id: docId };
+            return { id: docId };
+    }),
+
+  /** Détail complet du dossier (application + steps + documents) */
+  getDetail: protectedProcedure
+    .input(z.object({ applicationId: z.number().int() }))
+    .query(async ({ ctx, input }) => {
+      const app = await getUrbanAcdApplicationByIdAndUser(input.applicationId, ctx.user.id);
+      if (!app) throw new TRPCError({ code: "NOT_FOUND", message: "Dossier ACD introuvable" });
+      const steps = await listUrbanAcdSteps(input.applicationId);
+      const documents = await listUrbanAcdDocuments(input.applicationId);
+      const oppositions = await listUrbanAcdOppositions(input.applicationId);
+      return { application: app, steps, documents, oppositions };
+    }),
+
+  /** Annuler un dossier (draft ou submitted uniquement) */
+  cancel: protectedProcedure
+    .input(z.object({ applicationId: z.number().int() }))
+    .mutation(async ({ ctx, input }) => {
+      const app = await getUrbanAcdApplicationByIdAndUser(input.applicationId, ctx.user.id);
+      if (!app) throw new TRPCError({ code: "NOT_FOUND", message: "Dossier ACD introuvable" });
+      if (!["acd_draft", "acd_submitted"].includes(app.status)) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Seuls les dossiers en brouillon ou soumis peuvent être annulés" });
+      }
+      await updateUrbanAcdApplication(input.applicationId, { status: "acd_cancelled" });
+      await createAuditEvent({ action: "urban_acd_cancelled", actorId: ctx.user.id, actorRole: ctx.user.role || "user", targetType: "urban_acd", targetId: input.applicationId, details: { reason: "citizen_cancelled" }, createdAt: new Date() });
+      return { success: true };
     }),
 });
-
 // ─── Admin/MCLU Sub-Router ───────────────────────────────────────────────────
 
 const adminAcdRouter = router({
