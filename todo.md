@@ -624,3 +624,15 @@
 - [x] Ajouter un onglet/filtre pour distinguer rural vs urbain (Tabs: Tous, Rural, Urbain)
 - [x] Déplacer le lien « Suivi dossier » de la catégorie Foncier Rural vers Commun (CitizenLayout)
 - [x] Tests TypeScript (0 erreurs) et 229 tests PASS
+
+## v3.11 — Page « Mes dossiers » (historique complet rural + urbain)
+
+- [x] Procédure tRPC citizen.allDossiers fusionnant dossiers ruraux (CF/TF) et urbains (ACD)
+- [x] Page /citizen/my-dossiers avec tableau complet de tous les dossiers
+- [x] Filtre par type (Tous, Rural, Urbain)
+- [x] Filtre par statut (Tous, En cours, Complétés, Rejetés)
+- [x] Colonnes : Référence, Type, Statut, Date dépôt, Dernière MAJ, Action (voir)
+- [x] Lien vers la page détail respective (rural ou urbain) au clic
+- [x] Lien « Mes dossiers » dans la catégorie Commun du menu citoyen
+- [x] Route /citizen/my-dossiers dans App.tsx
+- [x] Tests TypeScript (0 erreurs) et 229 tests PASS

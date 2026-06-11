@@ -61,6 +61,8 @@ import {
   getDistinctLandTitleOperators,
   getUnifiedDashboardStats,
   getActiveDossierCounts,
+  listLandTitleApplicationsByUser,
+  listUrbanAcdApplicationsByUser,
   getNotificationPreferences,
   upsertNotificationPreferences,
   getSystemConfig,
@@ -348,6 +350,42 @@ const citizenRouter = router({
   activeDossierCounts: citizenProcedure
     .query(async ({ ctx }) => {
       return getActiveDossierCounts(ctx.user.id);
+    }),
+
+  /** All dossiers (rural + urban) for the current citizen */
+  allDossiers: citizenProcedure
+    .query(async ({ ctx }) => {
+      const [ruralApps, urbanApps] = await Promise.all([
+        listLandTitleApplicationsByUser(ctx.user.id, 200, 0),
+        listUrbanAcdApplicationsByUser(ctx.user.id),
+      ]);
+
+      const ruralDossiers = ruralApps.map((a) => ({
+        id: a.id,
+        reference: a.applicationNumber,
+        type: "rural" as const,
+        status: a.status,
+        createdAt: a.createdAt,
+        updatedAt: a.updatedAt,
+        locality: a.landLocality || a.landSubPrefecture || null,
+      }));
+
+      const urbanDossiers = urbanApps.map((a) => ({
+        id: a.id,
+        reference: a.applicationNumber,
+        type: "urban" as const,
+        status: a.status,
+        createdAt: a.createdAt,
+        updatedAt: a.updatedAt,
+        locality: a.commune || null,
+      }));
+
+      // Merge and sort by most recent first
+      const all = [...ruralDossiers, ...urbanDossiers].sort(
+        (a, b) => new Date(b.updatedAt ?? b.createdAt).getTime() - new Date(a.updatedAt ?? a.createdAt).getTime()
+      );
+
+      return all;
     }),
 
   markNotificationRead: citizenProcedure
