@@ -334,3 +334,9 @@
 - [x] Route dans App.tsx (accessible sans authentification)
 - [x] Bouton "Suivre mon dossier" ajouté sur la page d'accueil
 - [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)
+
+## v2.12 — Export PDF récapitulatif de suivi
+
+- [x] Bouton "Exporter en PDF" sur la page /suivi après affichage du résultat
+- [x] Génération PDF côté client (jsPDF) avec infos dossier, statut, étapes, footer
+- [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)

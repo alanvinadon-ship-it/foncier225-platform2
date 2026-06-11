@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, FileText, MapPin, Calendar, CheckCircle2, Clock, AlertCircle, ArrowLeft } from "lucide-react";
+import { Search, FileText, MapPin, Calendar, CheckCircle2, Clock, AlertCircle, ArrowLeft, Download } from "lucide-react";
 import { Link } from "wouter";
+import { jsPDF } from "jspdf";
 
 const STATUS_LABELS: Record<string, string> = {
   cf_draft: "Brouillon",
@@ -73,6 +74,95 @@ const APPLICATION_TYPE_LABELS: Record<string, string> = {
   mutation: "Mutation",
   morcellement: "Morcellement",
 };
+
+function exportToPdf(data: { found: true; application: any; steps: any[] }) {
+  const doc = new jsPDF();
+  const app = data.application;
+  const margin = 20;
+  let y = margin;
+
+  // Header
+  doc.setFontSize(18);
+  doc.setTextColor(34, 120, 60);
+  doc.text("Foncier225 \u2014 R\u00e9capitulatif de suivi", margin, y);
+  y += 10;
+  doc.setFontSize(10);
+  doc.setTextColor(100, 100, 100);
+  doc.text(`G\u00e9n\u00e9r\u00e9 le ${new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}`, margin, y);
+  y += 4;
+  doc.setDrawColor(34, 120, 60);
+  doc.setLineWidth(0.5);
+  doc.line(margin, y, 190, y);
+  y += 12;
+
+  // Application info
+  doc.setFontSize(13);
+  doc.setTextColor(0, 0, 0);
+  doc.text(`Dossier : ${app.applicationNumber}`, margin, y);
+  y += 8;
+
+  doc.setFontSize(10);
+  doc.setTextColor(60, 60, 60);
+  const statusLabel = STATUS_LABELS[app.status] || app.status;
+  doc.text(`Statut : ${statusLabel}`, margin, y);
+  y += 6;
+
+  if (app.applicationType) {
+    const typeLabel = APPLICATION_TYPE_LABELS[app.applicationType] || app.applicationType;
+    doc.text(`Type de demande : ${typeLabel}`, margin, y);
+    y += 6;
+  }
+
+  const locality = [app.landLocality, app.landSubPrefecture, app.landDepartment, app.landRegion].filter(Boolean).join(", ");
+  if (locality) {
+    doc.text(`Localisation : ${locality}`, margin, y);
+    y += 6;
+  }
+
+  doc.text(`Date de d\u00e9p\u00f4t : ${new Date(app.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}`, margin, y);
+  y += 6;
+  doc.text(`Derni\u00e8re mise \u00e0 jour : ${new Date(app.updatedAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}`, margin, y);
+  y += 14;
+
+  // Steps
+  if (data.steps.length > 0) {
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text("\u00c9tapes du dossier", margin, y);
+    y += 8;
+
+    doc.setFontSize(9);
+    for (const step of data.steps) {
+      if (y > 270) {
+        doc.addPage();
+        y = margin;
+      }
+      const stepLabel = STEP_TYPE_LABELS[step.stepType] || step.stepType;
+      const statusIcon = step.status === "completed" ? "\u2713" : step.status === "in_progress" ? "\u25cb" : "\u2022";
+      const dateStr = step.completedAt ? ` (${new Date(step.completedAt).toLocaleDateString("fr-FR")})` : "";
+
+      doc.setTextColor(step.status === "completed" ? 34 : step.status === "in_progress" ? 180 : 150,
+        step.status === "completed" ? 120 : step.status === "in_progress" ? 130 : 150,
+        step.status === "completed" ? 60 : step.status === "in_progress" ? 0 : 150);
+      doc.text(`${statusIcon}  ${stepLabel}${dateStr}`, margin + 4, y);
+      y += 5;
+      if (step.notes) {
+        doc.setTextColor(130, 130, 130);
+        doc.text(`     ${step.notes}`, margin + 4, y);
+        y += 5;
+      }
+    }
+    y += 6;
+  }
+
+  // Footer
+  doc.setFontSize(8);
+  doc.setTextColor(150, 150, 150);
+  doc.text("Ce document est g\u00e9n\u00e9r\u00e9 automatiquement par la plateforme Foncier225.", margin, 285);
+  doc.text("Il ne constitue pas un acte administratif officiel.", margin, 289);
+
+  doc.save(`suivi-${app.applicationNumber}.pdf`);
+}
 
 export default function TrackApplication() {
   const [reference, setReference] = useState("");
@@ -269,6 +359,18 @@ export default function TrackApplication() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Export PDF button */}
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => exportToPdf(data)}
+              >
+                <Download className="h-4 w-4" />
+                Exporter en PDF
+              </Button>
+            </div>
 
             {/* Info notice */}
             <div className="text-xs text-muted-foreground text-center px-4">
