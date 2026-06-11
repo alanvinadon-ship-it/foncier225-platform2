@@ -340,3 +340,11 @@
 - [x] Bouton "Exporter en PDF" sur la page /suivi après affichage du résultat
 - [x] Génération PDF côté client (jsPDF) avec infos dossier, statut, étapes, footer
 - [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)
+
+## v2.13 — Intégration workflow Gantt dans la plateforme
+
+- [x] Composant WorkflowGantt réutilisable (barres horizontales, étapes, délais, indicateur position actuelle)
+- [x] Intégration dans la page détail citoyen (avec position du dossier sur le Gantt)
+- [x] Intégration dans la page publique /suivi (workflow général + position si dossier trouvé)
+- [x] Page dédiée /workflow accessible depuis la navigation (route publique, nav header + footer + CTA accueil)
+- [x] Tests et validation (0 erreurs TypeScript, 198 tests PASS)

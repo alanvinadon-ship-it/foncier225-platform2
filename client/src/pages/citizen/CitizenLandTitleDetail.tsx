@@ -19,6 +19,7 @@ import { Link, useParams } from "wouter";
 import { toast } from "sonner";
 import LandTitleDocumentUploader from "@/components/LandTitleDocumentUploader";
 import LandTitleSubmissionRecap from "@/components/LandTitleSubmissionRecap";
+import WorkflowGantt from "@/components/WorkflowGantt";
 import { PROFILE_LABELS, type ApplicantProfile } from "@shared/afor-documents";
 
 function deriveProfile(data: any): ApplicantProfile {
@@ -147,6 +148,19 @@ export default function CitizenLandTitleDetail() {
                 certificateExpiryAt={data.certificateExpiryAt}
                 createdAt={data.createdAt}
               />
+            </CardContent>
+          </Card>
+
+          {/* Workflow Gantt */}
+          <Card className="mt-4">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-ci-orange" />
+                Délais estimés du workflow
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <WorkflowGantt currentStatus={data.status} />
             </CardContent>
           </Card>
         </motion.div>

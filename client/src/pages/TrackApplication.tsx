@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, FileText, MapPin, Calendar, CheckCircle2, Clock, AlertCircle, ArrowLeft, Download } from "lucide-react";
 import { Link } from "wouter";
 import { jsPDF } from "jspdf";
+import WorkflowGantt from "@/components/WorkflowGantt";
 
 const STATUS_LABELS: Record<string, string> = {
   cf_draft: "Brouillon",
@@ -359,6 +360,16 @@ export default function TrackApplication() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Workflow Gantt */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Position dans le workflow</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <WorkflowGantt currentStatus={data.application.status} />
+              </CardContent>
+            </Card>
 
             {/* Export PDF button */}
             <div className="flex justify-center">

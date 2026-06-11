@@ -1,0 +1,21 @@
+gantt
+    title Workflow d'obtention du Titre Foncier — Délais estimés
+    dateFormat  YYYY-MM-DD
+    axisFormat  %b %Y
+
+    section Phase 1 — Certificat Foncier
+    Constitution de la liasse AFOR         :a1, 2025-01-06, 14d
+    Dépôt de la demande (CSPGFR)           :a2, after a1, 7d
+    Délimitation par opérateur technique    :a3, after a2, 30d
+    Enquête publique (Sous-Préfet)         :a4, after a3, 30d
+    Publicité foncière (3 mois)            :crit, a5, after a4, 90d
+    Résolution oppositions (si applicable) :a6, after a5, 30d
+    Validation CSPGFR                      :a7, after a6, 14d
+    Signature du Préfet                    :milestone, a8, after a7, 7d
+
+    section Phase 2 — Titre Foncier
+    Demande d'immatriculation              :b1, after a8, 14d
+    Contrôle AFOR                          :b2, after b1, 45d
+    Préparation APFR                       :b3, after b2, 30d
+    Signature du Ministre                  :crit, b4, after b3, 30d
+    Inscription au Livre Foncier           :milestone, b5, after b4, 14d
