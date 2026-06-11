@@ -1,6 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, Clock, Circle, Users, FileText, Info } from "lucide-react";
+import { CheckCircle2, Clock, Circle, Users, FileText, Info, X } from "lucide-react";
+
+// Hook to detect touch devices
+function useIsTouchDevice() {
+  const [isTouch, setIsTouch] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(pointer: coarse)");
+    setIsTouch(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsTouch(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return isTouch;
+}
 
 // Step metadata with actors and documents
 interface StepMeta {
@@ -166,6 +179,7 @@ interface WorkflowGanttProps {
 
 export default function WorkflowGantt({ currentStatus, showLegend = true, compact = false }: WorkflowGanttProps) {
   const elapsedDays = getElapsedDays(currentStatus);
+  const isTouch = useIsTouchDevice();
 
   return (
     <div className="w-full">
@@ -174,7 +188,10 @@ export default function WorkflowGantt({ currentStatus, showLegend = true, compac
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-green-500 inline-block" /> Complété</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-amber-500 inline-block animate-pulse" /> En cours</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-gray-200 inline-block" /> À venir</span>
-          <span className="flex items-center gap-1"><Info className="h-3 w-3" /> Survolez pour les détails</span>
+          <span className="flex items-center gap-1">
+            <Info className="h-3 w-3" />
+            {isTouch ? "Appuyez pour les détails" : "Survolez pour les détails"}
+          </span>
           <span className="ml-auto text-xs">Durée totale estimée : ~{Math.round(TOTAL_DAYS / 30)} mois</span>
         </div>
       )}
@@ -184,7 +201,7 @@ export default function WorkflowGantt({ currentStatus, showLegend = true, compac
         <h4 className={`font-semibold text-green-700 mb-2 ${compact ? "text-xs" : "text-sm"}`}>
           Phase 1 — Certificat Foncier
         </h4>
-        <GanttPhase steps={PHASE_1_STEPS} currentStatus={currentStatus} compact={compact} />
+        <GanttPhase steps={PHASE_1_STEPS} currentStatus={currentStatus} compact={compact} isTouch={isTouch} />
       </div>
 
       {/* Phase 2 */}
@@ -192,7 +209,7 @@ export default function WorkflowGantt({ currentStatus, showLegend = true, compac
         <h4 className={`font-semibold text-blue-700 mb-2 ${compact ? "text-xs" : "text-sm"}`}>
           Phase 2 — Titre Foncier
         </h4>
-        <GanttPhase steps={PHASE_2_STEPS} currentStatus={currentStatus} compact={compact} phaseColor="blue" />
+        <GanttPhase steps={PHASE_2_STEPS} currentStatus={currentStatus} compact={compact} phaseColor="blue" isTouch={isTouch} />
       </div>
 
       {/* Progress summary */}
@@ -216,22 +233,60 @@ export default function WorkflowGantt({ currentStatus, showLegend = true, compac
   );
 }
 
-function GanttPhase({ steps, currentStatus, compact, phaseColor = "green" }: {
+function GanttPhase({ steps, currentStatus, compact, phaseColor = "green", isTouch }: {
   steps: StepMeta[];
   currentStatus?: string;
   compact?: boolean;
   phaseColor?: "green" | "blue";
+  isTouch: boolean;
 }) {
   const phaseTotalDays = steps.reduce((sum, s) => sum + s.days, 0);
-  const [hoveredStep, setHoveredStep] = useState<string | null>(null);
+  const [activeStep, setActiveStep] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Close tooltip on click outside (for touch devices)
+  useEffect(() => {
+    if (!isTouch || !activeStep) return;
+    function handleClickOutside(e: MouseEvent | TouchEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setActiveStep(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [isTouch, activeStep]);
+
+  const handleBarInteraction = useCallback((stepId: string) => {
+    if (isTouch) {
+      // Toggle on tap: if same step is active, close it; otherwise open it
+      setActiveStep(prev => prev === stepId ? null : stepId);
+    }
+  }, [isTouch]);
+
+  const handleMouseEnter = useCallback((stepId: string) => {
+    if (!isTouch) {
+      setActiveStep(stepId);
+    }
+  }, [isTouch]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (!isTouch) {
+      setActiveStep(null);
+    }
+  }, [isTouch]);
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5" ref={containerRef}>
       {/* Gantt bars */}
       <div className="flex gap-0.5 h-8 rounded-md overflow-hidden">
         {steps.map((step, idx) => {
           const status = getStepStatus(step.statuses, currentStatus);
           const widthPercent = (step.days / phaseTotalDays) * 100;
+          const isActive = activeStep === step.id;
 
           const bgColor = status === "completed"
             ? phaseColor === "green" ? "bg-green-500" : "bg-blue-500"
@@ -242,17 +297,18 @@ function GanttPhase({ steps, currentStatus, compact, phaseColor = "green" }: {
           return (
             <motion.div
               key={step.id}
-              className={`relative ${bgColor} ${status === "current" ? "animate-pulse" : ""} flex items-center justify-center group cursor-pointer`}
+              className={`relative ${bgColor} ${status === "current" ? "animate-pulse" : ""} flex items-center justify-center cursor-pointer ${isActive ? "ring-2 ring-offset-1 ring-gray-400" : ""}`}
               style={{ width: `${widthPercent}%` }}
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
               transition={{ duration: 0.4, delay: idx * 0.08 }}
-              onMouseEnter={() => setHoveredStep(step.id)}
-              onMouseLeave={() => setHoveredStep(null)}
+              onClick={() => handleBarInteraction(step.id)}
+              onMouseEnter={() => handleMouseEnter(step.id)}
+              onMouseLeave={handleMouseLeave}
             >
               {/* Icon */}
               {!compact && widthPercent > 8 && (
-                <span className="text-white text-[10px] truncate px-1">
+                <span className="text-white text-[10px] truncate px-1 select-none">
                   {status === "completed" ? "✓" : status === "current" ? "●" : ""}
                 </span>
               )}
@@ -263,8 +319,14 @@ function GanttPhase({ steps, currentStatus, compact, phaseColor = "green" }: {
 
       {/* Interactive tooltip popover */}
       <AnimatePresence>
-        {hoveredStep && (
-          <StepTooltip step={steps.find(s => s.id === hoveredStep)!} currentStatus={currentStatus} phaseColor={phaseColor} />
+        {activeStep && (
+          <StepTooltip
+            step={steps.find(s => s.id === activeStep)!}
+            currentStatus={currentStatus}
+            phaseColor={phaseColor}
+            isTouch={isTouch}
+            onClose={() => setActiveStep(null)}
+          />
         )}
       </AnimatePresence>
 
@@ -274,13 +336,15 @@ function GanttPhase({ steps, currentStatus, compact, phaseColor = "green" }: {
           {steps.map((step) => {
             const widthPercent = (step.days / phaseTotalDays) * 100;
             const status = getStepStatus(step.statuses, currentStatus);
+            const isActive = activeStep === step.id;
             return (
               <div
                 key={step.id + "-label"}
-                className={`overflow-hidden cursor-pointer ${hoveredStep === step.id ? "opacity-100" : ""}`}
+                className={`overflow-hidden cursor-pointer transition-opacity ${isActive ? "opacity-100" : ""}`}
                 style={{ width: `${widthPercent}%` }}
-                onMouseEnter={() => setHoveredStep(step.id)}
-                onMouseLeave={() => setHoveredStep(null)}
+                onClick={() => handleBarInteraction(step.id)}
+                onMouseEnter={() => handleMouseEnter(step.id)}
+                onMouseLeave={handleMouseLeave}
               >
                 <p className={`text-[10px] leading-tight truncate ${
                   status === "completed" ? "text-green-700 font-medium" :
@@ -299,7 +363,13 @@ function GanttPhase({ steps, currentStatus, compact, phaseColor = "green" }: {
   );
 }
 
-function StepTooltip({ step, currentStatus, phaseColor }: { step: StepMeta; currentStatus?: string; phaseColor: "green" | "blue" }) {
+function StepTooltip({ step, currentStatus, phaseColor, isTouch, onClose }: {
+  step: StepMeta;
+  currentStatus?: string;
+  phaseColor: "green" | "blue";
+  isTouch: boolean;
+  onClose: () => void;
+}) {
   const status = getStepStatus(step.statuses, currentStatus);
   const statusLabel = status === "completed" ? "Complété" : status === "current" ? "En cours" : "À venir";
   const statusColor = status === "completed"
@@ -319,9 +389,20 @@ function StepTooltip({ step, currentStatus, phaseColor }: { step: StepMeta; curr
       {/* Header */}
       <div className="flex items-center justify-between gap-3 mb-2">
         <h5 className="font-semibold text-sm text-foreground">{step.label}</h5>
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusColor}`}>
-          {statusLabel}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${statusColor}`}>
+            {statusLabel}
+          </span>
+          {isTouch && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onClose(); }}
+              className="p-1 rounded-full hover:bg-muted transition-colors"
+              aria-label="Fermer"
+            >
+              <X className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Description */}

@@ -355,3 +355,10 @@
 - [x] Implémenter des infobulles interactives (Tooltip/Popover) au survol de chaque barre du Gantt
 - [x] Afficher dans l'infobulle : nom de l'étape, durée, acteurs, documents requis
 - [x] Tests TypeScript et validation (0 erreurs, 198 tests PASS)
+
+## v2.13.2 — Infobulles tactiles (mobile) WorkflowGantt
+
+- [x] Détecter les appareils tactiles (touch vs pointer)
+- [x] Afficher l'infobulle au clic/tap sur mobile (persistante jusqu'à clic extérieur)
+- [x] Conserver le comportement hover sur desktop
+- [x] Tests TypeScript et validation (0 erreurs, 198 tests PASS)
