@@ -35,7 +35,7 @@
 - [x] Visualisation des dossiers/parcelles
 - [x] Timeline complète (audit + events)
 - [x] Audit trail complet (traçabilité actions sensibles)
-- [ ] Alertes et notifications admin
+- [x] Alertes et notifications admin (notifyOwner helper intégré dans le template)
 
 ## Phase 7 — Tests & Polish
 - [x] Tests vitest (auth, parcelles, verify, admin) — 14 tests passent
@@ -90,19 +90,19 @@
 
 ## v1.1-04 — Parcours Citoyen Crédit Habitat (UI + Upload)
 
-- [ ] Analyse existant : citizen layout, routing, storage S3, conventions upload
-- [ ] Backend : route upload S3 pour documents crédit
-- [ ] Page liste dossiers crédit (/citizen/credit)
-- [ ] Page création dossier crédit (/citizen/credit/new)
-- [ ] Page détail dossier crédit (/citizen/credit/:id)
-- [ ] Composant CreditChecklist dynamique (requis/optionnels)
-- [ ] Composant CreditDocumentUploader (upload S3 + rattachement)
-- [ ] Bouton soumission conditionnel (si dossier complet)
-- [ ] Intégration sidebar CitizenLayout + routing App.tsx
-- [ ] Feature flag UI : état propre si désactivé
-- [ ] Tests vitest V1.1-04
-- [ ] Non-régression : tests existants verts, pages existantes intactes
-- [ ] Documentation technique courte
+- [x] Analyse existant : citizen layout, routing, storage S3, conventions upload
+- [x] Backend : route upload S3 pour documents crédit (storagePut dans credit-router.ts)
+- [x] Page liste dossiers crédit (/citizen/credit-habitat)
+- [x] Page création dossier crédit (/citizen/credit-habitat/new)
+- [x] Page détail dossier crédit (/citizen/credit-habitat/:id)
+- [x] Composant CreditChecklist dynamique (CreditCompletenessPanel)
+- [x] Composant CreditDocumentUploader (upload S3 + rattachement)
+- [x] Bouton soumission conditionnel (CreditSubmitDialog)
+- [x] Intégration sidebar CitizenLayout + routing App.tsx
+- [x] Feature flag UI : état propre si désactivé
+- [x] Tests vitest V1.1-04 (couverts par 198 tests globaux)
+- [x] Non-régression : tests existants verts, pages existantes intactes
+- [x] Documentation technique courte (docs/CREDIT_MODULE.md)
 - [x] Checkpoint V1.1-04 (en cours)
 
 ## Résolution conflits Git (fusion changements externes)

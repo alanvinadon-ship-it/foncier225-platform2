@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { protectedProcedure, router } from "./_core/trpc";
+import { notifyOwner } from "./_core/notification";
 import { CreditChecklistService } from "./credit-checklist.service";
 import { CreditWorkflowService } from "./credit-workflow.service";
 import { CreditWorkflowEvent } from "@shared/credit-types";
@@ -334,6 +335,12 @@ export const creditRouter = router({
           productType: file.productType,
           timestamp: new Date().toISOString(),
         },
+      });
+
+      // Notify owner of new credit file submission
+      void notifyOwner({
+        title: `Crédit Habitat — Dossier ${file.publicRef ?? `#${input.creditFileId}`} soumis`,
+        content: `Produit: ${file.productType}, Montant: ${file.amountRequestedXof?.toLocaleString("fr-FR") ?? "N/A"} XOF`,
       });
 
       return { creditFileId: input.creditFileId, status: newStatus };

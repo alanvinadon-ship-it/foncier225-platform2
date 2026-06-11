@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { adminProcedure, protectedProcedure, router } from "./_core/trpc";
+import { notifyOwner } from "./_core/notification";
 import {
   createAuditEvent,
   createLandTitleApplication,
@@ -439,6 +440,13 @@ const adminLandTitleRouter = router({
         targetId: input.applicationId,
         details: { previousStatus, newStatus: input.newStatus, notes: input.notes },
       });
+
+      // Notify owner on critical status changes
+      void notifyOwner({
+        title: `Titre Foncier — Avancement dossier #${app.applicationNumber}`,
+        content: `Statut passé de ${previousStatus} à ${input.newStatus}${input.notes ? ` (note: ${input.notes})` : ""}`,
+      });
+
       return { success: true, previousStatus, newStatus: input.newStatus };
     }),
 
@@ -468,6 +476,13 @@ const adminLandTitleRouter = router({
         targetId: input.applicationId,
         details: { previousStatus, newStatus: rejectStatus, reason: input.reason },
       });
+
+      // Notify owner on rejection
+      void notifyOwner({
+        title: `Titre Foncier — Dossier #${app.applicationNumber} REJETÉ`,
+        content: `Motif: ${input.reason}`,
+      });
+
       return { success: true };
     }),
 
