@@ -513,3 +513,130 @@ export const territoryStatusHistory = mysqlTable(
 
 export type TerritoryStatusHistory = typeof territoryStatusHistory.$inferSelect;
 export type InsertTerritoryStatusHistory = typeof territoryStatusHistory.$inferInsert;
+
+// ============================================================
+// MODULE TITRE FONCIER (Certificat Foncier + Immatriculation)
+// ============================================================
+
+export const landTitleApplications = mysqlTable(
+  "land_title_applications",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    applicationNumber: varchar("applicationNumber", { length: 50 }).notNull().unique(),
+    userId: int("userId").notNull().references(() => users.id, { onDelete: "restrict" }),
+    phase: mysqlEnum("phase", ["certificate", "title"]).default("certificate").notNull(),
+    status: varchar("status", { length: 30 }).default("cf_draft").notNull(),
+    parcelId: int("parcelId").references(() => parcels.id, { onDelete: "set null" }),
+    territoryId: int("territoryId").references(() => villageTerritories.id, { onDelete: "set null" }),
+    applicantFullName: varchar("applicantFullName", { length: 255 }).notNull(),
+    applicantNationality: varchar("applicantNationality", { length: 100 }),
+    applicantIdType: varchar("applicantIdType", { length: 50 }),
+    applicantIdNumber: varchar("applicantIdNumber", { length: 100 }),
+    landDescription: text("landDescription"),
+    landLocality: varchar("landLocality", { length: 255 }),
+    landSubPrefecture: varchar("landSubPrefecture", { length: 255 }),
+    landDepartment: varchar("landDepartment", { length: 255 }),
+    landRegion: varchar("landRegion", { length: 255 }),
+    landAreaHectares: varchar("landAreaHectares", { length: 32 }),
+    operatorName: varchar("operatorName", { length: 255 }),
+    operatorLicense: varchar("operatorLicense", { length: 100 }),
+    inquiryCommissioner: varchar("inquiryCommissioner", { length: 255 }),
+    publicityStartDate: bigint("publicityStartDate", { mode: "number" }),
+    publicityEndDate: bigint("publicityEndDate", { mode: "number" }),
+    certificateNumber: varchar("certificateNumber", { length: 100 }),
+    certificateSignedAt: bigint("certificateSignedAt", { mode: "number" }),
+    certificateExpiryAt: bigint("certificateExpiryAt", { mode: "number" }),
+    apfrNumber: varchar("apfrNumber", { length: 100 }),
+    titleNumber: varchar("titleNumber", { length: 100 }),
+    titleRegisteredAt: bigint("titleRegisteredAt", { mode: "number" }),
+    presforEligible: boolean("presforEligible").default(false).notNull(),
+    notes: text("notes"),
+    createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+    updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
+  },
+  table => ({
+    userIdx: index("idx_lta_user").on(table.userId),
+    statusIdx: index("idx_lta_status").on(table.status),
+    phaseIdx: index("idx_lta_phase").on(table.phase),
+    parcelIdx: index("idx_lta_parcel").on(table.parcelId),
+    territoryIdx: index("idx_lta_territory").on(table.territoryId),
+  })
+);
+
+export type LandTitleApplication = typeof landTitleApplications.$inferSelect;
+export type InsertLandTitleApplication = typeof landTitleApplications.$inferInsert;
+
+export const landTitleSteps = mysqlTable(
+  "land_title_steps",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    applicationId: int("appId").notNull().references(() => landTitleApplications.id, { onDelete: "cascade" }),
+    stepType: varchar("stepType", { length: 50 }).notNull(),
+    status: mysqlEnum("status", ["pending", "in_progress", "completed", "skipped"]).default("pending").notNull(),
+    startedAt: bigint("startedAt", { mode: "number" }),
+    completedAt: bigint("completedAt", { mode: "number" }),
+    completedBy: int("completedBy").references(() => users.id, { onDelete: "set null" }),
+    notes: text("notes"),
+    metadata: json("metadata").$type<Record<string, unknown>>(),
+    createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+  },
+  table => ({
+    applicationIdx: index("idx_lts_application").on(table.applicationId),
+    stepTypeIdx: index("idx_lts_step_type").on(table.stepType),
+  })
+);
+
+export type LandTitleStep = typeof landTitleSteps.$inferSelect;
+export type InsertLandTitleStep = typeof landTitleSteps.$inferInsert;
+
+export const landTitleDocuments = mysqlTable(
+  "land_title_documents",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    applicationId: int("appId").notNull().references(() => landTitleApplications.id, { onDelete: "cascade" }),
+    documentType: varchar("documentType", { length: 50 }).notNull(),
+    label: varchar("label", { length: 255 }).notNull(),
+    fileUrl: text("fileUrl").notNull(),
+    fileKey: varchar("fileKey", { length: 500 }).notNull(),
+    mimeType: varchar("mimeType", { length: 100 }),
+    fileSizeBytes: int("fileSizeBytes"),
+    sha256: varchar("sha256", { length: 64 }),
+    uploadedBy: int("uploadedBy").notNull().references(() => users.id, { onDelete: "restrict" }),
+    stepId: int("stepId").references(() => landTitleSteps.id, { onDelete: "set null" }),
+    verified: boolean("verified").default(false).notNull(),
+    verifiedBy: int("verifiedBy").references(() => users.id, { onDelete: "set null" }),
+    verifiedAt: bigint("verifiedAt", { mode: "number" }),
+    createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+  },
+  table => ({
+    applicationIdx: index("idx_ltd_application").on(table.applicationId),
+    docTypeIdx: index("idx_ltd_doc_type").on(table.documentType),
+    uploadedByIdx: index("idx_ltd_uploaded_by").on(table.uploadedBy),
+  })
+);
+
+export type LandTitleDocument = typeof landTitleDocuments.$inferSelect;
+export type InsertLandTitleDocument = typeof landTitleDocuments.$inferInsert;
+
+export const landTitleOppositions = mysqlTable(
+  "land_title_oppositions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    applicationId: int("appId").notNull().references(() => landTitleApplications.id, { onDelete: "cascade" }),
+    opponentName: varchar("opponentName", { length: 255 }).notNull(),
+    opponentContact: varchar("opponentContact", { length: 255 }),
+    reason: text("reason").notNull(),
+    status: mysqlEnum("status", ["pending", "confirmed", "dismissed"]).default("pending").notNull(),
+    resolutionNotes: text("resolutionNotes"),
+    resolvedBy: int("resolvedBy").references(() => users.id, { onDelete: "set null" }),
+    resolvedAt: bigint("resolvedAt", { mode: "number" }),
+    createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+  },
+  table => ({
+    applicationIdx: index("idx_lto_application").on(table.applicationId),
+    statusIdx: index("idx_lto_status").on(table.status),
+  })
+);
+
+export type LandTitleOpposition = typeof landTitleOppositions.$inferSelect;
+export type InsertLandTitleOpposition = typeof landTitleOppositions.$inferInsert;

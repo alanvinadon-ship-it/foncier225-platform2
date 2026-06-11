@@ -7,6 +7,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { bankCreditRouter } from "./bank-credit-router";
 import { delimitationRouter } from "./delimitation-router";
+import { landTitleRouter } from "./land-title-router";
 import { creditRouter } from "./credit-router";
 import { GeneratedDocumentService } from "./generated-document.service";
 import {
@@ -664,6 +665,7 @@ export const appRouter = router({
   credit: creditRouter,
   bankCredit: bankCreditRouter,
   delimitation: delimitationRouter,
+  landTitle: landTitleRouter,
   admin: adminRouter,
 });
 

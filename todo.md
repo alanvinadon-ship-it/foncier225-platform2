@@ -211,3 +211,16 @@
 - [x] Ajouter une procédure tRPC statusHistory pour récupérer l'historique de statut d'un territoire
 - [x] Afficher l'historique détaillé des changements de statut avec la date et l'auteur dans l'interface du projet
 - [x] Vérifier le fonctionnement et les tests (0 erreurs TypeScript, 167 tests PASS)
+
+## v2.0 — Module Titre Foncier (Procédure complète CF + TF)
+
+- [x] Documentation technique complète du module (docs/TITRE_FONCIER_MODULE.md)
+- [x] Schéma DB : tables land_title_applications, land_title_documents, land_title_steps, land_title_oppositions
+- [x] Enums : ApplicationType, ApplicationStatus (10 statuts Phase 1 + 7 statuts Phase 2), StepType, DocumentType
+- [x] Machine d'états : transitions valides Phase 1 (CF) et Phase 2 (TF)
+- [x] Index DB sur colonnes clés (userId, status, applicationNumber)
+- [x] Pousser les migrations en base (pnpm db:push)
+- [x] Helpers DB pour CRUD applications, documents, étapes, oppositions
+- [x] Routeur tRPC titre-foncier avec procédures admin + citoyen
+- [x] Tests vitest pour le routeur titre-foncier
+- [x] Vérifier le fonctionnement complet (0 erreurs TypeScript, 198 tests PASS)

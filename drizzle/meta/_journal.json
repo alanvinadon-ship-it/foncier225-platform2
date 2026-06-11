@@ -78,6 +78,13 @@
       "when": 1781179382268,
       "tag": "0010_omniscient_fixer",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1781180544989,
+      "tag": "0011_wild_wolfsbane",
+      "breakpoints": true
     }
   ]
 }

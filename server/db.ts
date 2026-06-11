@@ -910,3 +910,188 @@ export async function listAllTerritoriesWithFilter(
   }
   return query.orderBy(orderClause).limit(limit).offset(offset);
 }
+
+// ─── Land Title Applications ────────────────────────────────────────
+import {
+  landTitleApplications, InsertLandTitleApplication, LandTitleApplication,
+  landTitleSteps, InsertLandTitleStep,
+  landTitleDocuments, InsertLandTitleDocument,
+  landTitleOppositions, InsertLandTitleOpposition,
+} from "../drizzle/schema";
+
+export async function createLandTitleApplication(app: InsertLandTitleApplication) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(landTitleApplications).values(app);
+  const result = await db.select().from(landTitleApplications)
+    .where(eq(landTitleApplications.applicationNumber, app.applicationNumber))
+    .limit(1);
+  return result[0];
+}
+
+export async function getLandTitleApplicationById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(landTitleApplications)
+    .where(eq(landTitleApplications.id, id)).limit(1);
+  return result[0];
+}
+
+export async function getLandTitleApplicationByNumber(applicationNumber: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(landTitleApplications)
+    .where(eq(landTitleApplications.applicationNumber, applicationNumber)).limit(1);
+  return result[0];
+}
+
+export async function listLandTitleApplicationsByUser(userId: number, limit = 50, offset = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(landTitleApplications)
+    .where(eq(landTitleApplications.userId, userId))
+    .orderBy(desc(landTitleApplications.createdAt))
+    .limit(limit).offset(offset);
+}
+
+export async function countLandTitleApplicationsByUser(userId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.select({ count: sql<number>`count(*)` }).from(landTitleApplications)
+    .where(eq(landTitleApplications.userId, userId));
+  return result[0]?.count ?? 0;
+}
+
+export async function listAllLandTitleApplications(
+  statusFilter?: string,
+  phaseFilter?: string,
+  limit = 50,
+  offset = 0
+) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [];
+  if (statusFilter) conditions.push(eq(landTitleApplications.status, statusFilter));
+  if (phaseFilter) conditions.push(eq(landTitleApplications.phase, phaseFilter as any));
+  const query = db.select().from(landTitleApplications);
+  if (conditions.length > 0) {
+    return query.where(and(...conditions)).orderBy(desc(landTitleApplications.createdAt)).limit(limit).offset(offset);
+  }
+  return query.orderBy(desc(landTitleApplications.createdAt)).limit(limit).offset(offset);
+}
+
+export async function countAllLandTitleApplications(statusFilter?: string, phaseFilter?: string) {
+  const db = await getDb();
+  if (!db) return 0;
+  const conditions = [];
+  if (statusFilter) conditions.push(eq(landTitleApplications.status, statusFilter));
+  if (phaseFilter) conditions.push(eq(landTitleApplications.phase, phaseFilter as any));
+  const query = db.select({ count: sql<number>`count(*)` }).from(landTitleApplications);
+  if (conditions.length > 0) {
+    const result = await query.where(and(...conditions));
+    return result[0]?.count ?? 0;
+  }
+  const result = await query;
+  return result[0]?.count ?? 0;
+}
+
+export async function updateLandTitleApplication(id: number, data: Partial<Omit<InsertLandTitleApplication, "id">>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(landTitleApplications).set({ ...data, updatedAt: Date.now() }).where(eq(landTitleApplications.id, id));
+}
+
+// ─── Land Title Steps ───────────────────────────────────────────────
+export async function createLandTitleStep(step: InsertLandTitleStep) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(landTitleSteps).values(step);
+  const stepId = Number((result as any).insertId);
+  const created = await db.select().from(landTitleSteps).where(eq(landTitleSteps.id, stepId)).limit(1);
+  return created[0];
+}
+
+export async function listLandTitleSteps(applicationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(landTitleSteps)
+    .where(eq(landTitleSteps.applicationId, applicationId))
+    .orderBy(landTitleSteps.createdAt);
+}
+
+export async function updateLandTitleStep(id: number, data: Partial<Omit<InsertLandTitleStep, "id">>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(landTitleSteps).set(data).where(eq(landTitleSteps.id, id));
+}
+
+// ─── Land Title Documents ───────────────────────────────────────────
+export async function createLandTitleDocument(doc: InsertLandTitleDocument) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(landTitleDocuments).values(doc);
+  const docId = Number((result as any).insertId);
+  const created = await db.select().from(landTitleDocuments).where(eq(landTitleDocuments.id, docId)).limit(1);
+  return created[0];
+}
+
+export async function listLandTitleDocuments(applicationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(landTitleDocuments)
+    .where(eq(landTitleDocuments.applicationId, applicationId))
+    .orderBy(desc(landTitleDocuments.createdAt));
+}
+
+export async function getLandTitleDocumentById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(landTitleDocuments).where(eq(landTitleDocuments.id, id)).limit(1);
+  return result[0];
+}
+
+export async function deleteLandTitleDocument(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(landTitleDocuments).where(eq(landTitleDocuments.id, id));
+}
+
+export async function updateLandTitleDocument(id: number, data: Partial<Omit<InsertLandTitleDocument, "id">>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(landTitleDocuments).set(data).where(eq(landTitleDocuments.id, id));
+}
+
+// ─── Land Title Oppositions ────────────────────────────────────────
+export async function createLandTitleOpposition(opp: InsertLandTitleOpposition) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(landTitleOppositions).values(opp);
+  const oppId = Number((result as any).insertId);
+  const created = await db.select().from(landTitleOppositions).where(eq(landTitleOppositions.id, oppId)).limit(1);
+  return created[0];
+}
+
+export async function listLandTitleOppositions(applicationId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(landTitleOppositions)
+    .where(eq(landTitleOppositions.applicationId, applicationId))
+    .orderBy(desc(landTitleOppositions.createdAt));
+}
+
+export async function updateLandTitleOpposition(id: number, data: Partial<Omit<InsertLandTitleOpposition, "id">>) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(landTitleOppositions).set(data).where(eq(landTitleOppositions.id, id));
+}
+
+export async function countLandTitleOppositionsByApplication(applicationId: number, status?: string) {
+  const db = await getDb();
+  if (!db) return 0;
+  const conditions = [eq(landTitleOppositions.applicationId, applicationId)];
+  if (status) conditions.push(eq(landTitleOppositions.status, status as any));
+  const result = await db.select({ count: sql<number>`count(*)` }).from(landTitleOppositions)
+    .where(and(...conditions));
+  return result[0]?.count ?? 0;
+}
