@@ -271,10 +271,19 @@ export default function DelimitationVillageoise() {
     },
   });
 
+  const updateStatusMutation = trpc.delimitation.updateStatus.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Statut mis à jour : ${getStatusLabel(data.newStatus!)}`);
+      utils.delimitation.getById.invalidate({ territoryId: activeTerritoryId! });
+      utils.delimitation.list.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const exportPdfMutation = trpc.delimitation.exportPdf.useMutation({
     onSuccess: (data) => {
       window.open(data.url, "_blank");
-      toast.success("PDF g\u00e9n\u00e9r\u00e9 avec succ\u00e8s");
+      toast.success("PDF généré avec succès");
     },
     onError: (err) => toast.error(err.message),
   });
@@ -911,6 +920,18 @@ ${boundaryPoints.map((p) => `  <wpt lat="${p.lat}" lon="${p.lng}">
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      draft: "Brouillon",
+      collecting: "Collecte",
+      submitted: "En révision",
+      validated_chief: "Validé chef",
+      official: "Officiel",
+      synced: "Synchronisé SIFOR",
+    };
+    return labels[status] || status;
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
       draft: { label: "Brouillon", className: "bg-gray-100 text-gray-700 border-gray-300", icon: <Pencil className="h-3 w-3" /> },
@@ -1128,6 +1149,37 @@ ${boundaryPoints.map((p) => `  <wpt lat="${p.lat}" lon="${p.lng}">
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3">
                 {getStatusBadge(territoryDetail.territory.status)}
+              </div>
+              {/* Status selector */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Modifier le statut</Label>
+                <div className="flex gap-2">
+                  <select
+                    className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    value={territoryDetail.territory.status}
+                    onChange={(e) => {
+                      if (e.target.value !== territoryDetail.territory.status) {
+                        updateStatusMutation.mutate({
+                          territoryId: activeTerritoryId!,
+                          status: e.target.value as any,
+                        });
+                      }
+                    }}
+                    disabled={updateStatusMutation.isPending}
+                  >
+                    <option value="draft">Brouillon</option>
+                    <option value="collecting">En cours (Collecte)</option>
+                    <option value="submitted">En révision</option>
+                    <option value="validated_chief">Validé (Chef)</option>
+                    <option value="official">Validé (Officiel)</option>
+                    <option value="synced">Synchronisé SIFOR</option>
+                  </select>
+                  {updateStatusMutation.isPending && (
+                    <span className="flex items-center">
+                      <span className="h-4 w-4 border-2 border-ci-green border-t-transparent rounded-full animate-spin" />
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">

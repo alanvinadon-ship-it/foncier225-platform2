@@ -361,4 +361,51 @@ describe("delimitation-router", () => {
       })).rejects.toThrow("introuvable");
     });
   });
+
+  describe("updateStatus", () => {
+    it("changes territory status and creates audit event", async () => {
+      (getTerritoryByIdAndOwner as any).mockResolvedValueOnce({ ...mockTerritory, status: "draft" });
+      (updateTerritory as any).mockResolvedValueOnce(undefined);
+      (createAuditEvent as any).mockResolvedValueOnce(undefined);
+
+      const caller = createCaller();
+      const result = await caller.delimitation.updateStatus({
+        territoryId: 1,
+        status: "collecting",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.previousStatus).toBe("draft");
+      expect(result.newStatus).toBe("collecting");
+      expect(updateTerritory).toHaveBeenCalledWith(1, { status: "collecting" });
+      expect(createAuditEvent).toHaveBeenCalledWith(expect.objectContaining({
+        action: "delimitation.territory.status_changed",
+        details: { previousStatus: "draft", newStatus: "collecting" },
+      }));
+    });
+
+    it("returns success without update when status is unchanged", async () => {
+      (getTerritoryByIdAndOwner as any).mockResolvedValueOnce({ ...mockTerritory, status: "submitted" });
+
+      const caller = createCaller();
+      const result = await caller.delimitation.updateStatus({
+        territoryId: 1,
+        status: "submitted",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.message).toBe("Statut inchang\u00e9.");
+      expect(updateTerritory).not.toHaveBeenCalled();
+    });
+
+    it("rejects non-admin users", async () => {
+      const nonAdminUser = { id: 3, name: "Regular User", role: "user" as const, openId: "user-open-id", email: "user@test.com" };
+      const caller = createCaller(nonAdminUser as any);
+
+      await expect(caller.delimitation.updateStatus({
+        territoryId: 1,
+        status: "official",
+      })).rejects.toThrow();
+    });
+  });
 });

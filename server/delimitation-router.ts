@@ -430,6 +430,50 @@ export const delimitationRouter = router({
       return { success: true };
     }),
 
+  // Manually update territory status (admin override)
+  updateStatus: adminProcedure
+    .input(z.object({
+      territoryId: z.number().int().positive(),
+      status: z.enum(["draft", "collecting", "submitted", "validated_chief", "official", "synced"]),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const territory = await verifyTerritoryOwnership(input.territoryId, ctx.user.id);
+      const previousStatus = territory.status;
+
+      if (previousStatus === input.status) {
+        return { success: true, message: "Statut inchangé." };
+      }
+
+      const updateData: Record<string, any> = { status: input.status };
+
+      // Set relevant timestamps based on new status
+      if (input.status === "validated_chief" && !territory.chiefSignedAt) {
+        updateData.chiefSignedAt = new Date();
+      }
+      if (input.status === "official" && !territory.officializedAt) {
+        updateData.officializedAt = new Date();
+      }
+      if (input.status === "synced" && !territory.syncedAt) {
+        updateData.syncedAt = new Date();
+        if (!territory.siforCode) {
+          updateData.siforCode = `SIFOR-CI-${territory.code}-${Date.now().toString(36).toUpperCase()}`;
+        }
+      }
+
+      await updateTerritory(territory.id, updateData);
+
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: "delimitation.territory.status_changed",
+        targetType: "village_territory",
+        targetId: territory.id,
+        details: { previousStatus, newStatus: input.status },
+      });
+
+      return { success: true, previousStatus, newStatus: input.status };
+    }),
+
   // List documents by step
   listDocumentsByStep: adminProcedure
     .input(z.object({

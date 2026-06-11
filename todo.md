@@ -194,3 +194,11 @@
 - [x] Mettre à jour les routes dans App.tsx (de /citizen/delimitation vers /admin/delimitation)
 - [x] Procédures tRPC déjà protégées par protectedProcedure (accès authentifié requis)
 - [x] Vérifier le fonctionnement et les tests (0 erreurs TypeScript, 164 tests PASS)
+
+## v1.3.6 — Statut modifiable pour la délimitation villageoise
+
+- [x] Ajouter une procédure tRPC updateStatus permettant à l'admin de changer manuellement le statut d'un territoire
+- [x] Ajouter un sélecteur de statut (dropdown) dans l'interface de la page de détail d'un territoire
+- [x] Afficher les 6 statuts : Brouillon, En cours (Collecte), En révision, Validé (Chef), Validé (Officiel), Synchronisé SIFOR
+- [x] Enregistrer un audit event à chaque changement de statut manuel (delimitation.territory.status_changed)
+- [x] Vérifier le fonctionnement et les tests (0 erreurs TypeScript, 164 tests PASS)
