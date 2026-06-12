@@ -708,3 +708,37 @@
 - [x] Fallback si GPS non disponible (saisie manuelle)
 - [x] Champs latitude/longitude ajoutés à la table parcels (schéma + migration)
 - [x] Tests TypeScript (0 erreurs) et 229 tests PASS
+
+## v3.16 — Module Rendez-vous en ligne (Citoyens ↔ Agents fonciers)
+
+### Schéma DB
+- [x] Créer table `agent_availabilities` (id, agentId, dayOfWeek, startTime, endTime, slotDurationMin, isActive, createdAt)
+- [x] Créer table `appointments` (id, citizenId, agentId, date, startTime, endTime, status, motif, dossierType, dossierId, notes, cancelReason, createdAt, updatedAt)
+- [x] Pousser les migrations (pnpm db:push)
+
+### Backend
+- [x] Helpers DB pour CRUD disponibilités agents et rendez-vous
+- [x] Procédures tRPC citoyen : listAvailableSlots, bookAppointment, cancelAppointment, listMyAppointments
+- [x] Procédures tRPC admin : setAvailability, listAgentAppointments, confirmAppointment, cancelAppointment, listAllAppointments
+
+### Frontend citoyen
+- [x] Page /citizen/appointments avec calendrier interactif (sélection date)
+- [x] Affichage des créneaux disponibles pour la date sélectionnée
+- [x] Formulaire de réservation (motif, type de dossier, notes)
+- [x] Liste des rendez-vous du citoyen (à venir + passés) avec statut
+- [x] Bouton annulation avec motif
+- [x] Lien « Rendez-vous » dans la catégorie Commun du menu citoyen
+
+### Frontend admin
+- [x] Page /admin/appointments avec vue calendrier des rendez-vous
+- [x] Gestion des disponibilités (créneaux par jour de la semaine)
+- [x] Confirmation/annulation des rendez-vous par l'agent
+- [x] Lien « Rendez-vous » dans la catégorie Commun du menu admin
+
+### Notifications
+- [x] Notification citoyen à la confirmation du rendez-vous
+- [x] Notification citoyen en cas d'annulation par l'agent
+- [x] Notification citoyen à la prise de rendez-vous (in-app)
+
+### Validation
+- [x] Tests TypeScript (0 erreurs) et 243 tests PASS (14 tests rendez-vous)

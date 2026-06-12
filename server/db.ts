@@ -27,6 +27,8 @@ import {
   urbanAcdSteps, InsertUrbanAcdStep,
   urbanAcdDocuments, InsertUrbanAcdDocument,
   urbanAcdOppositions, InsertUrbanAcdOpposition,
+  agentAvailabilities, InsertAgentAvailability,
+  appointments, InsertAppointment,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1758,4 +1760,237 @@ export async function updateParcelCoords(parcelId: number, ownerId: number, lati
     .set({ latitude, longitude })
     .where(eq(parcels.id, parcelId));
   return { success: true };
+}
+
+// ============================================================
+// MODULE RENDEZ-VOUS (Citoyens ↔ Agents fonciers)
+// ============================================================
+
+// ─── Agent Availabilities ───────────────────────────────────────────────
+
+export async function getAgentAvailabilities(agentId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(agentAvailabilities)
+    .where(eq(agentAvailabilities.agentId, agentId))
+    .orderBy(agentAvailabilities.dayOfWeek);
+}
+
+export async function setAgentAvailability(data: InsertAgentAvailability) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [existing] = await db.select().from(agentAvailabilities)
+    .where(and(
+      eq(agentAvailabilities.agentId, data.agentId),
+      eq(agentAvailabilities.dayOfWeek, data.dayOfWeek)
+    ))
+    .limit(1);
+  if (existing) {
+    await db.update(agentAvailabilities)
+      .set({ startTime: data.startTime, endTime: data.endTime, slotDurationMin: data.slotDurationMin, isActive: data.isActive, updatedAt: data.updatedAt })
+      .where(eq(agentAvailabilities.id, existing.id));
+    return existing.id;
+  } else {
+    const [result] = await db.insert(agentAvailabilities).values(data);
+    return result.insertId;
+  }
+}
+
+export async function deleteAgentAvailability(id: number, agentId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(agentAvailabilities)
+    .where(and(eq(agentAvailabilities.id, id), eq(agentAvailabilities.agentId, agentId)));
+}
+
+export async function listAllAgents() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({ id: users.id, name: users.name, role: users.role })
+    .from(users)
+    .where(
+      sql`${users.role} IN ('admin', 'agent_terrain', 'agent_mclu', 'geometre_urbain', 'conservateur')`
+    );
+}
+
+export async function getAvailableSlotsForDate(agentId: number, date: string) {
+  const db = await getDb();
+  if (!db) return [];
+  // Get day of week from date string (0=Sunday, 6=Saturday)
+  const dayOfWeek = new Date(date).getDay();
+  // Get agent availability for this day
+  const [availability] = await db.select().from(agentAvailabilities)
+    .where(and(
+      eq(agentAvailabilities.agentId, agentId),
+      eq(agentAvailabilities.dayOfWeek, dayOfWeek),
+      eq(agentAvailabilities.isActive, true)
+    ))
+    .limit(1);
+  if (!availability) return [];
+  // Get existing appointments for this date
+  const existingAppointments = await db.select().from(appointments)
+    .where(and(
+      eq(appointments.agentId, agentId),
+      eq(appointments.date, date),
+      sql`${appointments.status} NOT IN ('cancelled_citizen', 'cancelled_agent')`
+    ));
+  // Generate slots
+  const slots: { startTime: string; endTime: string; available: boolean }[] = [];
+  const [startH, startM] = availability.startTime.split(":").map(Number);
+  const [endH, endM] = availability.endTime.split(":").map(Number);
+  const startMinutes = startH * 60 + startM;
+  const endMinutes = endH * 60 + endM;
+  const duration = availability.slotDurationMin;
+  for (let m = startMinutes; m + duration <= endMinutes; m += duration) {
+    const slotStart = `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    const slotEnd = `${String(Math.floor((m + duration) / 60)).padStart(2, "0")}:${String((m + duration) % 60).padStart(2, "0")}`;
+    const isBooked = existingAppointments.some(a => a.startTime === slotStart);
+    slots.push({ startTime: slotStart, endTime: slotEnd, available: !isBooked });
+  }
+  return slots;
+}
+
+// ─── Appointments ───────────────────────────────────────────────
+
+export async function createAppointment(data: InsertAppointment) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Check slot not already booked
+  const [existing] = await db.select().from(appointments)
+    .where(and(
+      eq(appointments.agentId, data.agentId),
+      eq(appointments.date, data.date),
+      eq(appointments.startTime, data.startTime),
+      sql`${appointments.status} NOT IN ('cancelled_citizen', 'cancelled_agent')`
+    ))
+    .limit(1);
+  if (existing) throw new Error("Ce créneau est déjà réservé");
+  const [result] = await db.insert(appointments).values(data);
+  return result.insertId;
+}
+
+export async function getAppointmentById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [appointment] = await db.select().from(appointments).where(eq(appointments.id, id)).limit(1);
+  return appointment ?? null;
+}
+
+export async function listCitizenAppointments(citizenId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: appointments.id,
+    agentId: appointments.agentId,
+    agentName: users.name,
+    date: appointments.date,
+    startTime: appointments.startTime,
+    endTime: appointments.endTime,
+    status: appointments.status,
+    motif: appointments.motif,
+    dossierType: appointments.dossierType,
+    dossierId: appointments.dossierId,
+    notes: appointments.notes,
+    cancelReason: appointments.cancelReason,
+    createdAt: appointments.createdAt,
+  })
+    .from(appointments)
+    .innerJoin(users, eq(users.id, appointments.agentId))
+    .where(eq(appointments.citizenId, citizenId))
+    .orderBy(sql`${appointments.date} DESC, ${appointments.startTime} DESC`);
+}
+
+export async function listAgentAppointments(agentId: number, dateFrom?: string, dateTo?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [eq(appointments.agentId, agentId)];
+  if (dateFrom) conditions.push(sql`${appointments.date} >= ${dateFrom}`);
+  if (dateTo) conditions.push(sql`${appointments.date} <= ${dateTo}`);
+  return db.select({
+    id: appointments.id,
+    citizenId: appointments.citizenId,
+    citizenName: users.name,
+    date: appointments.date,
+    startTime: appointments.startTime,
+    endTime: appointments.endTime,
+    status: appointments.status,
+    motif: appointments.motif,
+    dossierType: appointments.dossierType,
+    dossierId: appointments.dossierId,
+    notes: appointments.notes,
+    cancelReason: appointments.cancelReason,
+    createdAt: appointments.createdAt,
+  })
+    .from(appointments)
+    .innerJoin(users, eq(users.id, appointments.citizenId))
+    .where(and(...conditions))
+    .orderBy(sql`${appointments.date} ASC, ${appointments.startTime} ASC`);
+}
+
+export async function listAllAppointments(dateFrom?: string, dateTo?: string, status?: string) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions: any[] = [];
+  if (dateFrom) conditions.push(sql`${appointments.date} >= ${dateFrom}`);
+  if (dateTo) conditions.push(sql`${appointments.date} <= ${dateTo}`);
+  if (status) conditions.push(eq(appointments.status, status as any));
+  const baseQuery = db.select({
+    id: appointments.id,
+    citizenId: appointments.citizenId,
+    agentId: appointments.agentId,
+    date: appointments.date,
+    startTime: appointments.startTime,
+    endTime: appointments.endTime,
+    status: appointments.status,
+    motif: appointments.motif,
+    dossierType: appointments.dossierType,
+    dossierId: appointments.dossierId,
+    createdAt: appointments.createdAt,
+  }).from(appointments);
+  if (conditions.length > 0) {
+    return baseQuery.where(and(...conditions)).orderBy(sql`${appointments.date} DESC, ${appointments.startTime} DESC`);
+  }
+  return baseQuery.orderBy(sql`${appointments.date} DESC, ${appointments.startTime} DESC`);
+}
+
+export async function cancelAppointment(id: number, userId: number, role: "citizen" | "agent", reason?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [appt] = await db.select().from(appointments).where(eq(appointments.id, id)).limit(1);
+  if (!appt) throw new Error("Rendez-vous non trouvé");
+  if (role === "citizen" && appt.citizenId !== userId) throw new Error("Accès non autorisé");
+  if (role === "agent" && appt.agentId !== userId) throw new Error("Accès non autorisé");
+  if (appt.status === "cancelled_citizen" || appt.status === "cancelled_agent") {
+    throw new Error("Ce rendez-vous est déjà annulé");
+  }
+  const newStatus = role === "citizen" ? "cancelled_citizen" : "cancelled_agent";
+  await db.update(appointments)
+    .set({ status: newStatus, cancelReason: reason ?? null, updatedAt: Date.now() })
+    .where(eq(appointments.id, id));
+  return { ...appt, status: newStatus };
+}
+
+export async function confirmAppointment(id: number, agentId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [appt] = await db.select().from(appointments).where(eq(appointments.id, id)).limit(1);
+  if (!appt) throw new Error("Rendez-vous non trouvé");
+  if (appt.agentId !== agentId) throw new Error("Accès non autorisé");
+  if (appt.status !== "pending") throw new Error("Seuls les rendez-vous en attente peuvent être confirmés");
+  await db.update(appointments)
+    .set({ status: "confirmed", updatedAt: Date.now() })
+    .where(eq(appointments.id, id));
+  return { ...appt, status: "confirmed" as const };
+}
+
+export async function completeAppointment(id: number, agentId: number, notes?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [appt] = await db.select().from(appointments).where(eq(appointments.id, id)).limit(1);
+  if (!appt) throw new Error("Rendez-vous non trouvé");
+  if (appt.agentId !== agentId) throw new Error("Accès non autorisé");
+  await db.update(appointments)
+    .set({ status: "completed", notes: notes ?? appt.notes, updatedAt: Date.now() })
+    .where(eq(appointments.id, id));
+  return { ...appt, status: "completed" as const };
 }

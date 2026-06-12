@@ -51,6 +51,8 @@ const NewApplication = lazy(() => import("./pages/citizen/NewApplication"));
 const UrbanWorkflowPage = lazy(() => import("./pages/UrbanWorkflowPage"));
 const MyDossiers = lazy(() => import("./pages/citizen/MyDossiers"));
 const Payments = lazy(() => import("./pages/citizen/Payments"));
+const CitizenAppointments = lazy(() => import("./pages/citizen/Appointments"));
+const AdminAppointments = lazy(() => import("./pages/admin/AdminAppointments"));
 
 function RouteFallback() {
   return (
@@ -184,6 +186,11 @@ function Router() {
           <WorkflowPage />
         </CitizenLayout>
       </Route>
+      <Route path="/citizen/appointments">
+        <CitizenLayout>
+          <CitizenAppointments />
+        </CitizenLayout>
+      </Route>
       <Route path="/citizen/notifications">
         <CitizenLayout>
           <NotificationSettings />
@@ -261,6 +268,11 @@ function Router() {
       <Route path="/admin/sig-dashboard">
         <DashboardLayout>
           <AdminSigDashboard />
+        </DashboardLayout>
+      </Route>
+      <Route path="/admin/appointments">
+        <DashboardLayout>
+          <AdminAppointments />
         </DashboardLayout>
       </Route>
       <Route path="/admin/urban-acd">

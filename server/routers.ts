@@ -11,6 +11,7 @@ import { landTitleRouter } from "./land-title-router";
 import { creditRouter } from "./credit-router";
 import { urbanAcdRouter } from "./urban-acd-router";
 import { citizenPaymentRouter, adminPaymentRouter } from "./payment-router";
+import { citizenAppointmentRouter, adminAppointmentRouter } from "./appointment-router";
 import { GeneratedDocumentService } from "./generated-document.service";
 import {
   checkRateLimit,
@@ -1152,6 +1153,8 @@ export const appRouter = router({
   urbanAcd: urbanAcdRouter,
   payment: citizenPaymentRouter,
   adminPayment: adminPaymentRouter,
+  appointment: citizenAppointmentRouter,
+  adminAppointment: adminAppointmentRouter,
 });
 
 export type AppRouter = typeof appRouter;

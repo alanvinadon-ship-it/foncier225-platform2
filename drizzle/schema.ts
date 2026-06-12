@@ -930,3 +930,58 @@ export const payments = mysqlTable(
 
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = typeof payments.$inferInsert;
+
+// ============================================================
+// MODULE RENDEZ-VOUS (Citoyens ↔ Agents fonciers)
+// ============================================================
+
+export const agentAvailabilities = mysqlTable(
+  "agent_availabilities",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    agentId: int("agentId").notNull().references(() => users.id, { onDelete: "cascade" }),
+    dayOfWeek: int("dayOfWeek").notNull(), // 0=Dimanche, 1=Lundi ... 6=Samedi
+    startTime: varchar("startTime", { length: 5 }).notNull(), // "08:00"
+    endTime: varchar("endTime", { length: 5 }).notNull(), // "17:00"
+    slotDurationMin: int("slotDurationMin").default(30).notNull(), // durée d'un créneau en minutes
+    isActive: boolean("isActive").default(true).notNull(),
+    createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+    updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
+  },
+  table => ({
+    agentIdx: index("idx_aa_agent").on(table.agentId),
+    dayIdx: index("idx_aa_day").on(table.dayOfWeek),
+  })
+);
+
+export type AgentAvailability = typeof agentAvailabilities.$inferSelect;
+export type InsertAgentAvailability = typeof agentAvailabilities.$inferInsert;
+
+export const appointments = mysqlTable(
+  "appointments",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    citizenId: int("citizenId").notNull().references(() => users.id, { onDelete: "cascade" }),
+    agentId: int("agentId").notNull().references(() => users.id, { onDelete: "cascade" }),
+    date: varchar("date", { length: 10 }).notNull(), // "2026-06-15" (ISO date)
+    startTime: varchar("startTime", { length: 5 }).notNull(), // "09:00"
+    endTime: varchar("endTime", { length: 5 }).notNull(), // "09:30"
+    status: mysqlEnum("status", ["pending", "confirmed", "cancelled_citizen", "cancelled_agent", "completed", "no_show"]).default("pending").notNull(),
+    motif: varchar("motif", { length: 255 }).notNull(),
+    dossierType: mysqlEnum("dossierType", ["land_title", "urban_acd", "credit", "general"]).default("general").notNull(),
+    dossierId: int("dossierId"),
+    notes: text("notes"),
+    cancelReason: text("cancelReason"),
+    createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+    updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
+  },
+  table => ({
+    citizenIdx: index("idx_apt_citizen").on(table.citizenId),
+    agentIdx: index("idx_apt_agent").on(table.agentId),
+    dateIdx: index("idx_apt_date").on(table.date),
+    statusIdx: index("idx_apt_status").on(table.status),
+  })
+);
+
+export type Appointment = typeof appointments.$inferSelect;
+export type InsertAppointment = typeof appointments.$inferInsert;
