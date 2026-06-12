@@ -833,3 +833,19 @@
 - [x] Routeur tRPC interconnexion (procédures admin + citoyen) monté dans appRouter
 - [x] Page admin /admin/interconnexion (dashboard statut des connexions, vérification IDUFCI, journal d'audit)
 - [x] Tests vitest (21 tests interconnexion) et 0 erreurs TypeScript — 283 tests PASS total
+
+## v3.21 — Page Citoyen Suivi Dossiers Inter-systèmes
+
+### Page /citizen/suivi-dossiers
+- [x] Page SuiviDossiers.tsx avec onglets SIGFU / SIFOR-CI
+- [x] Formulaire de recherche par numéro de demande SIGFU
+- [x] Formulaire de recherche par numéro de certificat SIFOR
+- [x] Affichage timeline/étapes du dossier avec statut coloré
+- [x] Détail complet du dossier (demandeur, parcelle, dates, enquête, oppositions)
+- [x] Historique des recherches récentes (localStorage)
+- [x] États vides, chargement et erreur gérés (circuit breaker inclus)
+
+### Intégration
+- [x] Route /citizen/suivi-dossiers dans App.tsx
+- [x] Lien « Suivi SIGFU/SIFOR » dans le menu citoyen (CitizenLayout)
+- [x] Tests TypeScript (0 erreurs) et 283 tests PASS

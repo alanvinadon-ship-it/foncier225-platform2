@@ -57,6 +57,7 @@ const menuCategories: MenuCategory[] = [
       { icon: CreditCard, label: "Paiements", path: "/citizen/payments", badge: false },
       { icon: Search, label: "Suivi dossier", path: "/citizen/suivi", badge: false },
       { icon: CalendarDays, label: "Rendez-vous", path: "/citizen/appointments", badge: false },
+      { icon: Search, label: "Suivi SIGFU/SIFOR", path: "/citizen/suivi-dossiers", badge: false },
       { icon: BellIcon, label: "Alertes", path: "/citizen/notifications", badge: false },
       { icon: User, label: "Mon profil", path: "/citizen/profile", badge: false },
     ],
