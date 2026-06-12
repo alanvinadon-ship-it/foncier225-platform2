@@ -742,3 +742,28 @@
 
 ### Validation
 - [x] Tests TypeScript (0 erreurs) et 243 tests PASS (14 tests rendez-vous)
+
+## v3.17 — Améliorations Module Rendez-vous (Rappels, Calendrier, Dossiers)
+
+### Rappels automatiques 24h avant
+- [x] Job périodique (heartbeat) pour détecter les RDV dans les prochaines 24h
+- [x] Envoi rappel email au citoyen via dispatchNotification
+- [x] Envoi rappel SMS au citoyen via dispatchNotification
+- [x] Notification in-app rappel citoyen + agent
+- [x] Marquage des RDV déjà rappelés (champ reminderSentAt dans appointments)
+
+### Vue calendrier visuelle admin
+- [x] Composant CalendarView hebdomadaire avec créneaux colorés par statut
+- [x] Navigation semaine précédente/suivante
+- [x] Basculement vue calendrier / vue liste (remplacement vue mensuelle)
+- [x] Clic sur un créneau pour voir le détail du rendez-vous (dialog)
+- [x] Légende des couleurs par statut
+
+### Liaison dossier existant
+- [x] Procédure tRPC citoyen listMyDossiers pour lister ses dossiers actifs (land_title, urban_acd, credit)
+- [x] Helper DB listMyActiveDossiers (agrège les 3 modules)
+- [x] Sélecteur de dossier dans le formulaire de réservation (filtré par type, optionnel)
+- [x] Affichage du dossier lié dans la vue admin du rendez-vous (badge dans dialog + liste)
+
+### Validation
+- [x] Tests TypeScript (0 erreurs) et 243 tests PASS

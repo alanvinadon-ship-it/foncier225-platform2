@@ -162,6 +162,13 @@
       "when": 1781247726212,
       "tag": "0022_high_vulture",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "5",
+      "when": 1781248942990,
+      "tag": "0023_first_earthquake",
+      "breakpoints": true
     }
   ]
 }

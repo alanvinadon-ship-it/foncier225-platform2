@@ -100,6 +100,12 @@ export const citizenAppointmentRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {
     return listCitizenAppointments(ctx.user.id);
   }),
+
+  // Lister les dossiers actifs du citoyen (pour liaison au rendez-vous)
+  listMyDossiers: protectedProcedure.query(async ({ ctx }) => {
+    const { listMyActiveDossiers } = await import("./db");
+    return listMyActiveDossiers(ctx.user.id);
+  }),
 });
 
 // ─── Admin Appointment Router ─────────────────────────────────────────

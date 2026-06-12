@@ -8,6 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { delayAlertsHandler } from "../scheduled-delay-alerts";
+import { appointmentRemindersHandler } from "../scheduled-appointment-reminders";
 import { handleCinetPayWebhook } from "../payment-router";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -44,6 +45,7 @@ async function startServer() {
   });
   // Scheduled handlers (must be before tRPC)
   app.post("/api/scheduled/delay-alerts", delayAlertsHandler);
+  app.post("/api/scheduled/appointment-reminders", appointmentRemindersHandler);
   // CinetPay webhook
   app.post("/api/webhooks/cinetpay", handleCinetPayWebhook);
   // OAuth callback under /api/oauth/callback

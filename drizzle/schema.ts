@@ -972,6 +972,7 @@ export const appointments = mysqlTable(
     dossierId: int("dossierId"),
     notes: text("notes"),
     cancelReason: text("cancelReason"),
+    reminderSentAt: bigint("reminderSentAt", { mode: "number" }),
     createdAt: bigint("createdAt", { mode: "number" }).notNull(),
     updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
   },

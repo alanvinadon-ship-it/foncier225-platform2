@@ -1,18 +1,19 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { CalendarDays, Clock, User, CheckCircle2, XCircle, AlertCircle, Settings, Plus } from "lucide-react";
+import { CalendarDays, Clock, User, CheckCircle2, XCircle, AlertCircle, Settings, Plus, ChevronLeft, ChevronRight, List, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 
 const DAYS_FR = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+const DAYS_SHORT = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 
 function getStatusBadge(status: string) {
   switch (status) {
@@ -24,6 +25,247 @@ function getStatusBadge(status: string) {
     case "no_show": return <Badge variant="outline" className="text-gray-600 border-gray-300 bg-gray-50">Absent</Badge>;
     default: return <Badge variant="outline">{status}</Badge>;
   }
+}
+
+function getStatusColor(status: string): string {
+  switch (status) {
+    case "pending": return "bg-amber-100 border-amber-300 text-amber-800";
+    case "confirmed": return "bg-green-100 border-green-300 text-green-800";
+    case "completed": return "bg-blue-100 border-blue-300 text-blue-800";
+    case "cancelled_citizen":
+    case "cancelled_agent": return "bg-red-100 border-red-300 text-red-800";
+    case "no_show": return "bg-gray-100 border-gray-300 text-gray-800";
+    default: return "bg-gray-100 border-gray-300 text-gray-800";
+  }
+}
+
+// ─── Helper: get week dates ─────────────────────────────────────────
+function getWeekDates(weekOffset: number): Date[] {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1) + weekOffset * 7);
+  monday.setHours(0, 0, 0, 0);
+  const dates: Date[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    dates.push(d);
+  }
+  return dates;
+}
+
+function formatDateISO(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+// ─── Calendar Week View ─────────────────────────────────────────────
+function CalendarWeekView() {
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
+  const appointmentsQuery = trpc.adminAppointment.myAppointments.useQuery();
+  const confirmMutation = trpc.adminAppointment.confirm.useMutation({
+    onSuccess: () => { toast.success("Rendez-vous confirmé"); appointmentsQuery.refetch(); setSelectedAppointment(null); },
+    onError: (err) => toast.error(err.message),
+  });
+  const cancelMutation = trpc.adminAppointment.cancel.useMutation({
+    onSuccess: () => { toast.success("Rendez-vous annulé"); appointmentsQuery.refetch(); setSelectedAppointment(null); },
+    onError: (err) => toast.error(err.message),
+  });
+  const completeMutation = trpc.adminAppointment.complete.useMutation({
+    onSuccess: () => { toast.success("Rendez-vous terminé"); appointmentsQuery.refetch(); setSelectedAppointment(null); },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const weekDates = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
+  const allAppointments = appointmentsQuery.data ?? [];
+
+  // Group appointments by date
+  const appointmentsByDate = useMemo(() => {
+    const map: Record<string, typeof allAppointments> = {};
+    for (const apt of allAppointments) {
+      if (!map[apt.date]) map[apt.date] = [];
+      map[apt.date].push(apt);
+    }
+    // Sort each day by startTime
+    for (const key of Object.keys(map)) {
+      map[key].sort((a, b) => a.startTime.localeCompare(b.startTime));
+    }
+    return map;
+  }, [allAppointments]);
+
+  const todayStr = formatDateISO(new Date());
+
+  // Week label
+  const weekStart = weekDates[0];
+  const weekEnd = weekDates[6];
+  const weekLabel = `${weekStart.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} — ${weekEnd.toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}`;
+
+  return (
+    <div className="space-y-4">
+      {/* Navigation */}
+      <div className="flex items-center justify-between">
+        <Button variant="outline" size="sm" onClick={() => setWeekOffset(o => o - 1)}>
+          <ChevronLeft className="w-4 h-4 mr-1" />Semaine précédente
+        </Button>
+        <div className="text-center">
+          <p className="font-semibold text-lg">{weekLabel}</p>
+          {weekOffset !== 0 && (
+            <Button variant="ghost" size="sm" className="text-xs" onClick={() => setWeekOffset(0)}>
+              Aujourd'hui
+            </Button>
+          )}
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setWeekOffset(o => o + 1)}>
+          Semaine suivante<ChevronRight className="w-4 h-4 ml-1" />
+        </Button>
+      </div>
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-3 text-xs">
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-200 border border-amber-400" />En attente</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-200 border border-green-400" />Confirmé</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-200 border border-blue-400" />Terminé</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 border border-red-400" />Annulé</span>
+      </div>
+
+      {/* Week grid */}
+      <div className="grid grid-cols-7 gap-1">
+        {weekDates.map((date, idx) => {
+          const dateStr = formatDateISO(date);
+          const dayAppointments = appointmentsByDate[dateStr] || [];
+          const isToday = dateStr === todayStr;
+
+          return (
+            <div
+              key={dateStr}
+              className={`border rounded-lg min-h-[200px] p-2 ${isToday ? "border-primary bg-primary/5" : "border-border"}`}
+            >
+              {/* Day header */}
+              <div className={`text-center pb-2 mb-2 border-b ${isToday ? "border-primary/30" : "border-border"}`}>
+                <p className="text-xs font-medium text-muted-foreground">{DAYS_SHORT[date.getDay()]}</p>
+                <p className={`text-lg font-bold ${isToday ? "text-primary" : ""}`}>
+                  {date.getDate()}
+                </p>
+              </div>
+
+              {/* Appointments for this day */}
+              <div className="space-y-1">
+                {dayAppointments.map(apt => (
+                  <button
+                    key={apt.id}
+                    onClick={() => setSelectedAppointment(apt)}
+                    className={`w-full text-left p-1.5 rounded border text-xs cursor-pointer hover:opacity-80 transition-opacity ${getStatusColor(apt.status)}`}
+                  >
+                    <p className="font-semibold truncate">{apt.startTime}</p>
+                    <p className="truncate">{apt.citizenName || `#${apt.citizenId}`}</p>
+                  </button>
+                ))}
+                {dayAppointments.length === 0 && (
+                  <p className="text-xs text-muted-foreground text-center mt-4 opacity-50">—</p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Appointment detail dialog */}
+      <Dialog open={!!selectedAppointment} onOpenChange={(open) => { if (!open) setSelectedAppointment(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarDays className="w-5 h-5" />
+              Détail du rendez-vous
+            </DialogTitle>
+          </DialogHeader>
+          {selectedAppointment && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-muted-foreground text-xs">Date</p>
+                  <p className="font-medium">{selectedAppointment.date}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Heure</p>
+                  <p className="font-medium">{selectedAppointment.startTime} — {selectedAppointment.endTime}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Citoyen</p>
+                  <p className="font-medium">{selectedAppointment.citizenName || `Citoyen #${selectedAppointment.citizenId}`}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Statut</p>
+                  {getStatusBadge(selectedAppointment.status)}
+                </div>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs">Motif</p>
+                <p className="text-sm">{selectedAppointment.motif}</p>
+              </div>
+              {selectedAppointment.dossierType !== "general" && (
+                <div>
+                  <p className="text-muted-foreground text-xs">Dossier lié</p>
+                  <Badge variant="secondary">
+                    {selectedAppointment.dossierType === "land_title" ? "Titre foncier" :
+                     selectedAppointment.dossierType === "urban_acd" ? "ACD Urbain" :
+                     selectedAppointment.dossierType === "credit" ? "Crédit habitat" : selectedAppointment.dossierType}
+                    {selectedAppointment.dossierId ? ` #${selectedAppointment.dossierId}` : ""}
+                  </Badge>
+                </div>
+              )}
+              {selectedAppointment.notes && (
+                <div>
+                  <p className="text-muted-foreground text-xs">Notes</p>
+                  <p className="text-sm">{selectedAppointment.notes}</p>
+                </div>
+              )}
+              {selectedAppointment.cancelReason && (
+                <div>
+                  <p className="text-muted-foreground text-xs text-red-500">Motif d'annulation</p>
+                  <p className="text-sm text-red-600">{selectedAppointment.cancelReason}</p>
+                </div>
+              )}
+              <div className="flex gap-2 pt-2 border-t">
+                {selectedAppointment.status === "pending" && (
+                  <Button
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => confirmMutation.mutate({ appointmentId: selectedAppointment.id })}
+                    disabled={confirmMutation.isPending}
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-1" />Confirmer
+                  </Button>
+                )}
+                {(selectedAppointment.status === "pending" || selectedAppointment.status === "confirmed") && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                    onClick={() => cancelMutation.mutate({ appointmentId: selectedAppointment.id, reason: "Annulé par l'agent" })}
+                    disabled={cancelMutation.isPending}
+                  >
+                    <XCircle className="w-4 h-4 mr-1" />Annuler
+                  </Button>
+                )}
+                {selectedAppointment.status === "confirmed" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                    onClick={() => completeMutation.mutate({ appointmentId: selectedAppointment.id })}
+                    disabled={completeMutation.isPending}
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-1" />Terminer
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }
 
 // ─── Availability Manager ───────────────────────────────────────────
@@ -157,7 +399,7 @@ function AvailabilityManager() {
   );
 }
 
-// ─── Appointments List ──────────────────────────────────────────────
+// ─── Appointments List (kept as alternate view) ─────────────────────
 function AppointmentsList() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const appointmentsQuery = trpc.adminAppointment.myAppointments.useQuery();
@@ -257,6 +499,14 @@ function AppointmentsList() {
                   <span className="font-medium">{appt.citizenName || `Citoyen #${appt.citizenId}`}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">{appt.motif}</p>
+                {appt.dossierType !== "general" && (
+                  <Badge variant="secondary" className="text-xs">
+                    {appt.dossierType === "land_title" ? "Titre foncier" :
+                     appt.dossierType === "urban_acd" ? "ACD Urbain" :
+                     appt.dossierType === "credit" ? "Crédit habitat" : appt.dossierType}
+                    {appt.dossierId ? ` #${appt.dossierId}` : ""}
+                  </Badge>
+                )}
                 {appt.cancelReason && (
                   <p className="text-xs text-red-500">Motif annulation : {appt.cancelReason}</p>
                 )}
@@ -309,11 +559,31 @@ function AppointmentsList() {
 
 // ─── Main Page ──────────────────────────────────────────────────────
 export default function AdminAppointments() {
+  const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Gestion des rendez-vous</h1>
-        <p className="text-muted-foreground">Gérez vos disponibilités et les rendez-vous des citoyens</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Gestion des rendez-vous</h1>
+          <p className="text-muted-foreground">Gérez vos disponibilités et les rendez-vous des citoyens</p>
+        </div>
+        <div className="flex items-center gap-1 border rounded-lg p-1">
+          <Button
+            variant={viewMode === "calendar" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("calendar")}
+          >
+            <LayoutGrid className="w-4 h-4 mr-1" />Calendrier
+          </Button>
+          <Button
+            variant={viewMode === "list" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("list")}
+          >
+            <List className="w-4 h-4 mr-1" />Liste
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="appointments">
@@ -323,7 +593,7 @@ export default function AdminAppointments() {
         </TabsList>
 
         <TabsContent value="appointments" className="mt-4">
-          <AppointmentsList />
+          {viewMode === "calendar" ? <CalendarWeekView /> : <AppointmentsList />}
         </TabsContent>
 
         <TabsContent value="availability" className="mt-4">

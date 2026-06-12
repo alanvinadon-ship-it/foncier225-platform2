@@ -1994,3 +1994,49 @@ export async function completeAppointment(id: number, agentId: number, notes?: s
     .where(eq(appointments.id, id));
   return { ...appt, status: "completed" as const };
 }
+
+// ─── Dossiers actifs pour liaison rendez-vous ────────────────────────────────
+export async function listMyActiveDossiers(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const dossiers: { type: "land_title" | "urban_acd" | "credit"; id: number; label: string }[] = [];
+
+  // Land title applications (non-terminal)
+  const ltApps = await db
+    .select({ id: landTitleApplications.id, applicationNumber: landTitleApplications.applicationNumber, status: landTitleApplications.status })
+    .from(landTitleApplications)
+    .where(eq(landTitleApplications.userId, userId));
+  
+  for (const app of ltApps) {
+    if (!["cf_signed", "cf_rejected", "tf_signed", "tf_registered", "tf_rejected"].includes(app.status)) {
+      dossiers.push({ type: "land_title", id: app.id, label: `Titre foncier — ${app.applicationNumber}` });
+    }
+  }
+
+  // Urban ACD applications (non-terminal)
+  const acdApps = await db
+    .select({ id: urbanAcdApplications.id, applicationNumber: urbanAcdApplications.applicationNumber, status: urbanAcdApplications.status })
+    .from(urbanAcdApplications)
+    .where(eq(urbanAcdApplications.userId, userId));
+  
+  for (const app of acdApps) {
+    if (!["acd_delivered", "acd_rejected", "acd_cancelled"].includes(app.status)) {
+      dossiers.push({ type: "urban_acd", id: app.id, label: `ACD Urbain — ${app.applicationNumber}` });
+    }
+  }
+
+  // Credit files (non-terminal)
+  const creditApps = await db
+    .select({ id: creditFiles.id, publicRef: creditFiles.publicRef, status: creditFiles.status })
+    .from(creditFiles)
+    .where(eq(creditFiles.initiatorId, userId));
+  
+  for (const app of creditApps) {
+    if (!["closed", "rejected", "disbursed"].includes(app.status)) {
+      dossiers.push({ type: "credit", id: app.id, label: `Crédit habitat — ${app.publicRef}` });
+    }
+  }
+
+  return dossiers;
+}

@@ -105,7 +105,11 @@ function BookingDialog({ agents, onSuccess }: { agents: { id: number; name: stri
   const [selectedSlot, setSelectedSlot] = useState<{ startTime: string; endTime: string } | null>(null);
   const [motif, setMotif] = useState("");
   const [dossierType, setDossierType] = useState("general");
+  const [dossierId, setDossierId] = useState<string>("");
   const [notes, setNotes] = useState("");
+
+  // Charger les dossiers actifs du citoyen
+  const dossiersQuery = trpc.appointment.listMyDossiers.useQuery(undefined, { enabled: open });
 
   const slotsQuery = trpc.appointment.availableSlots.useQuery(
     { agentId: Number(selectedAgent), date: selectedDate },
@@ -130,6 +134,7 @@ function BookingDialog({ agents, onSuccess }: { agents: { id: number; name: stri
     setSelectedSlot(null);
     setMotif("");
     setDossierType("general");
+    setDossierId("");
     setNotes("");
   };
 
@@ -142,9 +147,13 @@ function BookingDialog({ agents, onSuccess }: { agents: { id: number; name: stri
       endTime: selectedSlot.endTime,
       motif,
       dossierType: dossierType as any,
+      dossierId: dossierId ? Number(dossierId) : undefined,
       notes: notes || undefined,
     });
   };
+
+  // Filtrer les dossiers par type sélectionné
+  const filteredDossiers = (dossiersQuery.data ?? []).filter(d => d.type === dossierType);
 
   const availableSlots = slotsQuery.data?.filter(s => s.available) ?? [];
 
@@ -224,7 +233,7 @@ function BookingDialog({ agents, onSuccess }: { agents: { id: number; name: stri
               </div>
               <div className="space-y-2">
                 <Label>Type de dossier (optionnel)</Label>
-                <Select value={dossierType} onValueChange={setDossierType}>
+                <Select value={dossierType} onValueChange={(v) => { setDossierType(v); setDossierId(""); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="general">Général</SelectItem>
@@ -234,6 +243,25 @@ function BookingDialog({ agents, onSuccess }: { agents: { id: number; name: stri
                   </SelectContent>
                 </Select>
               </div>
+              {dossierType !== "general" && (
+                <div className="space-y-2">
+                  <Label>Lier à un dossier existant (optionnel)</Label>
+                  {dossiersQuery.isLoading ? (
+                    <p className="text-sm text-muted-foreground">Chargement de vos dossiers...</p>
+                  ) : filteredDossiers.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Aucun dossier actif de ce type trouvé.</p>
+                  ) : (
+                    <Select value={dossierId} onValueChange={setDossierId}>
+                      <SelectTrigger><SelectValue placeholder="Sélectionner un dossier..." /></SelectTrigger>
+                      <SelectContent>
+                        {filteredDossiers.map(d => (
+                          <SelectItem key={d.id} value={String(d.id)}>{d.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Notes supplémentaires (optionnel)</Label>
                 <Textarea
