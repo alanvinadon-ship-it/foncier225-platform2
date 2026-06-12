@@ -1,5 +1,7 @@
 import { trpc } from "@/lib/trpc";
-import { MapPin, FileText, Clock, ArrowRight, BarChart3, PieChart, TrendingUp } from "lucide-react";
+import { MapPin, FileText, Clock, ArrowRight, BarChart3, PieChart, TrendingUp, Map } from "lucide-react";
+import { lazy, Suspense } from "react";
+const ParcelMap = lazy(() => import("@/components/ParcelMap"));
 import { Link } from "wouter";
 import { useEffect, useRef } from "react";
 
@@ -320,6 +322,33 @@ export default function CitizenDashboard() {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      </div>
+      {/* Carte des parcelles */}
+      <div className="border rounded-lg bg-background">
+        <div className="flex items-center justify-between p-5 border-b">
+          <h2 className="font-semibold flex items-center gap-2">
+            <Map className="h-4 w-4 text-ci-green" />
+            Carte de mes parcelles
+          </h2>
+          <Link href="/citizen/parcels" className="text-sm text-ci-orange hover:underline flex items-center gap-1">
+            Voir toutes <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+        <div className="p-4">
+          {parcelsLoading ? (
+            <div className="h-[350px] flex items-center justify-center text-muted-foreground">Chargement de la carte...</div>
+          ) : !parcels || parcels.length === 0 ? (
+            <div className="h-[350px] flex flex-col items-center justify-center text-muted-foreground">
+              <MapPin className="h-10 w-10 mb-2 opacity-30" />
+              <p>Aucune parcelle enregistrée</p>
+              <p className="text-xs">Ajoutez des parcelles pour les voir sur la carte.</p>
+            </div>
+          ) : (
+            <Suspense fallback={<div className="h-[350px] flex items-center justify-center">Chargement...</div>}>
+              <ParcelMap parcels={parcels as any} height="350px" />
+            </Suspense>
           )}
         </div>
       </div>

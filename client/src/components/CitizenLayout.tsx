@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Banknote, Bell as BellIcon, Building2, ChevronDown, FileText, FolderOpen, Home, Landmark, LayoutDashboard, LogOut, MapPin, PanelLeft, Clock, PlusCircle, User, Search, GitBranch } from "lucide-react";
+import { Banknote, Bell as BellIcon, Building2, ChevronDown, CreditCard, FileText, FolderOpen, Home, Landmark, LayoutDashboard, LogOut, MapPin, PanelLeft, Clock, PlusCircle, User, Search, GitBranch } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
@@ -54,6 +54,7 @@ const menuCategories: MenuCategory[] = [
       { icon: MapPin, label: "Mes parcelles", path: "/citizen/parcels", badge: false },
       { icon: Banknote, label: "Crédit habitat", path: "/citizen/credit-habitat", badge: false },
       { icon: FolderOpen, label: "Mes dossiers", path: "/citizen/my-dossiers", badge: false },
+      { icon: CreditCard, label: "Paiements", path: "/citizen/payments", badge: false },
       { icon: Search, label: "Suivi dossier", path: "/citizen/suivi", badge: false },
       { icon: BellIcon, label: "Alertes", path: "/citizen/notifications", badge: false },
       { icon: User, label: "Mon profil", path: "/citizen/profile", badge: false },

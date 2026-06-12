@@ -666,3 +666,27 @@
 - [x] Graphique barres : progression globale rural vs urbain (6 derniers mois)
 - [x] Intégration Chart.js dans le dashboard citoyen existant
 - [x] Tests TypeScript (0 erreurs) et 229 tests PASS
+
+## v3.14 — Email/SMS effectif, Paiement en ligne, Carte parcelles
+
+### Envoi email/SMS effectif
+- [x] Créer server/email-sms.service.ts avec fonctions sendEmail (SMTP via nodemailer) et sendSms (API Orange CI)
+- [x] Coupler notifyCitizenStatusChange avec envoi email/SMS selon préférences du citoyen
+- [x] Lire les préférences (notification_preferences) avant chaque envoi
+- [x] Configuration SMTP/SMS via system_config (admin configurable)
+- [x] Fallback silencieux si config manquante (log warning)
+
+### Module paiement en ligne
+- [x] Créer table payments dans drizzle/schema.ts (id, userId, dossierType, dossierId, amount, currency, method, status, reference, transactionId, createdAt)
+- [x] Créer server/payment-router.ts avec procédures : initPayment, confirmPayment, listMyPayments, adminListPayments
+- [x] Page /citizen/payments avec historique des paiements et bouton « Payer les frais »
+- [x] Support Mobile Money (Orange Money, MTN MoMo, Wave) et carte bancaire (simulation)
+- [x] Lien Paiements dans la catégorie Commun du menu citoyen
+
+### Carte géographique des parcelles citoyen
+- [x] Champs latitude/longitude déjà présents dans la table parcels
+- [x] Composant ParcelMap.tsx avec Leaflet (marqueurs colorés par statut, popups informatifs)
+- [x] Intégration dans le dashboard citoyen (section carte interactive sous activité récente)
+- [x] Popup au clic sur marqueur avec infos parcelle (référence, statut, localité, type rural/urbain)
+- [x] Centrage automatique sur les parcelles du citoyen (fitBounds)
+- [x] Tests TypeScript (0 erreurs) et 229 tests PASS

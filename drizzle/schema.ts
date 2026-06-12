@@ -892,3 +892,39 @@ export const urbanAcdOppositions = mysqlTable(
 
 export type UrbanAcdOpposition = typeof urbanAcdOppositions.$inferSelect;
 export type InsertUrbanAcdOpposition = typeof urbanAcdOppositions.$inferInsert;
+
+
+// ============================================================
+// MODULE PAIEMENT EN LIGNE
+// ============================================================
+
+export const payments = mysqlTable(
+  "payments",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+    dossierType: mysqlEnum("dossierType", ["land_title", "urban_acd", "credit"]).notNull(),
+    dossierId: int("dossierId").notNull(),
+    amount: int("amount").notNull(), // Montant en FCFA
+    currency: varchar("currency", { length: 5 }).default("XOF").notNull(),
+    method: mysqlEnum("method", ["orange_money", "mtn_momo", "wave", "card", "bank_transfer"]).notNull(),
+    status: mysqlEnum("status", ["pending", "processing", "completed", "failed", "refunded"]).default("pending").notNull(),
+    reference: varchar("reference", { length: 64 }).notNull().unique(),
+    transactionId: varchar("transactionId", { length: 128 }),
+    description: varchar("description", { length: 255 }),
+    phoneNumber: varchar("phoneNumber", { length: 30 }),
+    failureReason: text("failureReason"),
+    paidAt: bigint("paidAt", { mode: "number" }),
+    createdAt: bigint("createdAt", { mode: "number" }).notNull(),
+    updatedAt: bigint("updatedAt", { mode: "number" }).notNull(),
+  },
+  table => ({
+    userIdx: index("idx_pay_user").on(table.userId),
+    statusIdx: index("idx_pay_status").on(table.status),
+    refIdx: index("idx_pay_reference").on(table.reference),
+    dossierIdx: index("idx_pay_dossier").on(table.dossierType, table.dossierId),
+  })
+);
+
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = typeof payments.$inferInsert;

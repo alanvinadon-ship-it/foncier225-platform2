@@ -1276,16 +1276,33 @@ export async function notifyCitizenStatusChange(params: {
     params.module === "urban_acd" ? "Foncier Urbain (ACD)" : "Délimitation";
   const ref = params.applicationNumber || `#${params.entityId}`;
 
-  return createCitizenNotification({
+  const title = `${moduleLabel} — Nouveau statut`;
+  const message = `Votre dossier ${ref} est passé au statut « ${newLabel} ».`;
+
+  // Create in-app notification
+  const result = await createCitizenNotification({
     userId: params.userId,
     type: "status_change",
-    title: `${moduleLabel} — Nouveau statut`,
-    message: `Votre dossier ${ref} est passé au statut « ${newLabel} ».`,
+    title,
+    message,
     relatedModule: params.module,
     relatedEntityId: params.entityId,
     isRead: false,
     createdAt: Date.now(),
   });
+
+  // Dispatch email/SMS asynchronously (non-blocking)
+  import("./email-sms.service").then(({ dispatchNotification }) => {
+    dispatchNotification({
+      userId: params.userId,
+      subject: title,
+      htmlBody: `<div style="font-family:sans-serif;padding:20px;"><h2 style="color:#16a34a;">Foncier225</h2><p>Bonjour,</p><p>${message}</p><p>Connectez-vous à votre espace citoyen pour suivre l'avancement de votre dossier.</p><p style="color:#666;font-size:12px;">Cet email est envoyé automatiquement par la Plateforme Foncière Nationale.</p></div>`,
+      smsMessage: `Foncier225: ${message}`,
+      eventType: "statusChange",
+    }).catch(err => console.warn("[Notification] Email/SMS dispatch failed:", err));
+  }).catch(() => {});
+
+  return result;
 }
 
 // ─── Admin Land Title & Credit Statistics ────────────────────────────
