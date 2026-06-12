@@ -831,5 +831,5 @@
 
 ### Intégration
 - [x] Routeur tRPC interconnexion (procédures admin + citoyen) monté dans appRouter
-- [ ] Page admin /admin/interconnexion (dashboard statut des connexions) — à implémenter
+- [x] Page admin /admin/interconnexion (dashboard statut des connexions, vérification IDUFCI, journal d'audit)
 - [x] Tests vitest (21 tests interconnexion) et 0 erreurs TypeScript — 283 tests PASS total
