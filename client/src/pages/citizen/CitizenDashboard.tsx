@@ -1,6 +1,7 @@
 import { trpc } from "@/lib/trpc";
-import { MapPin, FileText, Clock, ArrowRight } from "lucide-react";
+import { MapPin, FileText, Clock, ArrowRight, BarChart3, PieChart, TrendingUp } from "lucide-react";
 import { Link } from "wouter";
+import { useEffect, useRef } from "react";
 
 const STATUS_LABELS: Record<string, string> = {
   dossier_en_cours: "Dossier en cours",
@@ -20,10 +21,102 @@ const STATUS_COLORS: Record<string, string> = {
   valide: "bg-green-100 text-green-700",
 };
 
+function DonutChart({ data }: { data: { active: number; completed: number; rejected: number } }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const chartRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    const loadChart = async () => {
+      const { Chart, DoughnutController, ArcElement, Tooltip, Legend } = await import("chart.js");
+      Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
+
+      if (chartRef.current) chartRef.current.destroy();
+
+      chartRef.current = new Chart(canvasRef.current!, {
+        type: "doughnut",
+        data: {
+          labels: ["En cours", "Complétés", "Rejetés"],
+          datasets: [{
+            data: [data.active, data.completed, data.rejected],
+            backgroundColor: ["#3b82f6", "#22c55e", "#ef4444"],
+            borderWidth: 2,
+            borderColor: "#ffffff",
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "bottom", labels: { padding: 12, usePointStyle: true } },
+          },
+          cutout: "65%",
+        },
+      });
+    };
+    loadChart();
+    return () => { if (chartRef.current) chartRef.current.destroy(); };
+  }, [data]);
+
+  return <canvas ref={canvasRef} />;
+}
+
+function BarChart({ data }: { data: { month: string; rural: number; urban: number }[] }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const chartRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    const loadChart = async () => {
+      const { Chart, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend } = await import("chart.js");
+      Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
+
+      if (chartRef.current) chartRef.current.destroy();
+
+      chartRef.current = new Chart(canvasRef.current!, {
+        type: "bar",
+        data: {
+          labels: data.map(d => d.month),
+          datasets: [
+            {
+              label: "Rural (CF/TF)",
+              data: data.map(d => d.rural),
+              backgroundColor: "#22c55e",
+              borderRadius: 4,
+            },
+            {
+              label: "Urbain (ACD)",
+              data: data.map(d => d.urban),
+              backgroundColor: "#3b82f6",
+              borderRadius: 4,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "bottom", labels: { padding: 12, usePointStyle: true } },
+          },
+          scales: {
+            x: { grid: { display: false } },
+            y: { beginAtZero: true, ticks: { stepSize: 1 } },
+          },
+        },
+      });
+    };
+    loadChart();
+    return () => { if (chartRef.current) chartRef.current.destroy(); };
+  }, [data]);
+
+  return <canvas ref={canvasRef} />;
+}
+
 export default function CitizenDashboard() {
   const { data: stats, isLoading: statsLoading } = trpc.citizen.dashboardStats.useQuery();
   const { data: parcels, isLoading: parcelsLoading } = trpc.citizen.myParcels.useQuery();
   const { data: timeline, isLoading: timelineLoading } = trpc.citizen.timeline.useQuery();
+  const { data: charts, isLoading: chartsLoading } = trpc.citizen.dashboardCharts.useQuery();
 
   return (
     <div className="space-y-8">
@@ -35,7 +128,7 @@ export default function CitizenDashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="border rounded-lg p-5 bg-background">
           <div className="flex items-center gap-3 mb-3">
             <div className="h-10 w-10 rounded-lg bg-ci-orange/10 flex items-center justify-center">
@@ -61,7 +154,18 @@ export default function CitizenDashboard() {
         <div className="border rounded-lg p-5 bg-background">
           <div className="flex items-center gap-3 mb-3">
             <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-              <Clock className="h-5 w-5 text-blue-500" />
+              <TrendingUp className="h-5 w-5 text-blue-500" />
+            </div>
+            <span className="text-sm text-muted-foreground">Total dossiers</span>
+          </div>
+          <p className="text-3xl font-bold">
+            {chartsLoading ? "—" : charts?.total ?? 0}
+          </p>
+        </div>
+        <div className="border rounded-lg p-5 bg-background">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+              <Clock className="h-5 w-5 text-green-500" />
             </div>
             <span className="text-sm text-muted-foreground">Événements récents</span>
           </div>
@@ -70,6 +174,73 @@ export default function CitizenDashboard() {
           </p>
         </div>
       </div>
+
+      {/* Charts Section */}
+      {charts && charts.total > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Status Donut */}
+          <div className="border rounded-lg bg-background p-5">
+            <h2 className="font-semibold flex items-center gap-2 mb-4">
+              <PieChart className="h-4 w-4 text-ci-orange" />
+              Répartition par statut
+            </h2>
+            <div style={{ height: "220px" }}>
+              {chartsLoading ? (
+                <p className="text-sm text-muted-foreground">Chargement...</p>
+              ) : (
+                <DonutChart data={charts.statusCounts} />
+              )}
+            </div>
+          </div>
+
+          {/* Monthly Bar Chart */}
+          <div className="border rounded-lg bg-background p-5">
+            <h2 className="font-semibold flex items-center gap-2 mb-4">
+              <BarChart3 className="h-4 w-4 text-blue-500" />
+              Activité mensuelle (6 derniers mois)
+            </h2>
+            <div style={{ height: "220px" }}>
+              {chartsLoading ? (
+                <p className="text-sm text-muted-foreground">Chargement...</p>
+              ) : (
+                <BarChart data={charts.monthlyData} />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Type Distribution Mini Cards */}
+      {charts && charts.total > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Link href="/citizen/my-dossiers?type=rural">
+            <div className="border rounded-lg p-4 bg-background hover:bg-accent/50 transition-colors cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Dossiers Foncier Rural</p>
+                  <p className="text-2xl font-bold text-green-600">{charts.typeCounts.rural}</p>
+                </div>
+                <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                  <MapPin className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+            </div>
+          </Link>
+          <Link href="/citizen/my-dossiers?type=urban">
+            <div className="border rounded-lg p-4 bg-background hover:bg-accent/50 transition-colors cursor-pointer">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Dossiers Foncier Urbain</p>
+                  <p className="text-2xl font-bold text-blue-600">{charts.typeCounts.urban}</p>
+                </div>
+                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                  <BarChart3 className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+            </div>
+          </Link>
+        </div>
+      )}
 
       {/* Recent Parcels */}
       <div className="border rounded-lg bg-background">

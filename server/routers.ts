@@ -352,6 +352,50 @@ const citizenRouter = router({
       return getActiveDossierCounts(ctx.user.id);
     }),
 
+  /** Dashboard charts data for citizen */
+  dashboardCharts: citizenProcedure.query(async ({ ctx }) => {
+    const [ruralApps, urbanApps] = await Promise.all([
+      listLandTitleApplicationsByUser(ctx.user.id, 500, 0),
+      listUrbanAcdApplicationsByUser(ctx.user.id),
+    ]);
+
+    // Status distribution
+    const statusCounts = { active: 0, completed: 0, rejected: 0 };
+    const allApps = [
+      ...ruralApps.map(a => ({ status: a.status, type: "rural" as const })),
+      ...urbanApps.map(a => ({ status: a.status, type: "urban" as const })),
+    ];
+    for (const app of allApps) {
+      const s = app.status;
+      if (s.includes("signed") || s.includes("registered") || s.includes("delivered")) statusCounts.completed++;
+      else if (s.includes("rejected") || s.includes("cancelled")) statusCounts.rejected++;
+      else statusCounts.active++;
+    }
+
+    // Type distribution
+    const typeCounts = { rural: ruralApps.length, urban: urbanApps.length };
+
+    // Monthly activity (last 6 months)
+    const now = new Date();
+    const monthlyData: { month: string; rural: number; urban: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const monthLabel = d.toLocaleDateString("fr-FR", { month: "short", year: "2-digit" });
+      const ruralCount = ruralApps.filter(a => {
+        const created = new Date(a.createdAt);
+        return created.getFullYear() === d.getFullYear() && created.getMonth() === d.getMonth();
+      }).length;
+      const urbanCount = urbanApps.filter(a => {
+        const created = new Date(a.createdAt);
+        return created.getFullYear() === d.getFullYear() && created.getMonth() === d.getMonth();
+      }).length;
+      monthlyData.push({ month: monthLabel, rural: ruralCount, urban: urbanCount });
+    }
+
+    return { statusCounts, typeCounts, monthlyData, total: allApps.length };
+  }),
+
   /** All dossiers (rural + urban) for the current citizen — with pagination, sorting, filtering */
   allDossiers: citizenProcedure
     .input(z.object({

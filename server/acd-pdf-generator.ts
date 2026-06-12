@@ -7,6 +7,7 @@
  * - Liste des documents déposés
  */
 import PDFDocument from "pdfkit";
+import QRCode from "qrcode";
 import {
   ACD_STEP_LABELS,
   ACD_DOCUMENT_LABELS,
@@ -91,9 +92,20 @@ function formatDate(ts: number): string {
 
 // ─── PDF Generator ──────────────────────────────────────────────────────────
 
-export function generateAcdPdf(params: GeneratePdfParams): Promise<Buffer> {
+export async function generateAcdPdf(params: GeneratePdfParams): Promise<Buffer> {
+  const { application, steps, documents } = params;
+
+  // Pre-generate QR code buffer
+  let qrBuffer: Buffer | null = null;
+  try {
+    const trackingUrl = `https://foncier225-5jqvpxra.manus.space/citizen/suivi?ref=${application.applicationNumber}`;
+    const qrDataUrl = await QRCode.toDataURL(trackingUrl, { width: 100, margin: 1 });
+    qrBuffer = Buffer.from(qrDataUrl.split(",")[1], "base64");
+  } catch (qrErr) {
+    console.warn("[PDF] QR code pre-generation failed:", qrErr);
+  }
+
   return new Promise((resolve, reject) => {
-    const { application, steps, documents } = params;
     const chunks: Buffer[] = [];
 
     const doc = new PDFDocument({
@@ -276,7 +288,31 @@ export function generateAcdPdf(params: GeneratePdfParams): Promise<Buffer> {
 
     doc.moveDown(1.5);
 
-    // ─── Footer ─────────────────────────────────────────────────────────
+    // ─── QR Code ────────────────────────────────────────────────────────────
+    if (qrBuffer) {
+      if (doc.y > 620) doc.addPage();
+
+      const trackingUrl = `https://foncier225-5jqvpxra.manus.space/citizen/suivi?ref=${application.applicationNumber}`;
+      doc.moveTo(50, doc.y).lineTo(50 + pageWidth, doc.y).strokeColor("#cccccc").stroke();
+      doc.moveDown(0.5);
+
+      const qrY = doc.y;
+      doc.image(qrBuffer, 50, qrY, { width: 80, height: 80 });
+      doc
+        .fontSize(9)
+        .fillColor("#333333")
+        .text("Scannez ce QR code pour suivre", 140, qrY + 15)
+        .text("votre dossier en ligne :", 140, qrY + 28)
+        .fontSize(7)
+        .fillColor("#0066cc")
+        .text(trackingUrl, 140, qrY + 45, { link: trackingUrl });
+
+      doc.y = qrY + 90;
+    }
+
+    doc.moveDown(1);
+
+    // ─── Footer ─────────────────────────────────────────────────────────────
     if (doc.y > 700) doc.addPage();
 
     doc.moveTo(50, doc.y).lineTo(50 + pageWidth, doc.y).strokeColor("#cccccc").stroke();

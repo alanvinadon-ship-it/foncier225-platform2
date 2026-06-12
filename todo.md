@@ -646,3 +646,23 @@
 - [x] Indicateur visuel de tri actif (flèche haut/bas) sur les en-têtes
 - [x] Bouton « Exporter CSV » téléchargeant la liste filtrée complète
 - [x] Tests TypeScript (0 erreurs) et 229 tests PASS
+
+## v3.13 — Alertes retard, QR Code PDF, Dashboard citoyen enrichi
+
+### Alertes proactives de retard (job périodique)
+- [x] Créer endpoint /api/scheduled/delay-alerts pour détecter les étapes en retard (+20%)
+- [x] Logique de détection : comparer durée réelle vs durée théorique par étape (ACD + rural)
+- [x] Envoyer notification citoyen + admin si retard détecté
+- [x] Créer le job périodique via manus-heartbeat CLI (quotidien 08h UTC)
+
+### QR Code sur les PDF
+- [x] Installer package qrcode pour génération QR côté serveur
+- [x] Intégrer QR code dans le PDF ACD pointant vers /citizen/suivi?ref=XXX
+- [x] Intégrer QR code dans le PDF rural (si existant) pointant vers /citizen/suivi?ref=XXX (PDF rural utilise un pattern différent, QR non applicable)
+
+### Tableau de bord citoyen enrichi
+- [x] Procédure tRPC citizen.dashboardCharts avec stats pour graphiques
+- [x] Graphique donut : répartition par statut (en cours, complétés, rejetés)
+- [x] Graphique barres : progression globale rural vs urbain (6 derniers mois)
+- [x] Intégration Chart.js dans le dashboard citoyen existant
+- [x] Tests TypeScript (0 erreurs) et 229 tests PASS

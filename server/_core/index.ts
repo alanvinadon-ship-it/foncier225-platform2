@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { delayAlertsHandler } from "../scheduled-delay-alerts";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -40,6 +41,8 @@ async function startServer() {
       env: process.env.NODE_ENV || "development",
     });
   });
+  // Scheduled handlers (must be before tRPC)
+  app.post("/api/scheduled/delay-alerts", delayAlertsHandler);
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   // tRPC API
