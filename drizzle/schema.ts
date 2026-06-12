@@ -47,6 +47,8 @@ export const parcels = mysqlTable("parcels", {
   localisation: varchar("localisation", { length: 255 }),
   kpiFlagsJson: json("kpiFlagsJson").$type<Record<string, boolean>>(),
   ownerId: int("ownerId").references(() => users.id, { onDelete: "set null" }),
+  latitude: varchar("latitude", { length: 30 }),
+  longitude: varchar("longitude", { length: 30 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   createdById: int("createdById").references(() => users.id, { onDelete: "set null" }),

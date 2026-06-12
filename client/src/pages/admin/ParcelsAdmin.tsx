@@ -29,6 +29,7 @@ import { Eye, FilePlus2, MapPin, Plus } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
 import { toast } from "sonner";
+import { GeolocButton, GeolocPreview } from "@/components/GeolocButton";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   dossier_en_cours: { label: "En cours", color: "bg-blue-50 text-blue-700" },
@@ -61,7 +62,10 @@ export default function ParcelsAdmin() {
     localisation: "",
     surfaceApprox: "",
     statusPublic: "dossier_en_cours",
+    latitude: "",
+    longitude: "",
   });
+  const [geoAccuracy, setGeoAccuracy] = useState<number | null>(null);
 
   const handleCreate = () => {
     if (!form.reference || !form.zoneCode) {
@@ -126,6 +130,37 @@ export default function ParcelsAdmin() {
                   value={form.surfaceApprox}
                   onChange={e => setForm({ ...form, surfaceApprox: e.target.value })}
                 />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium mb-1.5 block">Coordonnées GPS</label>
+                <GeolocButton
+                  onLocationFound={({ latitude, longitude, accuracy }) => {
+                    setForm({ ...form, latitude: latitude.toString(), longitude: longitude.toString() });
+                    setGeoAccuracy(accuracy);
+                  }}
+                  className="w-full"
+                />
+                {form.latitude && form.longitude && (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        placeholder="Latitude"
+                        value={form.latitude}
+                        onChange={e => setForm({ ...form, latitude: e.target.value })}
+                      />
+                      <Input
+                        placeholder="Longitude"
+                        value={form.longitude}
+                        onChange={e => setForm({ ...form, longitude: e.target.value })}
+                      />
+                    </div>
+                    <GeolocPreview
+                      latitude={parseFloat(form.latitude)}
+                      longitude={parseFloat(form.longitude)}
+                      accuracy={geoAccuracy || undefined}
+                    />
+                  </>
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Statut initial</label>

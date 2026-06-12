@@ -1744,3 +1744,18 @@ export async function getActiveDossierCounts(userId: number) {
     urban: Number(urbanResult?.count ?? 0),
   };
 }
+
+// ─── Update Parcel GPS Coordinates ─────────────────────────────────────────
+export async function updateParcelCoords(parcelId: number, ownerId: number, latitude: string, longitude: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Verify ownership
+  const [parcel] = await db.select().from(parcels)
+    .where(and(eq(parcels.id, parcelId), eq(parcels.ownerId, ownerId)))
+    .limit(1);
+  if (!parcel) throw new Error("Parcelle non trouvée ou accès non autorisé");
+  await db.update(parcels)
+    .set({ latitude, longitude })
+    .where(eq(parcels.id, parcelId));
+  return { success: true };
+}

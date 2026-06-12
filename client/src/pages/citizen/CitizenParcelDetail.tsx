@@ -1,6 +1,10 @@
+import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { MapPin, Clock, FileText, ArrowLeft, ExternalLink, Shield } from "lucide-react";
 import { Link, useParams } from "wouter";
+import { Button } from "@/components/ui/button";
+import { GeolocButton, GeolocPreview } from "@/components/GeolocButton";
+import { toast } from "sonner";
 
 const STATUS_LABELS: Record<string, string> = {
   dossier_en_cours: "Dossier en cours",
@@ -132,6 +136,9 @@ export default function CitizenParcelDetail() {
         </div>
       </div>
 
+      {/* GPS Location Section */}
+      <GpsSection parcelId={parcelId} latitude={(parcel as any).latitude} longitude={(parcel as any).longitude} />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Timeline */}
         <div className="border rounded-lg bg-background">
@@ -243,6 +250,81 @@ export default function CitizenParcelDetail() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── GPS Section Component ──────────────────────────────────────────────────
+
+function GpsSection({ parcelId, latitude, longitude }: { parcelId: number; latitude?: string | null; longitude?: string | null }) {
+  const [showGeoloc, setShowGeoloc] = useState(false);
+  const [coords, setCoords] = useState<{ lat: number; lng: number; accuracy: number } | null>(
+    latitude && longitude ? { lat: parseFloat(latitude), lng: parseFloat(longitude), accuracy: 0 } : null
+  );
+
+  const updateCoords = trpc.citizen.updateParcelCoords.useMutation({
+    onSuccess: () => {
+      toast.success("Coordonnées GPS enregistrées avec succès");
+      setShowGeoloc(false);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const hasCoords = coords && coords.lat !== 0 && coords.lng !== 0;
+
+  return (
+    <div className="border rounded-lg p-5 bg-background">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-semibold flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-ci-orange" />
+          Position GPS de la parcelle
+        </h2>
+        {!showGeoloc && (
+          <Button variant="outline" size="sm" onClick={() => setShowGeoloc(true)}>
+            <MapPin className="h-3.5 w-3.5 mr-1.5" />
+            {hasCoords ? "Mettre à jour" : "Localiser"}
+          </Button>
+        )}
+      </div>
+
+      {hasCoords && !showGeoloc && (
+        <GeolocPreview latitude={coords.lat} longitude={coords.lng} accuracy={coords.accuracy || undefined} />
+      )}
+
+      {!hasCoords && !showGeoloc && (
+        <p className="text-sm text-muted-foreground">
+          Aucune coordonnée GPS enregistrée. Utilisez le bouton « Localiser » pour enregistrer la position de votre parcelle depuis votre téléphone.
+        </p>
+      )}
+
+      {showGeoloc && (
+        <div className="space-y-4">
+          <GeolocButton
+            onLocationFound={({ latitude: lat, longitude: lng, accuracy }) => {
+              setCoords({ lat, lng, accuracy });
+            }}
+            className="w-full"
+            label="Obtenir ma position GPS actuelle"
+          />
+          {coords && (
+            <>
+              <GeolocPreview latitude={coords.lat} longitude={coords.lng} accuracy={coords.accuracy} />
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 bg-ci-green hover:bg-ci-green/90"
+                  onClick={() => updateCoords.mutate({ parcelId, latitude: coords.lat.toString(), longitude: coords.lng.toString() })}
+                  disabled={updateCoords.isPending}
+                >
+                  {updateCoords.isPending ? "Enregistrement..." : "Enregistrer cette position"}
+                </Button>
+                <Button variant="outline" onClick={() => setShowGeoloc(false)}>
+                  Annuler
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -690,3 +690,21 @@
 - [x] Popup au clic sur marqueur avec infos parcelle (référence, statut, localité, type rural/urbain)
 - [x] Centrage automatique sur les parcelles du citoyen (fitBounds)
 - [x] Tests TypeScript (0 erreurs) et 229 tests PASS
+
+## v3.15 — Intégration CinetPay réelle + Géolocalisation GPS
+
+### Intégration CinetPay (paiement réel)
+- [x] Créer server/cinetpay.service.ts avec fonctions initPayment (POST API CinetPay) et verifyPayment
+- [x] Ajouter secrets CINETPAY_API_KEY et CINETPAY_SITE_ID via webdev_request_secrets (mode sandbox par défaut)
+- [x] Modifier payment-router.ts pour appeler CinetPay au lieu de la simulation
+- [x] Endpoint webhook /api/webhooks/cinetpay pour recevoir les notifications de paiement
+- [x] Mettre à jour la page Payments.tsx pour utiliser CinetPay avec paymentUrl redirect
+- [x] Gestion des statuts : ACCEPTED → paid, REFUSED → failed, PENDING → pending
+
+### Géolocalisation GPS automatique
+- [x] Composant GeolocButton.tsx utilisant navigator.geolocation.getCurrentPosition
+- [x] Intégration dans le formulaire d'enregistrement de parcelle (admin + citoyen)
+- [x] Affichage des coordonnées sur une mini-carte Leaflet en temps réel
+- [x] Fallback si GPS non disponible (saisie manuelle)
+- [x] Champs latitude/longitude ajoutés à la table parcels (schéma + migration)
+- [x] Tests TypeScript (0 erreurs) et 229 tests PASS

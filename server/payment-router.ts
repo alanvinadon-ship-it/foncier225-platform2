@@ -5,6 +5,8 @@ import { getDb } from "./db";
 import { payments } from "../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
 import crypto from "crypto";
+import { initCinetPayPayment, verifyCinetPayPayment, mapCinetPayStatus, getChannelForMethod, isCinetPayConfigured } from "./cinetpay.service";
+import type { Request, Response } from "express";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -76,30 +78,53 @@ export const citizenPaymentRouter = router({
         updatedAt: now,
       });
 
-      // Simulate payment processing (in production, this would call the payment gateway API)
-      // For Mobile Money: initiate USSD push or redirect to payment page
-      // For card: generate payment link
-
+      // Call CinetPay to initialize payment
+      let paymentToken: string | null = null;
       let paymentUrl: string | null = null;
       let instructions: string | null = null;
+      let mode: "live" | "sandbox" = "sandbox";
 
-      switch (input.method) {
-        case "orange_money":
-          instructions = `Un message USSD sera envoyé au ${input.phoneNumber || "votre numéro"}. Composez #144# pour confirmer le paiement de ${input.amount.toLocaleString()} FCFA. Référence: ${reference}`;
-          break;
-        case "mtn_momo":
-          instructions = `Un message USSD sera envoyé au ${input.phoneNumber || "votre numéro"}. Confirmez le paiement de ${input.amount.toLocaleString()} FCFA via MTN Mobile Money. Référence: ${reference}`;
-          break;
-        case "wave":
-          instructions = `Ouvrez l'application Wave et scannez le QR code ou envoyez ${input.amount.toLocaleString()} FCFA au numéro marchand. Référence: ${reference}`;
-          break;
-        case "card":
-          paymentUrl = `/citizen/payments/card/${reference}`;
-          instructions = `Vous allez être redirigé vers la page de paiement sécurisé par carte bancaire.`;
-          break;
-        case "bank_transfer":
-          instructions = `Effectuez un virement de ${input.amount.toLocaleString()} FCFA sur le compte BIAO-CI N°01234567890. Référence obligatoire: ${reference}`;
-          break;
+      try {
+        const cinetPayResult = await initCinetPayPayment({
+          transactionId: reference,
+          amount: input.amount,
+          currency: "XOF",
+          description: input.description || `Paiement ${input.dossierType} - ${reference}`,
+          returnUrl: `${process.env.VITE_APP_URL || ""}/citizen/payments?ref=${reference}`,
+          notifyUrl: `${process.env.VITE_APP_URL || ""}/api/webhooks/cinetpay`,
+          channels: getChannelForMethod(input.method),
+          customerPhone: input.phoneNumber || undefined,
+        });
+
+        paymentToken = cinetPayResult.paymentToken;
+        paymentUrl = cinetPayResult.paymentUrl;
+        mode = cinetPayResult.mode;
+      } catch (err: any) {
+        console.error("[CinetPay] Init error:", err.message);
+        // Fallback to instructions mode
+      }
+
+      // Generate instructions based on method
+      if (mode === "sandbox" && !isCinetPayConfigured()) {
+        switch (input.method) {
+          case "orange_money":
+            instructions = `[MODE DEMO] Paiement de ${input.amount.toLocaleString()} FCFA via Orange Money. Référence: ${reference}. Cliquez sur "Confirmer" pour simuler le paiement.`;
+            break;
+          case "mtn_momo":
+            instructions = `[MODE DEMO] Paiement de ${input.amount.toLocaleString()} FCFA via MTN MoMo. Référence: ${reference}. Cliquez sur "Confirmer" pour simuler le paiement.`;
+            break;
+          case "wave":
+            instructions = `[MODE DEMO] Paiement de ${input.amount.toLocaleString()} FCFA via Wave. Référence: ${reference}. Cliquez sur "Confirmer" pour simuler le paiement.`;
+            break;
+          case "card":
+            instructions = `[MODE DEMO] Paiement de ${input.amount.toLocaleString()} FCFA par carte. Référence: ${reference}. Cliquez sur "Confirmer" pour simuler le paiement.`;
+            break;
+          case "bank_transfer":
+            instructions = `[MODE DEMO] Virement de ${input.amount.toLocaleString()} FCFA. Référence: ${reference}. Cliquez sur "Confirmer" pour simuler le paiement.`;
+            break;
+        }
+      } else {
+        instructions = `Paiement de ${input.amount.toLocaleString()} FCFA en cours de traitement via CinetPay. Référence: ${reference}`;
       }
 
       return {
@@ -108,12 +133,14 @@ export const citizenPaymentRouter = router({
         status: "pending" as const,
         amount: input.amount,
         method: input.method,
+        paymentToken,
         paymentUrl,
         instructions,
+        mode,
       };
     }),
 
-  // Confirm/simulate payment completion (in production, this would be a webhook)
+  // Confirm payment - verifies with CinetPay or simulates
   confirmPayment: protectedProcedure
     .input(z.object({
       reference: z.string(),
@@ -138,16 +165,72 @@ export const citizenPaymentRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "Ce paiement est déjà confirmé" });
       }
 
+      let finalStatus: "completed" | "failed" | "pending" = "completed";
+      let txnId = input.transactionId || `TXN-${Date.now()}`;
+
+      // If CinetPay is configured, verify with their API
+      if (isCinetPayConfigured()) {
+        try {
+          const verification = await verifyCinetPayPayment(input.reference);
+          finalStatus = mapCinetPayStatus(verification.status);
+          txnId = verification.operatorId || txnId;
+        } catch (err: any) {
+          console.error("[CinetPay] Verify error:", err.message);
+          // Keep as pending if verification fails
+          finalStatus = "pending";
+        }
+      }
+
       await db.update(payments)
         .set({
-          status: "completed",
-          transactionId: input.transactionId || `TXN-${Date.now()}`,
-          paidAt: Date.now(),
+          status: finalStatus,
+          transactionId: txnId,
+          paidAt: finalStatus === "completed" ? Date.now() : null,
           updatedAt: Date.now(),
         })
         .where(eq(payments.id, payment.id));
 
-      return { success: true, reference: input.reference };
+      return { success: true, reference: input.reference, status: finalStatus };
+    }),
+
+  // Check payment status (poll from frontend)
+  checkStatus: protectedProcedure
+    .input(z.object({ reference: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      const [payment] = await db.select().from(payments)
+        .where(and(
+          eq(payments.reference, input.reference),
+          eq(payments.userId, ctx.user.id)
+        ))
+        .limit(1);
+
+      if (!payment) throw new TRPCError({ code: "NOT_FOUND" });
+
+      // If still pending and CinetPay is configured, check with API
+      if (payment.status === "pending" && isCinetPayConfigured()) {
+        try {
+          const verification = await verifyCinetPayPayment(input.reference);
+          const newStatus = mapCinetPayStatus(verification.status);
+          if (newStatus !== "pending") {
+            await db.update(payments)
+              .set({
+                status: newStatus,
+                transactionId: verification.operatorId,
+                paidAt: newStatus === "completed" ? Date.now() : null,
+                updatedAt: Date.now(),
+              })
+              .where(eq(payments.id, payment.id));
+            return { ...payment, status: newStatus };
+          }
+        } catch (err) {
+          // Ignore verification errors, return current status
+        }
+      }
+
+      return payment;
     }),
 
   // List my payments
@@ -207,6 +290,49 @@ export const citizenPaymentRouter = router({
         .orderBy(desc(payments.createdAt));
     }),
 });
+
+
+// ─── CinetPay Webhook Handler ───────────────────────────────────────────────
+
+export async function handleCinetPayWebhook(req: Request, res: Response) {
+  try {
+    const { cpm_trans_id } = req.body;
+
+    if (!cpm_trans_id) {
+      return res.status(400).json({ error: "Missing transaction ID" });
+    }
+
+    // Verify the payment with CinetPay
+    const verification = await verifyCinetPayPayment(cpm_trans_id);
+    const newStatus = mapCinetPayStatus(verification.status);
+
+    const db = await getDb();
+    if (!db) return res.status(500).json({ error: "DB unavailable" });
+
+    // Update payment in database
+    const [payment] = await db.select().from(payments)
+      .where(eq(payments.reference, cpm_trans_id))
+      .limit(1);
+
+    if (payment && payment.status !== "completed") {
+      await db.update(payments)
+        .set({
+          status: newStatus,
+          transactionId: verification.operatorId || cpm_trans_id,
+          paidAt: newStatus === "completed" ? Date.now() : null,
+          updatedAt: Date.now(),
+        })
+        .where(eq(payments.id, payment.id));
+
+      console.log(`[CinetPay Webhook] Payment ${cpm_trans_id} updated to ${newStatus}`);
+    }
+
+    return res.status(200).json({ status: "ok" });
+  } catch (err: any) {
+    console.error("[CinetPay Webhook] Error:", err.message);
+    return res.status(200).json({ status: "ok" }); // Always return 200 to CinetPay
+  }
+}
 
 // ─── Admin Payment Router ────────────────────────────────────────────────────
 

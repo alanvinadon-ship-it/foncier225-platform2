@@ -48,12 +48,26 @@ export default function Payments() {
       : undefined
   );
 
+  const [pendingRef, setPendingRef] = useState<string | null>(null);
+
   const initPayment = trpc.payment.initPayment.useMutation({
     onSuccess: (data) => {
-      toast.success("Paiement initié", {
-        description: data.instructions || `Référence: ${data.reference}`,
-      });
       setShowPayDialog(false);
+      if (data.mode === "live" && data.paymentUrl) {
+        // CinetPay is configured - redirect to payment page
+        window.open(data.paymentUrl, "_blank");
+        setPendingRef(data.reference);
+        toast.info("Paiement CinetPay", {
+          description: "Complétez le paiement dans la fenêtre ouverte. Le statut sera mis à jour automatiquement.",
+          duration: 10000,
+        });
+      } else {
+        // Sandbox/demo mode
+        setPendingRef(data.reference);
+        toast.success("Paiement initié (mode démo)", {
+          description: data.instructions || `Référence: ${data.reference}`,
+        });
+      }
       refetch();
     },
     onError: (err) => {
@@ -62,8 +76,15 @@ export default function Payments() {
   });
 
   const confirmPayment = trpc.payment.confirmPayment.useMutation({
-    onSuccess: () => {
-      toast.success("Paiement confirmé", { description: "Votre paiement a été enregistré avec succès." });
+    onSuccess: (data) => {
+      if (data.status === "completed") {
+        toast.success("Paiement confirmé", { description: "Votre paiement a été enregistré avec succès." });
+      } else if (data.status === "failed") {
+        toast.error("Paiement échoué", { description: "Le paiement n'a pas pu être validé." });
+      } else {
+        toast.info("Paiement en attente", { description: "Le statut sera mis à jour dès confirmation." });
+      }
+      setPendingRef(null);
       refetch();
     },
   });

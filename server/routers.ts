@@ -521,6 +521,18 @@ const citizenRouter = router({
     .mutation(async ({ input, ctx }) => {
       return upsertNotificationPreferences(ctx.user.id, input);
     }),
+
+  updateParcelCoords: citizenProcedure
+    .input(z.object({
+      parcelId: z.number(),
+      latitude: z.string(),
+      longitude: z.string(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const { updateParcelCoords: doUpdate } = await import("./db");
+      await doUpdate(input.parcelId, ctx.user.id, input.latitude, input.longitude);
+      return { success: true };
+    }),
 });
 
 // ─── Admin Router (protected + admin only) ───────────────────────────
