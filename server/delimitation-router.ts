@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { adminProcedure, router } from "./_core/trpc";
+import { adminProcedure, router, permissionProcedure } from "./_core/trpc";
 import {
   createAuditEvent,
   insertTerritory,
@@ -47,7 +47,7 @@ function generateTerritoryCode(): string {
 
 export const delimitationRouter = router({
   // Create a new territory
-  create: adminProcedure
+  create: permissionProcedure("delimitation", "create")
     .input(z.object({
       name: z.string().min(2).max(255),
       chiefName: z.string().min(2).max(128),
@@ -79,7 +79,7 @@ export const delimitationRouter = router({
     }),
 
   // List user's territories
-  list: adminProcedure
+  list: permissionProcedure("delimitation", "view")
     .input(z.object({
       limit: z.number().int().min(1).max(50).default(20),
       offset: z.number().int().min(0).default(0),
@@ -94,7 +94,7 @@ export const delimitationRouter = router({
     }),
 
   // Get territory detail with points
-  getById: adminProcedure
+  getById: permissionProcedure("delimitation", "view")
     .input(z.object({ territoryId: z.number().int().positive() }))
     .query(async ({ input, ctx }) => {
       const territory = await verifyTerritoryOwnership(input.territoryId, ctx.user.id);
@@ -104,7 +104,7 @@ export const delimitationRouter = router({
     }),
 
   // Save/replace all boundary points for a territory
-  savePoints: adminProcedure
+  savePoints: permissionProcedure("delimitation", "edit")
     .input(z.object({
       territoryId: z.number().int().positive(),
       points: z.array(z.object({
@@ -153,7 +153,7 @@ export const delimitationRouter = router({
     }),
 
   // Update a single boundary point
-  updatePoint: adminProcedure
+  updatePoint: permissionProcedure("delimitation", "edit")
     .input(z.object({
       territoryId: z.number().int().positive(),
       pointId: z.number().int().positive(),
@@ -188,7 +188,7 @@ export const delimitationRouter = router({
     }),
 
   // Delete a single boundary point
-  deletePoint: adminProcedure
+  deletePoint: permissionProcedure("delimitation", "delete")
     .input(z.object({
       territoryId: z.number().int().positive(),
       pointId: z.number().int().positive(),
@@ -216,7 +216,7 @@ export const delimitationRouter = router({
     }),
 
   // Submit points (transition to "submitted")
-  submitPoints: adminProcedure
+  submitPoints: permissionProcedure("delimitation", "edit")
     .input(z.object({
       territoryId: z.number().int().positive(),
     }))
@@ -246,7 +246,7 @@ export const delimitationRouter = router({
     }),
 
   // Validate by chief (transition to "validated_chief")
-  validateByChief: adminProcedure
+  validateByChief: permissionProcedure("delimitation", "approve")
     .input(z.object({
       territoryId: z.number().int().positive(),
       chiefComments: z.string().max(1000).optional(),
@@ -280,7 +280,7 @@ export const delimitationRouter = router({
     }),
 
   // Officialize (transition to "official")
-  officialize: adminProcedure
+  officialize: permissionProcedure("delimitation", "approve")
     .input(z.object({
       territoryId: z.number().int().positive(),
     }))
@@ -311,7 +311,7 @@ export const delimitationRouter = router({
     }),
 
   // Sync with SIFOR (transition to "synced")
-  syncSifor: adminProcedure
+  syncSifor: permissionProcedure("delimitation", "manage")
     .input(z.object({
       territoryId: z.number().int().positive(),
     }))
@@ -347,7 +347,7 @@ export const delimitationRouter = router({
     }),
 
   // Upload a document for a territory
-  uploadDocument: adminProcedure
+  uploadDocument: permissionProcedure("delimitation", "edit")
     .input(z.object({
       territoryId: z.number().int().positive(),
       title: z.string().min(1).max(255),
@@ -406,7 +406,7 @@ export const delimitationRouter = router({
     }),
 
   // Delete a document
-  deleteDocument: adminProcedure
+  deleteDocument: permissionProcedure("delimitation", "delete")
     .input(z.object({
       territoryId: z.number().int().positive(),
       documentId: z.number().int().positive(),
@@ -434,7 +434,7 @@ export const delimitationRouter = router({
     }),
 
   // Manually update territory status (admin override)
-  updateStatus: adminProcedure
+  updateStatus: permissionProcedure("delimitation", "approve")
     .input(z.object({
       territoryId: z.number().int().positive(),
       status: z.enum(["draft", "collecting", "submitted", "validated_chief", "official", "synced"]),
@@ -487,7 +487,7 @@ export const delimitationRouter = router({
     }),
 
   // List documents by step
-  listDocumentsByStep: adminProcedure
+  listDocumentsByStep: permissionProcedure("delimitation", "view")
     .input(z.object({
       territoryId: z.number().int().positive(),
       step: z.enum([
@@ -509,7 +509,7 @@ export const delimitationRouter = router({
     }),
 
   // Export territory as GeoJSON
-  exportGeoJSON: adminProcedure
+  exportGeoJSON: permissionProcedure("delimitation", "export")
     .input(z.object({ territoryId: z.number().int().positive() }))
     .query(async ({ input, ctx }) => {
       const territory = await verifyTerritoryOwnership(input.territoryId, ctx.user.id);
@@ -561,7 +561,7 @@ export const delimitationRouter = router({
     }),
 
   // Export territory as PDF
-  exportPdf: adminProcedure
+  exportPdf: permissionProcedure("delimitation", "export")
     .input(z.object({ territoryId: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
       const territory = await verifyTerritoryOwnership(input.territoryId, ctx.user.id);
@@ -617,7 +617,7 @@ export const delimitationRouter = router({
     }),
 
   // Get status history for a territory
-  statusHistory: adminProcedure
+  statusHistory: permissionProcedure("delimitation", "view")
     .input(z.object({ territoryId: z.number().int().positive() }))
     .query(async ({ input, ctx }) => {
       await verifyTerritoryOwnership(input.territoryId, ctx.user.id);
@@ -626,7 +626,7 @@ export const delimitationRouter = router({
     }),
 
   // ─── Shapefile Import ────────────────────────────────────────
-  importShapefile: adminProcedure
+  importShapefile: permissionProcedure("delimitation", "create")
     .input(z.object({
       territoryId: z.number().int().positive(),
       fileBase64: z.string(),
@@ -723,7 +723,7 @@ export const delimitationRouter = router({
     }),
 
   // ─── Shapefile/GeoJSON Export to S3 ─────────────────────────────
-  exportGeoJSONFile: adminProcedure
+  exportGeoJSONFile: permissionProcedure("delimitation", "export")
     .input(z.object({ territoryId: z.number().int().positive() }))
     .mutation(async ({ input, ctx }) => {
       const territory = await verifyTerritoryOwnership(input.territoryId, ctx.user.id);
@@ -775,7 +775,7 @@ export const delimitationRouter = router({
     }),
 
   // ─── Bulk Parcels Export (all parcels as GeoJSON) ───────────────
-  exportAllParcelsGeoJSON: adminProcedure
+  exportAllParcelsGeoJSON: permissionProcedure("delimitation", "export")
     .mutation(async ({ ctx }) => {
       const { listParcels: listAllParcels } = await import("./db");
       const parcels = await listAllParcels(10000, 0);

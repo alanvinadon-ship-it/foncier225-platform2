@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { router, protectedProcedure } from "./_core/trpc";
+import { router, protectedProcedure, permissionProcedure } from "./_core/trpc";
 import { getDb } from "./db";
 import { payments } from "../drizzle/schema";
 import { eq, and, desc } from "drizzle-orm";
@@ -532,7 +532,7 @@ export async function handleCinetPayWebhook(req: Request, res: Response) {
 // ─── Admin Payment Router ────────────────────────────────────────────────────
 
 export const adminPaymentRouter = router({
-  listAll: protectedProcedure
+  listAll: permissionProcedure("payments", "manage")
     .input(z.object({
       status: z.enum(["pending", "processing", "completed", "failed", "refunded"]).optional(),
       provider: providerEnum.optional(),

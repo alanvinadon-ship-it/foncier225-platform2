@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { adminProcedure, router } from "./_core/trpc";
+import { adminProcedure, router, permissionProcedure } from "./_core/trpc";
 import { getDb } from "./db";
 import { parcels, payments, users, landTitleApplications, creditFiles, appointments, auditEvents } from "../drizzle/schema";
 import { sql, eq, gte, lte, and, count, avg } from "drizzle-orm";
 
 export const analyticsRouter = router({
   // KPIs overview
-  getOverviewStats: adminProcedure
+  getOverviewStats: permissionProcedure("analytics", "view")
     .input(z.object({
       periodDays: z.number().min(1).max(365).default(30),
     }).optional())
@@ -54,7 +54,7 @@ export const analyticsRouter = router({
     }),
 
   // Dossiers par statut (parcelles)
-  getDossiersByStatus: adminProcedure.query(async () => {
+  getDossiersByStatus: permissionProcedure("analytics", "view").query(async () => {
     const db = (await getDb())!;
     const results = await db.select({
       status: parcels.statusPublic,
@@ -68,7 +68,7 @@ export const analyticsRouter = router({
   }),
 
   // Titres fonciers par statut
-  getLandTitlesByStatus: adminProcedure.query(async () => {
+  getLandTitlesByStatus: permissionProcedure("analytics", "view").query(async () => {
     const db = (await getDb())!;
     const results = await db.select({
       status: landTitleApplications.status,
@@ -82,7 +82,7 @@ export const analyticsRouter = router({
   }),
 
   // Paiements par mois (12 derniers mois)
-  getPaymentsByMonth: adminProcedure.query(async () => {
+  getPaymentsByMonth: permissionProcedure("analytics", "view").query(async () => {
     const db = (await getDb())!;
     const results = await db.select({
       month: sql<string>`DATE_FORMAT(FROM_UNIXTIME(${payments.createdAt} / 1000), '%Y-%m')`,
@@ -101,7 +101,7 @@ export const analyticsRouter = router({
   }),
 
   // Paiements par provider
-  getPaymentsByProvider: adminProcedure.query(async () => {
+  getPaymentsByProvider: permissionProcedure("analytics", "view").query(async () => {
     const db = (await getDb())!;
     const results = await db.select({
       provider: payments.provider,
@@ -119,7 +119,7 @@ export const analyticsRouter = router({
   }),
 
   // Paiements par type de taxe
-  getPaymentsByTaxType: adminProcedure.query(async () => {
+  getPaymentsByTaxType: permissionProcedure("analytics", "view").query(async () => {
     const db = (await getDb())!;
     const results = await db.select({
       taxType: payments.taxType,
@@ -137,7 +137,7 @@ export const analyticsRouter = router({
   }),
 
   // Utilisateurs par rôle
-  getUsersByRole: adminProcedure.query(async () => {
+  getUsersByRole: permissionProcedure("analytics", "view").query(async () => {
     const db = (await getDb())!;
     const results = await db.select({
       role: users.role,
@@ -151,7 +151,7 @@ export const analyticsRouter = router({
   }),
 
   // Rendez-vous par statut
-  getAppointmentsByStatus: adminProcedure.query(async () => {
+  getAppointmentsByStatus: permissionProcedure("analytics", "view").query(async () => {
     const db = (await getDb())!;
     const results = await db.select({
       status: appointments.status,
@@ -165,7 +165,7 @@ export const analyticsRouter = router({
   }),
 
   // Activité récente (derniers événements d'audit)
-  getRecentActivity: adminProcedure
+  getRecentActivity: permissionProcedure("analytics", "view")
     .input(z.object({ limit: z.number().min(1).max(50).default(20) }).optional())
     .query(async ({ input }) => {
       const db = (await getDb())!;

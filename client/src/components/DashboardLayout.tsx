@@ -28,6 +28,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useIsMobile } from "@/hooks/useMobile";
 import { BarChart3, Bell, Building2, CalendarDays, ChevronDown, FileCheck, Globe, Home, Landmark, LayoutDashboard, LogOut, Map, MapPin, MessageSquare, Network, PanelLeft, PieChart, Shield, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
@@ -37,7 +38,7 @@ import { Button } from "./ui/button";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663315306103/5jQVPXrA6y6Zze2FEtSNJt/foncier225-logo-8Tu2AjJfXPzkTY5ufdWVtP.webp";
 
-type AdminMenuItem = { icon: any; label: string; path: string };
+type AdminMenuItem = { icon: any; label: string; path: string; module?: string };
 type AdminMenuCategory = { title: string; color: string; iconColor: string; key: string; items: AdminMenuItem[] };
 
 const menuCategories: AdminMenuCategory[] = [
@@ -48,15 +49,15 @@ const menuCategories: AdminMenuCategory[] = [
     key: "common",
     items: [
       { icon: LayoutDashboard, label: "Tableau de bord", path: "/admin" },
-      { icon: Users, label: "Utilisateurs", path: "/admin/users" },
+      { icon: Users, label: "Utilisateurs", path: "/admin/users", module: "users" },
       { icon: Shield, label: "Journal d'audit", path: "/admin/audit" },
       { icon: Bell, label: "Notification Email/SMS", path: "/admin/notifications" },
-      { icon: PieChart, label: "Statistiques unifiées", path: "/admin/unified-dashboard" },
-      { icon: CalendarDays, label: "Rendez-vous", path: "/admin/appointments" },
-      { icon: Network, label: "Interconnexion API", path: "/admin/interconnexion" },
-      { icon: BarChart3, label: "Analytique", path: "/admin/analytics" },
-      { icon: MessageSquare, label: "Messages", path: "/admin/messages" },
-      { icon: Shield, label: "Rôles & Accès", path: "/admin/rbac" },
+      { icon: PieChart, label: "Statistiques unifiées", path: "/admin/unified-dashboard", module: "analytics" },
+      { icon: CalendarDays, label: "Rendez-vous", path: "/admin/appointments", module: "appointments" },
+      { icon: Network, label: "Interconnexion API", path: "/admin/interconnexion", module: "interconnexion" },
+      { icon: BarChart3, label: "Analytique", path: "/admin/analytics", module: "analytics" },
+      { icon: MessageSquare, label: "Messages", path: "/admin/messages", module: "messaging" },
+      { icon: Shield, label: "Rôles & Accès", path: "/admin/rbac", module: "rbac" },
     ],
   },
   {
@@ -65,12 +66,12 @@ const menuCategories: AdminMenuCategory[] = [
     iconColor: "text-emerald-600",
     key: "rural",
     items: [
-      { icon: MapPin, label: "Parcelles", path: "/admin/parcels" },
-      { icon: FileCheck, label: "Documents", path: "/admin/documents" },
-      { icon: Landmark, label: "Titre foncier", path: "/admin/land-title" },
-      { icon: Map, label: "Délimitation villageoise", path: "/admin/delimitation" },
-      { icon: Globe, label: "Configuration SIG", path: "/admin/sig-config" },
-      { icon: BarChart3, label: "Tableau de bord SIG", path: "/admin/sig-dashboard" },
+      { icon: MapPin, label: "Parcelles", path: "/admin/parcels", module: "parcels" },
+      { icon: FileCheck, label: "Documents", path: "/admin/documents", module: "parcels" },
+      { icon: Landmark, label: "Titre foncier", path: "/admin/land-title", module: "titre_foncier" },
+      { icon: Map, label: "Délimitation villageoise", path: "/admin/delimitation", module: "delimitation" },
+      { icon: Globe, label: "Configuration SIG", path: "/admin/sig-config", module: "delimitation" },
+      { icon: BarChart3, label: "Tableau de bord SIG", path: "/admin/sig-dashboard", module: "delimitation" },
     ],
   },
   {
@@ -79,7 +80,7 @@ const menuCategories: AdminMenuCategory[] = [
     iconColor: "text-blue-600",
     key: "urban",
     items: [
-      { icon: Building2, label: "Foncier Urbain (ACD)", path: "/admin/urban-acd" },
+      { icon: Building2, label: "Foncier Urbain (ACD)", path: "/admin/urban-acd", module: "urban_acd" },
     ],
   },
 ];
@@ -101,6 +102,14 @@ function AdminCollapsibleSection({
   setLocation: (path: string) => void;
   isCollapsed: boolean;
 }) {
+  const { canAccessModule } = usePermissions();
+
+  // Filtrer les items selon les permissions RBAC
+  // Les items sans module sont toujours visibles (ex: Tableau de bord, Journal d'audit)
+  const visibleItems = category.items.filter(
+    (item) => !item.module || canAccessModule(item.module)
+  );
+
   const [open, setOpen] = useState(() => {
     try {
       const saved = localStorage.getItem(ADMIN_COLLAPSED_SECTIONS_KEY);
@@ -124,12 +133,15 @@ function AdminCollapsibleSection({
     } catch {}
   }, [open, category.key]);
 
+  // Ne pas afficher la section si aucun item visible
+  if (visibleItems.length === 0) return null;
+
   if (isCollapsed) {
     return (
       <SidebarGroup>
         <SidebarGroupContent>
           <SidebarMenu>
-            {category.items.map(item => {
+            {visibleItems.map(item => {
               const isActive = location === item.path;
               return (
                 <SidebarMenuItem key={item.path}>
@@ -163,7 +175,7 @@ function AdminCollapsibleSection({
         <CollapsibleContent className="transition-all data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
           <SidebarGroupContent>
             <SidebarMenu>
-              {category.items.map(item => {
+              {visibleItems.map(item => {
                 const isActive = location === item.path;
                 return (
                   <SidebarMenuItem key={item.path}>

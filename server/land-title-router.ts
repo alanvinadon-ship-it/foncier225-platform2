@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { adminProcedure, protectedProcedure, publicProcedure, router, permissionProcedure } from "./_core/trpc";
 import { notifyOwner } from "./_core/notification";
 import {
   createAuditEvent,
@@ -507,7 +507,7 @@ const citizenLandTitleRouter = router({
 
 const adminLandTitleRouter = router({
   // List all applications with filters
-  listAll: adminProcedure
+  listAll: permissionProcedure("titre_foncier", "view")
     .input(z.object({
       status: z.string().optional(),
       phase: z.enum(["certificate", "title"]).optional(),
@@ -527,7 +527,7 @@ const adminLandTitleRouter = router({
     }),
 
   // Get full details (admin, with parcel)
-  getByIdAdmin: adminProcedure
+  getByIdAdmin: permissionProcedure("titre_foncier", "view")
     .input(z.object({ id: z.number() }))
     .query(async ({ input }) => {
       const app = await getLandTitleApplicationWithParcel(input.id);
@@ -543,7 +543,7 @@ const adminLandTitleRouter = router({
     }),
 
   // Advance step (transition to next status)
-  advanceStep: adminProcedure
+  advanceStep: permissionProcedure("titre_foncier", "approve")
     .input(z.object({
       applicationId: z.number(),
       newStatus: z.string(),
@@ -593,7 +593,7 @@ const adminLandTitleRouter = router({
     }),
 
   // Reject application
-  rejectApplication: adminProcedure
+  rejectApplication: permissionProcedure("titre_foncier", "approve")
     .input(z.object({
       applicationId: z.number(),
       reason: z.string().min(1),
@@ -639,7 +639,7 @@ const adminLandTitleRouter = router({
     }),
 
   // Add opposition
-  addOpposition: adminProcedure
+  addOpposition: permissionProcedure("titre_foncier", "edit")
     .input(z.object({
       applicationId: z.number(),
       opponentName: z.string().min(1).max(255),
@@ -681,7 +681,7 @@ const adminLandTitleRouter = router({
     }),
 
   // Resolve opposition
-  resolveOpposition: adminProcedure
+  resolveOpposition: permissionProcedure("titre_foncier", "approve")
     .input(z.object({
       oppositionId: z.number(),
       status: z.enum(["confirmed", "dismissed"]),
@@ -707,7 +707,7 @@ const adminLandTitleRouter = router({
     }),
 
   // Verify document
-  verifyDocument: adminProcedure
+  verifyDocument: permissionProcedure("titre_foncier", "approve")
     .input(z.object({ documentId: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const doc = await getLandTitleDocumentById(input.documentId);
@@ -732,7 +732,7 @@ const adminLandTitleRouter = router({
     }),
 
   // Assign operator
-  assignOperator: adminProcedure
+  assignOperator: permissionProcedure("titre_foncier", "manage")
     .input(z.object({
       applicationId: z.number(),
       operatorName: z.string().min(1).max(255),
@@ -760,7 +760,7 @@ const adminLandTitleRouter = router({
     }),
 
   // Assign commissioner
-  assignCommissioner: adminProcedure
+  assignCommissioner: permissionProcedure("titre_foncier", "manage")
     .input(z.object({
       applicationId: z.number(),
       inquiryCommissioner: z.string().min(1).max(255),
@@ -786,7 +786,7 @@ const adminLandTitleRouter = router({
     }),
 
   // Sign certificate (CF)
-  signCertificate: adminProcedure
+  signCertificate: permissionProcedure("titre_foncier", "approve")
     .input(z.object({
       applicationId: z.number(),
       certificateNumber: z.string().min(1).max(100),
@@ -820,7 +820,7 @@ const adminLandTitleRouter = router({
     }),
 
   // Sign APFR (Arrêté)
-  signApfr: adminProcedure
+  signApfr: permissionProcedure("titre_foncier", "approve")
     .input(z.object({
       applicationId: z.number(),
       apfrNumber: z.string().min(1).max(100),
@@ -851,7 +851,7 @@ const adminLandTitleRouter = router({
     }),
 
   // Register title (inscription au Livre Foncier)
-  registerTitle: adminProcedure
+  registerTitle: permissionProcedure("titre_foncier", "approve")
     .input(z.object({
       applicationId: z.number(),
       titleNumber: z.string().min(1).max(100),

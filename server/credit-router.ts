@@ -3,7 +3,7 @@ import { isFeatureEnabled } from "@shared/featureFlags";
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { protectedProcedure, router } from "./_core/trpc";
+import { protectedProcedure, router, permissionProcedure } from "./_core/trpc";
 import { notifyOwner } from "./_core/notification";
 import { CreditChecklistService } from "./credit-checklist.service";
 import { CreditWorkflowService } from "./credit-workflow.service";

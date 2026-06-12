@@ -935,3 +935,30 @@
 
 ### Validation
 - [x] Tests vitest RBAC (22 tests) et 0 erreurs TypeScript — 328 tests PASS total
+
+## v3.25 — Renforcement RBAC (Permissions routeurs, Sidebar dynamique, Audit)
+
+### Application permissions sur routeurs critiques
+- [x] titre-foncier-router : approve/reject → permissionProcedure("titre_foncier", "approve")
+- [x] titre-foncier-router : create/edit → permissionProcedure("titre_foncier", "create"/"edit")
+- [x] credit-router : approve/reject → permissionProcedure("credit", "approve")
+- [x] credit-router : create/edit → permissionProcedure("credit", "create"/"edit")
+- [x] payment-router : manage → permissionProcedure("payments", "manage")
+- [x] delimitation-router : officialize/validate → permissionProcedure("delimitation", "approve")
+- [x] analytics-router : toutes procédures → permissionProcedure("analytics", "view")
+- [x] rbac-router : admin procedures → permissionProcedure("rbac", "manage")
+
+### Filtrage dynamique sidebar admin
+- [x] Modifier DashboardLayout pour utiliser usePermissions().canAccessModule()
+- [x] Masquer les liens de navigation auxquels l'utilisateur n'a pas accès
+- [x] Conserver l'accès total pour les admins legacy (fallback)
+
+### Journal d'audit RBAC
+- [x] Logger role.created dans audit_events lors de la création d'un rôle
+- [x] Logger role.deleted lors de la suppression d'un rôle
+- [x] Logger role.assigned lors de l'assignation d'un rôle à un utilisateur
+- [x] Logger role.removed lors du retrait d'un rôle
+- [x] Logger permissions.updated lors de la modification des permissions d'un rôle
+
+### Validation
+- [x] Tests TypeScript (0 erreurs) et 328 tests PASS

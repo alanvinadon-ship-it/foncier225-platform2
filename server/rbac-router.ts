@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { eq, and, like, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { router, adminProcedure, protectedProcedure } from "./_core/trpc";
-import { getDb } from "./db";
+import { router, adminProcedure, protectedProcedure, permissionProcedure } from "./_core/trpc";
+import { getDb, createAuditEvent } from "./db";
 import {
   roles,
   permissions,
@@ -27,7 +27,7 @@ export const rbacRouter = router({
   // --- RÔLES ---
 
   /** Lister tous les rôles */
-  listRoles: adminProcedure.query(async () => {
+  listRoles: permissionProcedure("rbac", "view").query(async () => {
     const db = (await getDb())!;
     const allRoles = await db.select().from(roles);
 
@@ -47,7 +47,7 @@ export const rbacRouter = router({
   }),
 
   /** Créer un nouveau rôle */
-  createRole: adminProcedure
+  createRole: permissionProcedure("rbac", "manage")
     .input(
       z.object({
         name: z.string().min(2).max(64).regex(/^[a-z_]+$/),
@@ -55,7 +55,7 @@ export const rbacRouter = router({
         description: z.string().optional(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = (await getDb())!;
 
       // Vérifier unicité
@@ -73,11 +73,20 @@ export const rbacRouter = router({
         updatedAt: Date.now(),
       });
 
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: "role.created",
+        targetType: "role",
+        targetId: Number(inserted.insertId),
+        details: { name: input.name, displayName: input.displayName },
+      });
+
       return { id: inserted.insertId, name: input.name };
     }),
 
   /** Modifier un rôle (non-système uniquement) */
-  updateRole: adminProcedure
+  updateRole: permissionProcedure("rbac", "manage")
     .input(
       z.object({
         roleId: z.number(),
@@ -101,9 +110,9 @@ export const rbacRouter = router({
     }),
 
   /** Supprimer un rôle (non-système uniquement) */
-  deleteRole: adminProcedure
+  deleteRole: permissionProcedure("rbac", "manage")
     .input(z.object({ roleId: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = (await getDb())!;
 
       const [role] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
@@ -120,13 +129,22 @@ export const rbacRouter = router({
       await db.delete(rolePermissions).where(eq(rolePermissions.roleId, input.roleId));
       await db.delete(roles).where(eq(roles.id, input.roleId));
 
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: "role.deleted",
+        targetType: "role",
+        targetId: input.roleId,
+        details: { roleName: role.name, displayName: role.displayName },
+      });
+
       return { success: true };
     }),
 
   // --- PERMISSIONS ---
 
   /** Lister toutes les permissions (groupées par module) */
-  listPermissions: adminProcedure.query(async () => {
+  listPermissions: permissionProcedure("rbac", "view").query(async () => {
     const db = (await getDb())!;
     const allPerms = await db.select().from(permissions);
 
@@ -141,7 +159,7 @@ export const rbacRouter = router({
   }),
 
   /** Récupérer les permissions d'un rôle */
-  getRolePermissions: adminProcedure
+  getRolePermissions: permissionProcedure("rbac", "view")
     .input(z.object({ roleId: z.number() }))
     .query(async ({ input }) => {
       const db = (await getDb())!;
@@ -161,14 +179,14 @@ export const rbacRouter = router({
     }),
 
   /** Assigner des permissions à un rôle */
-  assignPermissions: adminProcedure
+  assignPermissions: permissionProcedure("rbac", "manage")
     .input(
       z.object({
         roleId: z.number(),
         permissionIds: z.array(z.number()),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = (await getDb())!;
 
       const [role] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
@@ -187,13 +205,22 @@ export const rbacRouter = router({
 
       await db.update(roles).set({ updatedAt: Date.now() }).where(eq(roles.id, input.roleId));
 
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: "permissions.updated",
+        targetType: "role",
+        targetId: input.roleId,
+        details: { roleName: role.name, permissionCount: input.permissionIds.length },
+      });
+
       return { success: true, count: input.permissionIds.length };
     }),
 
   // --- ASSIGNATION UTILISATEURS ---
 
   /** Lister les utilisateurs avec leurs rôles */
-  listUsersWithRoles: adminProcedure
+  listUsersWithRoles: permissionProcedure("rbac", "view")
     .input(
       z.object({
         search: z.string().optional(),
@@ -231,7 +258,7 @@ export const rbacRouter = router({
     }),
 
   /** Assigner un rôle à un utilisateur */
-  assignRoleToUser: adminProcedure
+  assignRoleToUser: permissionProcedure("rbac", "manage")
     .input(
       z.object({
         userId: z.number(),
@@ -267,23 +294,44 @@ export const rbacRouter = router({
         assignedBy: ctx.user.id,
       });
 
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: "role.assigned",
+        targetType: "user",
+        targetId: input.userId,
+        details: { roleId: input.roleId, roleName: role.name },
+      });
+
       return { success: true };
     }),
 
   /** Retirer un rôle d'un utilisateur */
-  removeRoleFromUser: adminProcedure
+  removeRoleFromUser: permissionProcedure("rbac", "manage")
     .input(
       z.object({
         userId: z.number(),
         roleId: z.number(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = (await getDb())!;
+
+      // Récupérer le nom du rôle pour l'audit
+      const [role] = await db.select().from(roles).where(eq(roles.id, input.roleId)).limit(1);
 
       await db
         .delete(userRoles)
         .where(and(eq(userRoles.userId, input.userId), eq(userRoles.roleId, input.roleId)));
+
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        action: "role.removed",
+        targetType: "user",
+        targetId: input.userId,
+        details: { roleId: input.roleId, roleName: role?.name ?? "unknown" },
+      });
 
       return { success: true };
     }),
@@ -291,7 +339,7 @@ export const rbacRouter = router({
   // --- SEED ---
 
   /** Initialiser les rôles et permissions par défaut */
-  seedDefaults: adminProcedure.mutation(async () => {
+  seedDefaults: permissionProcedure("rbac", "manage").mutation(async () => {
     const result = await seedRbacDefaults();
     return result;
   }),
