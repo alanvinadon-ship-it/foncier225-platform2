@@ -352,11 +352,22 @@ const citizenRouter = router({
       return getActiveDossierCounts(ctx.user.id);
     }),
 
-  /** All dossiers (rural + urban) for the current citizen */
+  /** All dossiers (rural + urban) for the current citizen — with pagination, sorting, filtering */
   allDossiers: citizenProcedure
-    .query(async ({ ctx }) => {
+    .input(z.object({
+      page: z.number().int().min(1).default(1),
+      limit: z.number().int().min(1).max(100).default(50),
+      sortBy: z.enum(["createdAt", "updatedAt", "status", "reference"]).default("updatedAt"),
+      sortOrder: z.enum(["asc", "desc"]).default("desc"),
+      typeFilter: z.enum(["all", "rural", "urban"]).default("all"),
+      statusFilter: z.enum(["all", "active", "completed", "rejected"]).default("all"),
+      search: z.string().optional(),
+    }).optional())
+    .query(async ({ ctx, input }) => {
+      const { page = 1, limit = 50, sortBy = "updatedAt", sortOrder = "desc", typeFilter = "all", statusFilter = "all", search } = input || {};
+
       const [ruralApps, urbanApps] = await Promise.all([
-        listLandTitleApplicationsByUser(ctx.user.id, 200, 0),
+        listLandTitleApplicationsByUser(ctx.user.id, 500, 0),
         listUrbanAcdApplicationsByUser(ctx.user.id),
       ]);
 
@@ -380,12 +391,54 @@ const citizenRouter = router({
         locality: a.commune || null,
       }));
 
-      // Merge and sort by most recent first
-      const all = [...ruralDossiers, ...urbanDossiers].sort(
-        (a, b) => new Date(b.updatedAt ?? b.createdAt).getTime() - new Date(a.updatedAt ?? a.createdAt).getTime()
-      );
+      let all = [...ruralDossiers, ...urbanDossiers];
 
-      return all;
+      // Type filter
+      if (typeFilter !== "all") {
+        all = all.filter((d) => d.type === typeFilter);
+      }
+
+      // Status filter
+      if (statusFilter !== "all") {
+        all = all.filter((d) => {
+          const s = d.status;
+          if (statusFilter === "completed") return s.includes("signed") || s.includes("registered") || s === "acd_definitive_issued";
+          if (statusFilter === "rejected") return s.includes("rejected") || s.includes("cancelled");
+          return !(s.includes("signed") || s.includes("registered") || s === "acd_definitive_issued" || s.includes("rejected") || s.includes("cancelled"));
+        });
+      }
+
+      // Search
+      if (search && search.trim()) {
+        const q = search.toLowerCase();
+        all = all.filter((d) =>
+          d.reference.toLowerCase().includes(q) ||
+          (d.locality || "").toLowerCase().includes(q)
+        );
+      }
+
+      const total = all.length;
+
+      // Sort
+      all.sort((a, b) => {
+        let cmp = 0;
+        if (sortBy === "createdAt") {
+          cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        } else if (sortBy === "updatedAt") {
+          cmp = new Date(a.updatedAt ?? a.createdAt).getTime() - new Date(b.updatedAt ?? b.createdAt).getTime();
+        } else if (sortBy === "status") {
+          cmp = a.status.localeCompare(b.status);
+        } else if (sortBy === "reference") {
+          cmp = a.reference.localeCompare(b.reference);
+        }
+        return sortOrder === "desc" ? -cmp : cmp;
+      });
+
+      // Paginate
+      const offset = (page - 1) * limit;
+      const items = all.slice(offset, offset + limit);
+
+      return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
     }),
 
   markNotificationRead: citizenProcedure

@@ -636,3 +636,13 @@
 - [x] Lien « Mes dossiers » dans la catégorie Commun du menu citoyen
 - [x] Route /citizen/my-dossiers dans App.tsx
 - [x] Tests TypeScript (0 erreurs) et 229 tests PASS
+
+## v3.12 — Améliorations page Mes dossiers (export CSV, pagination, tri)
+
+- [x] Modifier procédure tRPC citizen.allDossiers pour supporter pagination (limit/offset) et tri (sortBy/sortOrder)
+- [x] Retourner le total pour la pagination
+- [x] Pagination côté serveur (50 éléments par page)
+- [x] Tri par colonne : date de dépôt, dernière MAJ, statut, référence
+- [x] Indicateur visuel de tri actif (flèche haut/bas) sur les en-têtes
+- [x] Bouton « Exporter CSV » téléchargeant la liste filtrée complète
+- [x] Tests TypeScript (0 erreurs) et 229 tests PASS
