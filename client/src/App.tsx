@@ -58,6 +58,7 @@ const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
 const SuiviDossiers = lazy(() => import("./pages/citizen/SuiviDossiers"));
 const CitizenMessages = lazy(() => import("./pages/citizen/Messages"));
+const AdminRbac = lazy(() => import("./pages/admin/AdminRbac"));
 
 function RouteFallback() {
   return (
@@ -303,6 +304,11 @@ function Router() {
       <Route path="/admin/messages">
         <DashboardLayout>
           <AdminMessages />
+        </DashboardLayout>
+      </Route>
+      <Route path="/admin/rbac">
+        <DashboardLayout>
+          <AdminRbac />
         </DashboardLayout>
       </Route>
       <Route path="/admin/urban-acd">

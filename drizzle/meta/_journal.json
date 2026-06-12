@@ -190,6 +190,13 @@
       "when": 1781254073822,
       "tag": "0026_opposite_invisible_woman",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "5",
+      "when": 1781254775366,
+      "tag": "0027_cloudy_betty_ross",
+      "breakpoints": true
     }
   ]
 }

@@ -56,6 +56,7 @@ const menuCategories: AdminMenuCategory[] = [
       { icon: Network, label: "Interconnexion API", path: "/admin/interconnexion" },
       { icon: BarChart3, label: "Analytique", path: "/admin/analytics" },
       { icon: MessageSquare, label: "Messages", path: "/admin/messages" },
+      { icon: Shield, label: "Rôles & Accès", path: "/admin/rbac" },
     ],
   },
   {

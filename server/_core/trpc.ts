@@ -2,6 +2,7 @@ import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from '@shared/const';
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
+import { hasPermission } from "../rbac.service";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -114,3 +115,37 @@ export const conservateurProcedure = t.procedure.use(
     });
   }),
 );
+
+/**
+ * Middleware de contrôle d'accès par permission RBAC.
+ * Usage : permissionProcedure("module", "action")
+ * Vérifie que l'utilisateur a la permission spécifique via ses rôles.
+ * Les admins (role === 'admin') passent toujours (fallback légacy).
+ */
+export function permissionProcedure(module: string, action: string) {
+  return t.procedure.use(
+    t.middleware(async opts => {
+      const { ctx, next } = opts;
+
+      if (!ctx.user) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+      }
+
+      // Fallback légacy : les admins passent toujours
+      if (ctx.user.role === 'admin') {
+        return next({ ctx: { ...ctx, user: ctx.user } });
+      }
+
+      // Vérifier la permission RBAC
+      const allowed = await hasPermission(ctx.user.id, module, action);
+      if (!allowed) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `Accès refusé : permission '${module}.${action}' requise`,
+        });
+      }
+
+      return next({ ctx: { ...ctx, user: ctx.user } });
+    }),
+  );
+}

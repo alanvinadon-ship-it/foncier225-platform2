@@ -899,3 +899,39 @@
 
 ### Validation
 - [x] Tests vitest (10 tests messaging + analytics) et 0 erreurs TypeScript — 306 tests PASS total
+
+## v3.24 — Module RBAC (Gestion des Rôles et Permissions)
+
+### Schéma DB
+- [x] Table `roles` (id, name, displayName, description, isSystem, createdAt)
+- [x] Table `permissions` (id, module, action, displayName, description)
+- [x] Table `role_permissions` (roleId, permissionId)
+- [x] Table `user_roles` (userId, roleId, assignedAt, assignedBy)
+- [x] Seed des rôles système (super_admin, admin, agent_foncier, agent_terrain, banquier, citoyen)
+- [x] Seed des permissions par module (12 modules × 7 actions = 84 permissions)
+- [x] Migration DB poussée
+
+### Backend — Service RBAC
+- [x] Service rbac.service.ts (checkPermission, getUserPermissions, hasModuleAccess, seedRbacDefaults)
+- [x] Routeur tRPC rbac-router.ts admin : listRoles, createRole, updateRole, deleteRole
+- [x] Procédures : listPermissions, getRolePermissions, assignPermissions
+- [x] Procédures : assignRoleToUser, removeRoleFromUser, listUsersWithRoles
+- [x] Middleware permissionProcedure(module, action) dans trpc.ts (fallback legacy admin)
+- [x] Procédure citoyen : myPermissions, checkPermission
+
+### Frontend admin — Page gestion RBAC
+- [x] Page /admin/rbac avec 3 onglets (Rôles, Matrice Permissions, Utilisateurs)
+- [x] Onglet Rôles : liste, création, modification, suppression (protection rôles système)
+- [x] Onglet Permissions : matrice rôle × module/action (cases à cocher)
+- [x] Onglet Utilisateurs : assignation/retrait de rôles par utilisateur avec badges
+- [x] Bouton « Initialiser les rôles par défaut » (seed)
+- [x] Lien « Rôles & Accès » dans le menu admin DashboardLayout
+
+### Contrôle d'accès frontend
+- [x] Hook usePermissions() (can, canAccessModule, hasRole, isSuperAdmin)
+- [x] Composant PermissionGate (contrôle conditionnel dans l'UI)
+- [x] Composant ProtectedPage (protection de page entière avec message accès refusé)
+- [x] Fallback legacy : admin a toujours accès complet
+
+### Validation
+- [x] Tests vitest RBAC (22 tests) et 0 erreurs TypeScript — 328 tests PASS total

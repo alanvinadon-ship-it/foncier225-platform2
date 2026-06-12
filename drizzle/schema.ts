@@ -1051,3 +1051,63 @@ export const messages = mysqlTable("messages", {
 
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = typeof messages.$inferInsert;
+
+
+// ============================================================
+// RBAC — RÔLES ET PERMISSIONS
+// ============================================================
+
+export const roles = mysqlTable("roles", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 64 }).notNull().unique(),
+  displayName: varchar("display_name", { length: 128 }).notNull(),
+  description: text("description"),
+  isSystem: boolean("is_system").default(false).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+
+export type Role = typeof roles.$inferSelect;
+export type InsertRole = typeof roles.$inferInsert;
+
+export const permissions = mysqlTable("permissions", {
+  id: int("id").autoincrement().primaryKey(),
+  module: varchar("module", { length: 64 }).notNull(),
+  action: varchar("action", { length: 64 }).notNull(),
+  displayName: varchar("display_name", { length: 128 }).notNull(),
+  description: text("description"),
+}, (table) => ({
+  moduleActionUnique: unique("uq_perm_module_action").on(table.module, table.action),
+  moduleIdx: index("idx_perm_module").on(table.module),
+}));
+
+export type Permission = typeof permissions.$inferSelect;
+export type InsertPermission = typeof permissions.$inferInsert;
+
+export const rolePermissions = mysqlTable("role_permissions", {
+  id: int("id").autoincrement().primaryKey(),
+  roleId: int("role_id").notNull().references(() => roles.id, { onDelete: "cascade" }),
+  permissionId: int("permission_id").notNull().references(() => permissions.id, { onDelete: "cascade" }),
+}, (table) => ({
+  rolePermUnique: unique("uq_role_perm").on(table.roleId, table.permissionId),
+  roleIdx: index("idx_rp_role").on(table.roleId),
+  permIdx: index("idx_rp_perm").on(table.permissionId),
+}));
+
+export type RolePermission = typeof rolePermissions.$inferSelect;
+export type InsertRolePermission = typeof rolePermissions.$inferInsert;
+
+export const userRoles = mysqlTable("user_roles", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  roleId: int("role_id").notNull().references(() => roles.id, { onDelete: "cascade" }),
+  assignedAt: bigint("assigned_at", { mode: "number" }).notNull(),
+  assignedBy: int("assigned_by").references(() => users.id, { onDelete: "set null" }),
+}, (table) => ({
+  userRoleUnique: unique("uq_user_role").on(table.userId, table.roleId),
+  userIdx: index("idx_ur_user").on(table.userId),
+  roleIdx: index("idx_ur_role").on(table.roleId),
+}));
+
+export type UserRole = typeof userRoles.$inferSelect;
+export type InsertUserRole = typeof userRoles.$inferInsert;

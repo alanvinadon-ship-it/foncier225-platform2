@@ -15,6 +15,7 @@ import { citizenAppointmentRouter, adminAppointmentRouter } from "./appointment-
 import { interconnexionRouter } from "./interconnexion-router";
 import { analyticsRouter } from "./analytics-router";
 import { citizenMessagingRouter, adminMessagingRouter } from "./messaging-router";
+import { rbacRouter } from "./rbac-router";
 import { GeneratedDocumentService } from "./generated-document.service";
 import {
   checkRateLimit,
@@ -1162,6 +1163,7 @@ export const appRouter = router({
   analytics: analyticsRouter,
   messaging: citizenMessagingRouter,
   adminMessaging: adminMessagingRouter,
+  rbac: rbacRouter,
 });
 
 export type AppRouter = typeof appRouter;
