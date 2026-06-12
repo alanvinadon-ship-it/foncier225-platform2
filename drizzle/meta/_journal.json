@@ -169,6 +169,13 @@
       "when": 1781248942990,
       "tag": "0023_first_earthquake",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "5",
+      "when": 1781249837884,
+      "tag": "0024_late_zzzax",
+      "breakpoints": true
     }
   ]
 }

@@ -911,8 +911,12 @@ export const payments = mysqlTable(
     currency: varchar("currency", { length: 5 }).default("XOF").notNull(),
     method: mysqlEnum("method", ["orange_money", "mtn_momo", "wave", "card", "bank_transfer"]).notNull(),
     status: mysqlEnum("status", ["pending", "processing", "completed", "failed", "refunded"]).default("pending").notNull(),
+    provider: mysqlEnum("provider", ["cinetpay", "tresorpay"]).default("cinetpay").notNull(),
+    taxType: mysqlEnum("taxType", ["liasse_afor", "frais_geometre", "taxe_immatriculation", "frais_dossier", "other"]).default("frais_dossier").notNull(),
     reference: varchar("reference", { length: 64 }).notNull().unique(),
     transactionId: varchar("transactionId", { length: 128 }),
+    providerTransactionId: varchar("providerTransactionId", { length: 128 }),
+    providerMetadata: text("providerMetadata"), // JSON stringified
     description: varchar("description", { length: 255 }),
     phoneNumber: varchar("phoneNumber", { length: 30 }),
     failureReason: text("failureReason"),
@@ -925,6 +929,7 @@ export const payments = mysqlTable(
     statusIdx: index("idx_pay_status").on(table.status),
     refIdx: index("idx_pay_reference").on(table.reference),
     dossierIdx: index("idx_pay_dossier").on(table.dossierType, table.dossierId),
+    providerIdx: index("idx_pay_provider").on(table.provider),
   })
 );
 

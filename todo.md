@@ -767,3 +767,40 @@
 
 ### Validation
 - [x] Tests TypeScript (0 erreurs) et 243 tests PASS
+
+## v3.18 — Intégration TrésorPay / Mobile Money (Paiement des Taxes Foncières)
+
+### Schéma DB
+- [x] Ajouter colonne `provider` (enum: cinetpay, tresorpay) à la table payments
+- [x] Ajouter colonne `taxType` (enum: liasse_afor, frais_geometre, taxe_immatriculation, frais_dossier, other) à la table payments
+- [x] Ajouter colonne `providerTransactionId` pour stocker la référence TrésorPay
+- [x] Ajouter colonne `providerMetadata` (JSON) pour stocker les données brutes du provider
+- [x] Pousser la migration (pnpm db:push)
+
+### Backend — Service TrésorPay
+- [x] Créer server/tresorpay.service.ts avec initPayment (POST https://tresorpay.gouv.ci/api/v1/payment/init)
+- [x] Implémenter verifyPayment (POST /api/v1/payment/verify)
+- [x] Endpoint webhook /api/webhooks/tresorpay pour recevoir les notifications (signature HMAC-SHA256)
+- [x] Gestion des statuts TrésorPay : SUCCESS → completed, FAILED → failed, PENDING → pending, EXPIRED → failed
+- [x] Support Mobile Money (Orange Money, MTN MoMo, Moov Money, Wave) via TrésorPay
+
+### Backend — API de paiement unifiée
+- [x] Refactorer payment-router.ts pour supporter multi-provider (CinetPay + TrésorPay)
+- [x] Input `provider` dans la procédure initPayment pour choisir la passerelle
+- [x] Input `taxType` pour catégoriser le type de taxe payée
+- [x] Barème officiel des taxes (TAX_FEE_SCHEDULE) avec montants réels FCFA
+- [x] Procédures getTaxTypes, getTaxFeeSchedule, getProviders
+- [x] Secrets TRESORPAY_API_KEY, TRESORPAY_MERCHANT_ID (à configurer via Settings > Secrets)
+- [x] Fallback automatique : si TrésorPay indisponible, bascule vers CinetPay
+
+### Frontend — Page paiements mise à jour
+- [x] Sélecteur de type de taxe (Liasse AFOR, Frais géomètre, Taxe immatriculation, Frais de dossier)
+- [x] Sélecteur de passerelle (TrésorPay recommandé / CinetPay)
+- [x] Boutons Mobile Money (Orange, MTN, Moov, Wave) + Carte + Virement
+- [x] Barème officiel cliquable pour sélection rapide du montant
+- [x] Historique paiements avec colonne provider et type de taxe
+- [x] Badge provider (vert TrésorPay / bleu CinetPay) dans l'historique
+- [x] Encart sécurité paiement (transaction encryptée)
+
+### Validation
+- [x] Tests TypeScript (0 erreurs) et 262 tests PASS (19 tests TrésorPay)
