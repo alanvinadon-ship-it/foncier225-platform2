@@ -804,3 +804,32 @@
 
 ### Validation
 - [x] Tests TypeScript (0 erreurs) et 262 tests PASS (19 tests TrésorPay)
+
+## v3.20 — Adaptateurs API Interconnexion (SIGFU, IDUFCI, SIFOR-CI)
+
+### Infrastructure commune
+- [x] Créer dossier server/interconnexion/ avec structure modulaire
+- [x] Client HTTP commun avec circuit breaker, retry exponentiel, timeout configurable
+- [x] Système de logging/audit des appels inter-systèmes (correlation ID)
+- [x] Types partagés (InterconnexionConfig, ApiResponse, AuditEntry)
+- [x] Gestion des secrets (SIGFU_API_KEY, IDUFCI_API_KEY, SIFOR_API_KEY, etc.)
+
+### Adaptateur IDUFCI
+- [x] Types TypeScript (IdufciParcel, IdufciAttribution, IdufciVerification, etc.)
+- [x] Service idufci.adapter.ts (verifyIdufci, requestAttribution, morcellement, fusion, exchange)
+- [x] Mapping des réponses IDUFCI vers les types Foncier225 + validation locale format
+
+### Adaptateur SIGFU
+- [x] Types TypeScript (SigfuDemande, SigfuStatut, SigfuDocument, 49 procédures)
+- [x] Service sigfu.adapter.ts (submitDemande, getStatut, uploadDocument, listGeometres, listDemandes)
+- [x] Webhook handler pour les notifications SIGFU (parseWebhookNotification)
+
+### Adaptateur SIFOR-CI
+- [x] Types TypeScript (SiforCertificat, SiforDelimitation, SiforEnquete, SiforLitige, SiforDroit)
+- [x] Service sifor.adapter.ts (submitCertificat, getStatut, submitDelimitation, getLitiges, getDroits)
+- [x] Webhook handler SIFOR (parseWebhookNotification) + mapping statuts
+
+### Intégration
+- [x] Routeur tRPC interconnexion (procédures admin + citoyen) monté dans appRouter
+- [ ] Page admin /admin/interconnexion (dashboard statut des connexions) — à implémenter
+- [x] Tests vitest (21 tests interconnexion) et 0 erreurs TypeScript — 283 tests PASS total
