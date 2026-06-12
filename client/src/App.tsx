@@ -54,7 +54,10 @@ const Payments = lazy(() => import("./pages/citizen/Payments"));
 const CitizenAppointments = lazy(() => import("./pages/citizen/Appointments"));
 const AdminAppointments = lazy(() => import("./pages/admin/AdminAppointments"));
 const AdminInterconnexion = lazy(() => import("./pages/admin/AdminInterconnexion"));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
+const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
 const SuiviDossiers = lazy(() => import("./pages/citizen/SuiviDossiers"));
+const CitizenMessages = lazy(() => import("./pages/citizen/Messages"));
 
 function RouteFallback() {
   return (
@@ -198,6 +201,11 @@ function Router() {
           <SuiviDossiers />
         </CitizenLayout>
       </Route>
+      <Route path="/citizen/messages">
+        <CitizenLayout>
+          <CitizenMessages />
+        </CitizenLayout>
+      </Route>
       <Route path="/citizen/notifications">
         <CitizenLayout>
           <NotificationSettings />
@@ -285,6 +293,16 @@ function Router() {
       <Route path="/admin/interconnexion">
         <DashboardLayout>
           <AdminInterconnexion />
+        </DashboardLayout>
+      </Route>
+      <Route path="/admin/analytics">
+        <DashboardLayout>
+          <AdminAnalytics />
+        </DashboardLayout>
+      </Route>
+      <Route path="/admin/messages">
+        <DashboardLayout>
+          <AdminMessages />
         </DashboardLayout>
       </Route>
       <Route path="/admin/urban-acd">

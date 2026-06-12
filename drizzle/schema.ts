@@ -1010,3 +1010,44 @@ export const webhookEvents = mysqlTable("webhook_events", {
   eventIdIdx: index("webhook_event_id_idx").on(table.eventId),
   sourceRefIdx: index("webhook_source_ref_idx").on(table.source, table.referenceNumber),
 }));
+
+// ─── Messagerie Interne ─────────────────────────────────────────────────────
+
+export const conversations = mysqlTable("conversations", {
+  id: int("id").autoincrement().primaryKey(),
+  citizenId: int("citizen_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  agentId: int("agent_id").references(() => users.id, { onDelete: "set null" }),
+  subject: varchar("subject", { length: 255 }).notNull(),
+  status: mysqlEnum("status", ["open", "assigned", "closed"]).default("open").notNull(),
+  dossierType: mysqlEnum("dossier_type", ["land_title", "urban_acd", "credit", "general"]).default("general"),
+  dossierId: int("dossier_id"),
+  lastMessageAt: bigint("last_message_at", { mode: "number" }).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  citizenIdx: index("idx_conv_citizen").on(table.citizenId),
+  agentIdx: index("idx_conv_agent").on(table.agentId),
+  statusIdx: index("idx_conv_status").on(table.status),
+  lastMsgIdx: index("idx_conv_last_msg").on(table.lastMessageAt),
+}));
+
+export type Conversation = typeof conversations.$inferSelect;
+export type InsertConversation = typeof conversations.$inferInsert;
+
+export const messages = mysqlTable("messages", {
+  id: int("id").autoincrement().primaryKey(),
+  conversationId: int("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
+  senderId: int("sender_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  senderRole: mysqlEnum("sender_role", ["citizen", "agent", "system"]).notNull(),
+  content: text("content").notNull(),
+  attachmentUrl: varchar("attachment_url", { length: 512 }),
+  attachmentName: varchar("attachment_name", { length: 255 }),
+  readAt: bigint("read_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  conversationIdx: index("idx_msg_conversation").on(table.conversationId),
+  senderIdx: index("idx_msg_sender").on(table.senderId),
+  createdIdx: index("idx_msg_created").on(table.createdAt),
+}));
+
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = typeof messages.$inferInsert;

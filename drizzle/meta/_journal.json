@@ -183,6 +183,13 @@
       "when": 1781252599735,
       "tag": "0025_hot_dragon_man",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "5",
+      "when": 1781254073822,
+      "tag": "0026_opposite_invisible_woman",
+      "breakpoints": true
     }
   ]
 }

@@ -13,6 +13,8 @@ import { urbanAcdRouter } from "./urban-acd-router";
 import { citizenPaymentRouter, adminPaymentRouter } from "./payment-router";
 import { citizenAppointmentRouter, adminAppointmentRouter } from "./appointment-router";
 import { interconnexionRouter } from "./interconnexion-router";
+import { analyticsRouter } from "./analytics-router";
+import { citizenMessagingRouter, adminMessagingRouter } from "./messaging-router";
 import { GeneratedDocumentService } from "./generated-document.service";
 import {
   checkRateLimit,
@@ -1157,6 +1159,9 @@ export const appRouter = router({
   appointment: citizenAppointmentRouter,
   adminAppointment: adminAppointmentRouter,
   interconnexion: interconnexionRouter,
+  analytics: analyticsRouter,
+  messaging: citizenMessagingRouter,
+  adminMessaging: adminMessagingRouter,
 });
 
 export type AppRouter = typeof appRouter;

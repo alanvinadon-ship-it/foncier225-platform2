@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Banknote, Bell as BellIcon, Building2, CalendarDays, ChevronDown, CreditCard, FileText, FolderOpen, Home, Landmark, LayoutDashboard, LogOut, MapPin, PanelLeft, Clock, PlusCircle, User, Search, GitBranch } from "lucide-react";
+import { Banknote, Bell as BellIcon, Building2, CalendarDays, ChevronDown, CreditCard, FileText, FolderOpen, Home, Landmark, LayoutDashboard, LogOut, MapPin, MessageSquare as MessageSquareIcon, PanelLeft, Clock, PlusCircle, User, Search, GitBranch } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
@@ -58,6 +58,7 @@ const menuCategories: MenuCategory[] = [
       { icon: Search, label: "Suivi dossier", path: "/citizen/suivi", badge: false },
       { icon: CalendarDays, label: "Rendez-vous", path: "/citizen/appointments", badge: false },
       { icon: Search, label: "Suivi SIGFU/SIFOR", path: "/citizen/suivi-dossiers", badge: false },
+      { icon: MessageSquareIcon, label: "Messages", path: "/citizen/messages", badge: false },
       { icon: BellIcon, label: "Alertes", path: "/citizen/notifications", badge: false },
       { icon: User, label: "Mon profil", path: "/citizen/profile", badge: false },
     ],

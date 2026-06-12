@@ -872,3 +872,30 @@
 
 ### Validation
 - [x] Tests vitest (13 tests webhook-pdf) et 0 erreurs TypeScript — 296 tests PASS total
+
+## v3.23 — Analytics Admin, Messagerie Interne, Secrets Webhook
+
+### Secrets Webhook
+- [x] SIGFU_WEBHOOK_SECRET — en attente de données (mode sandbox actif sans vérification)
+- [x] SIFOR_WEBHOOK_SECRET — en attente de données (mode sandbox actif sans vérification)
+
+### Tableau de bord analytique admin (/admin/analytics)
+- [x] Procédures tRPC analytics : getOverviewStats, getDossiersByStatus, getPaymentsByMonth, getPaymentsByProvider, getPaymentsByTaxType, getUsersByRole, getAppointmentsByStatus, getRecentActivity
+- [x] Page /admin/analytics avec graphiques Chart.js (dossiers par statut, paiements par mois, délai moyen)
+- [x] KPIs en haut de page (total dossiers, total paiements, utilisateurs, rendez-vous)
+- [x] Filtres par période (7j, 30j, 90j, 1 an)
+- [x] Lien « Analytique » dans le menu admin DashboardLayout
+
+### Système de messagerie interne
+- [x] Table conversations (id, citizenId, agentId, subject, status, dossierType, dossierId, lastMessageAt, createdAt)
+- [x] Table messages (id, conversationId, senderId, senderRole, content, attachmentUrl, attachmentName, readAt, createdAt)
+- [x] Routeur tRPC citizenMessaging (create, list, getMessages, send, markRead, uploadAttachment)
+- [x] Routeur tRPC adminMessaging (list, getMessages, send, assign, close, markRead)
+- [x] Page citoyen /citizen/messages avec liste conversations + chat temps réel + nouvelle conversation
+- [x] Page admin /admin/messages avec filtre par statut + chat + assignation + clôture
+- [x] Upload pièces jointes via S3 (storagePut)
+- [x] Notifications in-app à la réception d'un nouveau message (citoyen + agent)
+- [x] Liens « Messages » dans les menus citoyen et admin
+
+### Validation
+- [x] Tests vitest (10 tests messaging + analytics) et 0 erreurs TypeScript — 306 tests PASS total

@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { BarChart3, Bell, Building2, CalendarDays, ChevronDown, FileCheck, Globe, Home, Landmark, LayoutDashboard, LogOut, Map, MapPin, Network, PanelLeft, PieChart, Shield, Users } from "lucide-react";
+import { BarChart3, Bell, Building2, CalendarDays, ChevronDown, FileCheck, Globe, Home, Landmark, LayoutDashboard, LogOut, Map, MapPin, MessageSquare, Network, PanelLeft, PieChart, Shield, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -54,6 +54,8 @@ const menuCategories: AdminMenuCategory[] = [
       { icon: PieChart, label: "Statistiques unifiées", path: "/admin/unified-dashboard" },
       { icon: CalendarDays, label: "Rendez-vous", path: "/admin/appointments" },
       { icon: Network, label: "Interconnexion API", path: "/admin/interconnexion" },
+      { icon: BarChart3, label: "Analytique", path: "/admin/analytics" },
+      { icon: MessageSquare, label: "Messages", path: "/admin/messages" },
     ],
   },
   {
