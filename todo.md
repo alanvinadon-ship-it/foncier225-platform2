@@ -849,3 +849,26 @@
 - [x] Route /citizen/suivi-dossiers dans App.tsx
 - [x] Lien « Suivi SIGFU/SIFOR » dans le menu citoyen (CitizenLayout)
 - [x] Tests TypeScript (0 erreurs) et 283 tests PASS
+
+## v3.22 — Webhooks, Notifications Push et Export PDF
+
+### Webhooks entrants SIGFU/SIFOR
+- [x] Endpoint POST /api/webhooks/sigfu avec vérification signature HMAC-SHA256
+- [x] Endpoint POST /api/webhooks/sifor avec vérification signature HMAC-SHA256
+- [x] Table webhook_events pour journaliser les événements reçus (idempotence par eventId+source)
+- [x] Mise à jour automatique des dossiers locaux au changement de statut
+- [x] Gestion des événements : status_changed, document_added, opposition_received, certificat_delivre
+
+### Notifications au changement de statut
+- [x] Notification in-app au citoyen quand le statut SIGFU/SIFOR change
+- [x] Email + SMS au citoyen avec résumé du changement via dispatchNotification
+- [x] Lien direct vers la page de suivi dans la notification
+
+### Export PDF du suivi
+- [x] Procédure tRPC generateSuiviPdf (SIGFU ou SIFOR) dans citizenInterconnexionRouter
+- [x] Service suivi-pdf.service.ts avec génération HTML récapitulatif (upload S3)
+- [x] Bouton « Télécharger le récapitulatif » dans la page /citizen/suivi-dossiers (SIGFU + SIFOR)
+- [x] Ouverture automatique du document dans un nouvel onglet
+
+### Validation
+- [x] Tests vitest (13 tests webhook-pdf) et 0 erreurs TypeScript — 296 tests PASS total

@@ -991,3 +991,22 @@ export const appointments = mysqlTable(
 
 export type Appointment = typeof appointments.$inferSelect;
 export type InsertAppointment = typeof appointments.$inferInsert;
+
+// ─── Webhook Events (journalisation des événements entrants SIGFU/SIFOR) ─────
+export const webhookEvents = mysqlTable("webhook_events", {
+  id: int("id").autoincrement().primaryKey(),
+  source: mysqlEnum("source", ["sigfu", "sifor"]).notNull(),
+  eventType: varchar("event_type", { length: 100 }).notNull(),
+  eventId: varchar("event_id", { length: 100 }).notNull(),
+  referenceNumber: varchar("reference_number", { length: 100 }).notNull(),
+  previousStatus: varchar("previous_status", { length: 50 }),
+  newStatus: varchar("new_status", { length: 50 }),
+  payload: json("payload"),
+  processedAt: timestamp("processed_at"),
+  citizenId: int("citizen_id"),
+  notificationSent: boolean("notification_sent").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  eventIdIdx: index("webhook_event_id_idx").on(table.eventId),
+  sourceRefIdx: index("webhook_source_ref_idx").on(table.source, table.referenceNumber),
+}));

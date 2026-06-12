@@ -10,6 +10,7 @@ import { serveStatic, setupVite } from "./vite";
 import { delayAlertsHandler } from "../scheduled-delay-alerts";
 import { appointmentRemindersHandler } from "../scheduled-appointment-reminders";
 import { handleCinetPayWebhook, handleTresorPayWebhook } from "../payment-router";
+import { handleSigfuWebhook, handleSiforWebhook } from "../webhook-interconnexion";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -49,6 +50,9 @@ async function startServer() {
   // Payment webhooks
   app.post("/api/webhooks/cinetpay", handleCinetPayWebhook);
   app.post("/api/webhooks/tresorpay", handleTresorPayWebhook);
+  // Interconnexion webhooks (SIGFU / SIFOR)
+  app.post("/api/webhooks/sigfu", handleSigfuWebhook);
+  app.post("/api/webhooks/sifor", handleSiforWebhook);
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   // tRPC API

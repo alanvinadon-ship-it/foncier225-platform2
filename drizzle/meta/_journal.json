@@ -176,6 +176,13 @@
       "when": 1781249837884,
       "tag": "0024_late_zzzax",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "5",
+      "when": 1781252599735,
+      "tag": "0025_hot_dragon_man",
+      "breakpoints": true
     }
   ]
 }

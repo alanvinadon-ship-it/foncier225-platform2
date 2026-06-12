@@ -16,6 +16,7 @@ import {
   Trees,
   Loader2,
   Info,
+  Download,
 } from "lucide-react";
 
 type TabType = "sigfu" | "sifor";
@@ -127,6 +128,21 @@ export default function SuiviDossiers() {
     }
     setSiforSearchTrigger(siforReference.trim());
     saveSearch("sifor", siforReference.trim());
+  };
+
+  // Export PDF mutation
+  const exportPdf = trpc.interconnexion.citizen.generateSuiviPdf.useMutation({
+    onSuccess: (result) => {
+      window.open(result.url, "_blank");
+      toast.success("Document généré avec succès");
+    },
+    onError: () => {
+      toast.error("Impossible de générer le document. Veuillez réessayer.");
+    },
+  });
+
+  const handleExportPdf = (source: "sigfu" | "sifor", reference: string) => {
+    exportPdf.mutate({ source, reference });
   };
 
   const handleRecentClick = (search: RecentSearch) => {
@@ -321,6 +337,18 @@ export default function SuiviDossiers() {
                   )}
                 </div>
               )}
+
+              {/* Bouton Export PDF */}
+              <div className="mt-5 flex justify-end">
+                <button
+                  onClick={() => handleExportPdf("sigfu", sigfuSearchTrigger)}
+                  disabled={exportPdf.isPending}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                >
+                  {exportPdf.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  Télécharger le récapitulatif
+                </button>
+              </div>
             </div>
           )}
 
@@ -477,6 +505,18 @@ export default function SuiviDossiers() {
                   </div>
                 </div>
               )}
+
+              {/* Bouton Export PDF */}
+              <div className="mt-5 flex justify-end">
+                <button
+                  onClick={() => handleExportPdf("sifor", siforSearchTrigger)}
+                  disabled={exportPdf.isPending}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                >
+                  {exportPdf.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  Télécharger le récapitulatif
+                </button>
+              </div>
             </div>
           )}
 

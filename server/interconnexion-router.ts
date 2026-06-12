@@ -232,6 +232,24 @@ const citizenInterconnexionRouter = router({
       const adapter = getSiforAdapter();
       return adapter.getCertificatStatut(input.numeroCertificat, String(ctx.user.id));
     }),
+
+  /**
+   * Générer un PDF récapitulatif du suivi de dossier
+   */
+  generateSuiviPdf: protectedProcedure
+    .input(z.object({
+      source: z.enum(['sigfu', 'sifor']),
+      reference: z.string(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const { generateSuiviPdfDocument } = await import('./suivi-pdf.service');
+      const pdfUrl = await generateSuiviPdfDocument({
+        source: input.source,
+        reference: input.reference,
+        userId: String(ctx.user.id),
+      });
+      return { url: pdfUrl };
+    }),
 });
 
 // ─── Export ──────────────────────────────────────────────────────────────────
