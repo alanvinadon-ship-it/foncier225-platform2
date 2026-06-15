@@ -962,3 +962,40 @@
 
 ### Validation
 - [x] Tests TypeScript (0 erreurs) et 328 tests PASS
+
+## v3.26 — Gestion complète des utilisateurs (Création, Invitation, Modification, Suppression)
+
+### Backend — Helpers DB
+- [x] Créer helper `createUser(name, email, role)` pour créer un nouvel utilisateur
+- [x] Créer helper `updateUser(userId, name, email, role, isActive)` pour modifier un utilisateur
+- [x] Créer helper `deleteUser(userId)` pour supprimer un utilisateur
+- [x] Créer helper `getUserByEmail(email)` pour vérifier l'unicité de l'email
+
+### Backend — Service d'invitation
+- [x] Créer table `user_invitations` (id, email, token, role, invitedBy, createdAt, expiresAt, acceptedAt)
+- [x] Créer helper `createInvitation(email, role, invitedBy)` pour créer une invitation
+- [x] Créer helper `getInvitationByToken(token)` pour récupérer une invitation
+- [x] Créer helper `acceptInvitation(token, openId)` pour accepter une invitation
+- [ ] Créer service email pour envoyer le lien d'invitation (future phase)
+
+### Backend — Routeur tRPC admin
+- [x] Procédure `createUser` (name, email, role) → création directe avec mot de passe temporaire
+- [x] Procédure `inviteUser` (email, role) → création d'une invitation + envoi email
+- [x] Procédure `updateUserDetails` (userId, name, email, role, isActive) → modification
+- [x] Procédure `deleteUserAdmin` (userId) → suppression avec vérification (pas d'admin seul)
+- [x] Procédure `listUsersAdmin` (limit, offset, search) → liste paginée avec recherche
+- [ ] Procédure `acceptInvitation` (token) → acceptation d'une invitation (future phase)
+
+### Frontend — Page gestion utilisateurs améliorée
+- [x] Ajouter bouton « Créer un utilisateur » (dialog création)
+- [x] Ajouter bouton « Inviter par email » (dialog invitation)
+- [x] Dialog création : nom, email, rôle, génération mot de passe temporaire
+- [x] Dialog invitation : email, rôle, envoi du lien d'invitation
+- [x] Modifier dialog : éditer nom, email, rôle, activer/désactiver
+- [x] Ajouter colonne « Actions » : modifier, supprimer
+- [x] Pagination et recherche par nom/email
+- [x] Confirmation avant suppression
+- [x] Toast notifications (succès/erreur)
+
+### Validation
+- [x] Tests TypeScript (0 erreurs) et 328 tests PASS

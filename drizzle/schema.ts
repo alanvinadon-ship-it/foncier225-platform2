@@ -1111,3 +1111,21 @@ export const userRoles = mysqlTable("user_roles", {
 
 export type UserRole = typeof userRoles.$inferSelect;
 export type InsertUserRole = typeof userRoles.$inferInsert;
+
+export const userInvitations = mysqlTable("user_invitations", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 320 }).notNull(),
+  token: varchar("token", { length: 128 }).notNull().unique(),
+  role: mysqlEnum("role", ["citizen", "agent_terrain", "agent_mclu", "geometre_urbain", "conservateur", "bank", "admin"]).default("citizen").notNull(),
+  invitedBy: int("invited_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  acceptedByUserId: int("accepted_by_user_id").references(() => users.id, { onDelete: "set null" }),
+}, (table) => ({
+  emailIdx: index("idx_inv_email").on(table.email),
+  tokenIdx: index("idx_inv_token").on(table.token),
+}));
+
+export type UserInvitation = typeof userInvitations.$inferSelect;
+export type InsertUserInvitation = typeof userInvitations.$inferInsert;

@@ -29,6 +29,7 @@ import {
   urbanAcdOppositions, InsertUrbanAcdOpposition,
   agentAvailabilities, InsertAgentAvailability,
   appointments, InsertAppointment,
+  userInvitations, InsertUserInvitation,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -110,6 +111,55 @@ export async function updateUserRole(userId: number, role: "citizen" | "agent_te
   const updateData: Record<string, unknown> = { role };
   if (zoneCodes !== undefined) updateData.zoneCodes = zoneCodes;
   await db.update(users).set(updateData).where(eq(users.id, userId));
+}
+
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateUser(userId: number, data: { name?: string; email?: string; role?: string; isActive?: boolean }) {
+  const db = await getDb();
+  if (!db) return;
+  const updateData: Record<string, unknown> = { updatedAt: new Date() };
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.email !== undefined) updateData.email = data.email;
+  if (data.role !== undefined) updateData.role = data.role;
+  if (data.isActive !== undefined) updateData.isActive = data.isActive;
+  await db.update(users).set(updateData).where(eq(users.id, userId));
+}
+
+export async function deleteUser(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(users).where(eq(users.id, userId));
+}
+
+export async function listUsersWithSearch(limit = 50, offset = 0, search?: string) {
+  const db = await getDb();
+  if (!db) return { users: [], total: 0 };
+  
+  let query = db.select().from(users);
+  if (search) {
+    query = query.where(
+      sql`${users.name} LIKE ${`%${search}%`} OR ${users.email} LIKE ${`%${search}%`}`
+    ) as any;
+  }
+  
+  const usersList = await (query as any).orderBy(desc(users.createdAt)).limit(limit).offset(offset);
+  
+  let countQuery = db.select({ count: sql<number>`count(*)` }).from(users);
+  if (search) {
+    countQuery = countQuery.where(
+      sql`${users.name} LIKE ${`%${search}%`} OR ${users.email} LIKE ${`%${search}%`}`
+    ) as any;
+  }
+  const countResult = await (countQuery as any);
+  const total = countResult[0]?.count ?? 0;
+  
+  return { users: usersList, total };
 }
 
 // ─── Parcels ─────────────────────────────────────────────────────────
@@ -2039,4 +2089,49 @@ export async function listMyActiveDossiers(userId: number) {
   }
 
   return dossiers;
+}
+
+// ─── User Invitations ────────────────────────────────────────────────
+export async function createInvitation(email: string, role: string, invitedBy: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const crypto = await import("crypto");
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  
+  await db.insert(userInvitations).values({
+    email,
+    token,
+    role: role as any,
+    invitedBy,
+    expiresAt,
+  });
+  
+  return { token, email, expiresAt };
+}
+
+export async function getInvitationByToken(token: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(userInvitations).where(eq(userInvitations.token, token)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function acceptInvitation(token: string, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(userInvitations)
+    .set({ acceptedAt: new Date(), acceptedByUserId: userId })
+    .where(eq(userInvitations.token, token));
+}
+
+export async function listPendingInvitations(limit = 50, offset = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(userInvitations)
+    .where(sql`${userInvitations.acceptedAt} IS NULL AND ${userInvitations.expiresAt} > NOW()`)
+    .orderBy(desc(userInvitations.createdAt))
+    .limit(limit)
+    .offset(offset);
 }

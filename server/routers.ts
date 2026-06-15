@@ -16,6 +16,7 @@ import { interconnexionRouter } from "./interconnexion-router";
 import { analyticsRouter } from "./analytics-router";
 import { citizenMessagingRouter, adminMessagingRouter } from "./messaging-router";
 import { rbacRouter } from "./rbac-router";
+import { userAdminProcedures } from "./user-admin-procedures";
 import { GeneratedDocumentService } from "./generated-document.service";
 import {
   checkRateLimit,
@@ -55,6 +56,13 @@ import {
   updateGeneratedDocument,
   updateParcelOwner,
   updateUserRole,
+  updateUser,
+  deleteUser,
+  getUserByEmail,
+  listUsersWithSearch,
+  createInvitation,
+  getInvitationByToken,
+  acceptInvitation,
   listCitizenNotifications,
   countUnreadNotifications,
   markNotificationRead,
@@ -618,6 +626,8 @@ const adminRouter = router({
       });
       return { success: true };
     }),
+
+  ...userAdminProcedures,
 
   listParcels: adminProcedure.query(async () => {
     return listParcels(100, 0);
