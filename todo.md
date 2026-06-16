@@ -999,3 +999,20 @@
 
 ### Validation
 - [x] Tests TypeScript (0 erreurs) et 328 tests PASS
+
+## v3.27 — Ajout du rôle Notaire
+
+### Schéma DB
+- [x] Ajouter "notaire" à l'énumération des rôles dans la table users
+- [x] Ajouter "notaire" à l'énumération des rôles dans la table user_invitations
+- [x] Pousser les migrations DB avec `pnpm db:push`
+
+### Backend
+- [x] Ajouter "notaire" aux énumérations z.enum() dans user-admin-procedures.ts (createUser, inviteUser, updateUserDetails)
+
+### Frontend
+- [x] Ajouter "notaire" au dictionnaire ROLE_LABELS avec couleur orange
+- [x] Ajouter "notaire" aux SelectItem dans les dialogs de création, invitation et modification
+
+### Validation
+- [x] Tests TypeScript (0 erreurs) et 328 tests PASS

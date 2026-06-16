@@ -35,6 +35,7 @@ const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   agent_mclu: { label: "Agent MCLU", color: "bg-cyan-50 text-cyan-700" },
   geometre_urbain: { label: "Géomètre Urbain", color: "bg-indigo-50 text-indigo-700" },
   conservateur: { label: "Conservateur", color: "bg-amber-50 text-amber-700" },
+  notaire: { label: "Notaire", color: "bg-orange-50 text-orange-700" },
   bank: { label: "Banque", color: "bg-purple-50 text-purple-700" },
   admin: { label: "Admin", color: "bg-red-50 text-red-700" },
 };
@@ -191,6 +192,7 @@ export default function UsersAdmin() {
                       <SelectItem value="agent_mclu">Agent MCLU</SelectItem>
                       <SelectItem value="geometre_urbain">Géomètre Urbain</SelectItem>
                       <SelectItem value="conservateur">Conservateur</SelectItem>
+                      <SelectItem value="notaire">Notaire</SelectItem>
                       <SelectItem value="bank">Banque</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
@@ -236,6 +238,7 @@ export default function UsersAdmin() {
                       <SelectItem value="agent_mclu">Agent MCLU</SelectItem>
                       <SelectItem value="geometre_urbain">Géomètre Urbain</SelectItem>
                       <SelectItem value="conservateur">Conservateur</SelectItem>
+                      <SelectItem value="notaire">Notaire</SelectItem>
                       <SelectItem value="bank">Banque</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
@@ -352,6 +355,7 @@ export default function UsersAdmin() {
                                       <SelectItem value="agent_mclu">Agent MCLU</SelectItem>
                                       <SelectItem value="geometre_urbain">Géomètre Urbain</SelectItem>
                                       <SelectItem value="conservateur">Conservateur</SelectItem>
+                                      <SelectItem value="notaire">Notaire</SelectItem>
                                       <SelectItem value="bank">Banque</SelectItem>
                                       <SelectItem value="admin">Admin</SelectItem>
                                     </SelectContent>

@@ -27,7 +27,7 @@ export const userAdminProcedures = {
     .input(z.object({
       name: z.string().min(2).max(255),
       email: z.string().email(),
-      role: z.enum(["citizen", "agent_terrain", "agent_mclu", "geometre_urbain", "conservateur", "bank", "admin"]),
+      role: z.enum(["citizen", "agent_terrain", "agent_mclu", "geometre_urbain", "conservateur", "notaire", "bank", "admin"]),
     }))
     .mutation(async ({ input, ctx }) => {
       const existing = await getUserByEmail(input.email);
@@ -73,7 +73,7 @@ export const userAdminProcedures = {
   inviteUser: adminProcedure
     .input(z.object({
       email: z.string().email(),
-      role: z.enum(["citizen", "agent_terrain", "agent_mclu", "geometre_urbain", "conservateur", "bank", "admin"]),
+      role: z.enum(["citizen", "agent_terrain", "agent_mclu", "geometre_urbain", "conservateur", "notaire", "bank", "admin"]),
     }))
     .mutation(async ({ input, ctx }) => {
       const existing = await getUserByEmail(input.email);
@@ -100,7 +100,7 @@ export const userAdminProcedures = {
       userId: z.number(),
       name: z.string().min(2).max(255).optional(),
       email: z.string().email().optional(),
-      role: z.enum(["citizen", "agent_terrain", "agent_mclu", "geometre_urbain", "conservateur", "bank", "admin"]).optional(),
+      role: z.enum(["citizen", "agent_terrain", "agent_mclu", "geometre_urbain", "conservateur", "notaire", "bank", "admin"]).optional(),
       isActive: z.boolean().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
