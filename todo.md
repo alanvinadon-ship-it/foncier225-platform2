@@ -2097,3 +2097,8 @@
 - [x] Anomalies détectées et plan de correction
 - [x] Guide support
 - [x] Validation finale
+
+## Fix: Gantt 404
+- [x] Créer une page ErpGantt.tsx globale (vue multi-projets) accessible à /erp/gantt
+- [x] Ajouter la route /erp/gantt dans App.tsx
+- [x] Vérifier TypeScript et tests

@@ -72,6 +72,7 @@ const ErpProjectDetail = lazy(() => import("./pages/erp/ErpProjectDetail"));
 const ErpProjectEdit = lazy(() => import("./pages/erp/ErpProjectEdit"));
 const ErpProjectTasks = lazy(() => import("./pages/erp/ErpProjectTasks"));
 const ErpTaskDetail = lazy(() => import("./pages/erp/ErpTaskDetail"));
+const ErpGantt = lazy(() => import("./pages/erp/ErpGantt"));
 const ErpProjectGantt = lazy(() => import("./pages/erp/ErpProjectGantt"));
 const ErpProjectMilestones = lazy(() => import("./pages/erp/ErpProjectMilestones"));
 const ErpDocuments = lazy(() => import("./pages/erp/ErpDocuments"));
@@ -381,6 +382,11 @@ function Router() {
       <Route path="/erp/admin/permissions">
         <ErpLayout>
           <ErpAdminPermissions />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/gantt">
+        <ErpLayout>
+          <ErpGantt />
         </ErpLayout>
       </Route>
       <Route path="/erp/projects">
