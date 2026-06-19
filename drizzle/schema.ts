@@ -1346,3 +1346,30 @@ export const erpTaskDependencies = mysqlTable("erp_task_dependencies", {
 
 export type ErpTaskDependency = typeof erpTaskDependencies.$inferSelect;
 export type InsertErpTaskDependency = typeof erpTaskDependencies.$inferInsert;
+
+// ============================================================
+// ERP CONSTRUCTION — MILESTONES (JALONS)
+// ============================================================
+
+export const erpMilestones = mysqlTable("erp_milestones", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("project_id").notNull().references(() => erpProjects.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  plannedDate: bigint("planned_date", { mode: "number" }).notNull(),
+  actualDate: bigint("actual_date", { mode: "number" }),
+  status: varchar("status", { length: 32 }).default("planned").notNull(),
+  impactLevel: varchar("impact_level", { length: 16 }).default("medium").notNull(),
+  createdBy: int("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  projectIdx: index("idx_erp_milestone_project").on(table.projectId),
+  statusIdx: index("idx_erp_milestone_status").on(table.status),
+  plannedDateIdx: index("idx_erp_milestone_planned").on(table.plannedDate),
+  deletedIdx: index("idx_erp_milestone_deleted").on(table.deletedAt),
+}));
+
+export type ErpMilestone = typeof erpMilestones.$inferSelect;
+export type InsertErpMilestone = typeof erpMilestones.$inferInsert;

@@ -1198,3 +1198,50 @@
 ### Documentation
 - [x] Documenter le module Projects
 - [x] Résumé des fichiers créés/modifiés ci-dessous
+
+## Sprint 4 ERP Construction — Gantt & Milestones
+
+### Schéma DB
+- [x] Créer table `erp_milestones` (id, projectId, name, description, plannedDate, actualDate, status, impactLevel, createdBy, createdAt, updatedAt, deletedAt)
+- [x] Pousser la migration DB (SQL direct)
+
+### Backend — Routeur Milestones
+- [x] Procédure erp.milestones.listByProject (GET /projects/:projectId/milestones)
+- [x] Procédure erp.milestones.create (POST /projects/:projectId/milestones)
+- [x] Procédure erp.milestones.update (PUT /milestones/:id)
+- [x] Procédure erp.milestones.delete (DELETE /milestones/:id)
+- [x] Procédure erp.milestones.markReached (POST /milestones/:id/mark-reached)
+
+### Backend — Routeur Gantt
+- [x] Procédure erp.gantt.getData (GET /projects/:projectId/gantt — tâches + dépendances + milestones)
+- [x] Procédure erp.gantt.updateTaskDates (PUT — modification dates si permission)
+- [x] Calcul progression globale du projet
+
+### Frontend — Pages
+- [x] Page /erp/projects/:id/gantt (composant Gantt interactif avec timeline, barres tâches, dépendances, milestones)
+- [x] Page /erp/projects/:id/milestones (liste jalons avec CRUD)
+- [x] Filtres : statut, responsable, période
+- [x] Identification visuelle des retards (rouge)
+- [x] Modification des dates par formulaire (si permission update sur erp_gantt)
+
+### Tests
+- [x] Test : module erp_gantt défini dans RBAC
+- [x] Test : 5 statuts milestone valides
+- [x] Test : 4 niveaux d'impact
+- [x] Test : super_admin a accès erp_gantt
+- [x] Test : project_manager view + update erp_gantt
+- [x] Test : viewer view uniquement (pas update)
+- [x] Test : contractor view sur erp_gantt
+- [x] Test : détection retard milestone (planned + date passée)
+- [x] Test : markReached retourne delayed si en retard
+- [x] Test : calcul progression globale (0%, 50%, 100%)
+- [x] Test : timeline bornes min/max
+- [x] Test : tâche en retard détectée
+- [x] Test : tâche completed jamais en retard
+- [x] Test : modification dates avec permission (super_admin)
+- [x] Test : refus modification sans permission (viewer)
+- [x] Test : non-régression (391 tests PASS)
+
+### Documentation
+- [x] Documenter le module Gantt & Milestones
+- [x] Résumé des fichiers créés/modifiés ci-dessous

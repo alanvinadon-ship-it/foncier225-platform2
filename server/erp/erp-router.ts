@@ -417,6 +417,8 @@ const erpAdminRouter = router({
 import { erpDashboardRouter } from "./erp-dashboard-router";
 import { erpProjectsRouter } from "./erp-projects-router";
 import { erpTasksRouter } from "./erp-tasks-router";
+import { erpMilestonesRouter } from "./erp-milestones-router";
+import { erpGanttRouter } from "./erp-gantt-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -427,4 +429,6 @@ export const erpRouter = router({
   dashboard: erpDashboardRouter,
   projects: erpProjectsRouter,
   tasks: erpTasksRouter,
+  milestones: erpMilestonesRouter,
+  gantt: erpGanttRouter,
 });
