@@ -1900,3 +1900,18 @@
 ### Documentation
 - [x] Documenter les modules Profile Details & Audit Logs
 - [x] Résumé des fichiers créés/modifiés
+
+## Sprint 16 ERP Construction — Documentation complète
+
+### Documentation
+- [x] /docs/erp/README.md (index documentation ERP)
+- [x] /docs/erp/architecture.md (architecture technique)
+- [x] /docs/erp/database-schema.md (schéma base de données)
+- [x] /docs/erp/migrations.md (guide migrations)
+- [x] /docs/erp/api.md (référence API complète)
+- [x] /docs/erp/roles-permissions.md (rôles et permissions)
+- [x] /docs/erp/user-guide.md (guide utilisateur)
+- [x] /docs/erp/admin-guide.md (guide administrateur)
+- [x] /docs/erp/testing.md (guide tests)
+- [x] /docs/erp/deployment.md (guide déploiement)
+- [x] Mise à jour README.md principal
