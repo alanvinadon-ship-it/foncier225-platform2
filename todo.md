@@ -1915,3 +1915,86 @@
 - [x] /docs/erp/testing.md (guide tests)
 - [x] /docs/erp/deployment.md (guide déploiement)
 - [x] Mise à jour README.md principal
+
+## Sprint 17 ERP Construction — Tests fonctionnels, sécurité et non-régression
+
+### Tests fonctionnels (29 modules)
+- [x] Tests Login / Signup
+- [x] Tests rôles et permissions
+- [x] Tests Dashboard
+- [x] Tests Projects
+- [x] Tests Project Management (Tasks)
+- [x] Tests Gantt
+- [x] Tests Milestones
+- [x] Tests Documents
+- [x] Tests Permits
+- [x] Tests Compliance
+- [x] Tests Equipment
+- [x] Tests Safety
+- [x] Tests Vendors
+- [x] Tests Contractors
+- [x] Tests Certifications
+- [x] Tests Performance Rating
+- [x] Tests Invoices
+- [x] Tests Payments
+- [x] Tests Inventory
+- [x] Tests Stock Levels
+- [x] Tests Material Requests
+- [x] Tests Supplier Integration
+- [x] Tests Wastage Analysis
+- [x] Tests Finance
+- [x] Tests Budget
+- [x] Tests Cash Flow
+- [x] Tests Profitability
+- [x] Tests Overrun Alerts
+- [x] Tests Notifications
+- [x] Tests Profile Details
+- [x] Tests Audit Logs
+
+### Tests sécurité
+- [x] Test accès sans authentification
+- [x] Test accès sans permission
+- [x] Test upload fichier dangereux
+- [x] Test accès Finance par profil non autorisé
+- [x] Test injection SQL
+- [x] Test XSS
+- [x] Test CSRF
+- [x] Test fuite de données sensibles
+- [x] Test changement de rôle non autorisé
+
+### Tests non-régression Foncier225
+- [x] Test login existant
+- [x] Test modules fonciers existants
+- [x] Test documents existants
+- [x] Test paiements existants
+- [x] Test profils existants
+- [x] Test routes publiques existantes
+- [x] Test tableaux de bord existants
+- [x] Test workflows métier existants
+
+### Test E2E
+- [x] Créer un projet
+- [x] Ajouter des tâches
+- [x] Ajouter des jalons
+- [x] Ajouter un document
+- [x] Créer un permis
+- [x] Ajouter un fournisseur
+- [x] Ajouter un sous-traitant
+- [x] Créer une facture
+- [x] Enregistrer un paiement partiel
+- [x] Créer un article en stock
+- [x] Créer une demande de matériel
+- [x] Livrer la demande
+- [x] Détecter un stock critique
+- [x] Créer un incident sécurité
+- [x] Déclencher une alerte
+- [x] Calculer la rentabilité du projet
+
+### Livrables
+- [x] Cahier de tests complet
+- [x] Tests automatisés
+- [x] Rapport de bugs
+- [x] Rapport sécurité
+- [x] Rapport non-régression
+- [x] Corrections nécessaires
+- [x] Validation finale
