@@ -30,7 +30,7 @@ import {
 import { getLoginUrl } from "@/const";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useIsMobile } from "@/hooks/useMobile";
-import { BarChart3, Bell, Building2, CalendarDays, ChevronDown, FileCheck, Globe, Home, Landmark, LayoutDashboard, LogOut, Map, MapPin, MessageSquare, Network, PanelLeft, PieChart, Shield, Users } from "lucide-react";
+import { BarChart3, Bell, Building2, CalendarDays, ChevronDown, FileCheck, Globe, HardHat, Home, Landmark, LayoutDashboard, LogOut, Map, MapPin, MessageSquare, Network, PanelLeft, PieChart, Shield, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -81,6 +81,15 @@ const menuCategories: AdminMenuCategory[] = [
     key: "urban",
     items: [
       { icon: Building2, label: "Foncier Urbain (ACD)", path: "/admin/urban-acd", module: "urban_acd" },
+    ],
+  },
+  {
+    title: "ERP Construction",
+    color: "text-amber-600",
+    iconColor: "text-amber-600",
+    key: "erp",
+    items: [
+      { icon: HardHat, label: "ERP Construction", path: "/erp" },
     ],
   },
 ];
