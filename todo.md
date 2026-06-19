@@ -1593,3 +1593,74 @@
 ### Documentation
 - [x] Documenter les modules Invoices & Payments (docs/SPRINT10_ERP_INVOICES.md)
 - [x] Résumé des fichiers créés/modifiés
+
+## Sprint 11 ERP Construction — Inventory, Stock Levels & Material Requests
+
+### Schéma DB
+- [x] Créer table `erp_inventory_items` (id, sku, name, description, category, unit, minStock, maxStock, currentStock, unitPrice, location, projectId, imageUrl, createdBy, createdAt, updatedAt, deletedAt)
+- [x] Créer table `erp_stock_locations` (id, name, description, address, projectId, createdBy, createdAt, updatedAt, deletedAt)
+- [x] Créer table `erp_stock_movements` (id, itemId, locationId, projectId, type, quantity, previousStock, newStock, reference, notes, performedBy, createdAt)
+- [x] Créer table `erp_material_requests` (id, projectId, requestNumber, title, description, status, priority, requestedBy, approvedBy, approvedAt, rejectedBy, rejectedAt, rejectionReason, createdAt, updatedAt, deletedAt)
+- [x] Créer table `erp_material_request_lines` (id, requestId, itemId, quantityRequested, quantityFulfilled, notes, createdAt)
+- [x] Pousser les migrations DB
+
+### Backend — Routeur Inventory
+- [x] Procédure erp.inventory.listItems (GET filtres + pagination)
+- [x] Procédure erp.inventory.getItem (GET /:id avec mouvements récents)
+- [x] Procédure erp.inventory.createItem (POST)
+- [x] Procédure erp.inventory.updateItem (PUT /:id)
+- [x] Procédure erp.inventory.deleteItem (DELETE /:id soft delete)
+- [x] Procédure erp.inventory.listLocations (GET emplacements)
+- [x] Procédure erp.inventory.createLocation (POST)
+- [x] Procédure erp.inventory.updateLocation (PUT)
+- [x] Procédure erp.inventory.deleteLocation (DELETE)
+- [x] Procédure erp.inventory.addMovement (POST mouvement stock + recalcul)
+- [x] Procédure erp.inventory.listMovements (GET /:id/movements)
+- [x] Procédure erp.inventory.stockLevels (GET niveaux de stock)
+- [x] Procédure erp.inventory.criticalStock (GET articles en stock critique)
+- [x] Procédure erp.inventory.stats (GET KPI inventaire)
+
+### Backend — Routeur Material Requests
+- [x] Procédure erp.materialRequests.list (GET filtres + pagination)
+- [x] Procédure erp.materialRequests.getById (GET /:id avec lignes)
+- [x] Procédure erp.materialRequests.create (POST brouillon + lignes)
+- [x] Procédure erp.materialRequests.update (PUT /:id)
+- [x] Procédure erp.materialRequests.delete (DELETE /:id soft delete)
+- [x] Procédure erp.materialRequests.submit (POST /:id/submit)
+- [x] Procédure erp.materialRequests.approve (POST /:id/approve)
+- [x] Procédure erp.materialRequests.reject (POST /:id/reject)
+- [x] Procédure erp.materialRequests.fulfill (POST /:id/fulfill — livraison + décrémentation stock)
+- [x] Procédure erp.materialRequests.stats (GET KPI demandes)
+
+### Frontend — Pages
+- [x] Page /erp/inventory (dashboard inventaire + KPI + articles + stock critique + mouvements + emplacements)
+- [x] Dialog création/édition article
+- [x] Dialog mouvement stock (entrée/sortie/transfert/ajustement)
+- [x] Page /erp/material-requests (liste demandes + filtres + CRUD + workflow)
+- [x] Dialog création demande + lignes
+- [x] Dialog détail demande + approve/reject + fulfill
+- [x] Routes App.tsx ajoutées
+- [x] Sidebar ERP mise à jour (lien Demandes Matériel ajouté)
+
+### Tests
+- [x] Test : catégories articles (12)
+- [x] Test : unités de mesure (10)
+- [x] Test : types mouvements (6 types)
+- [x] Test : calcul stock après IN/OUT/RETURN/LOSS/TRANSFER
+- [x] Test : détection stock critique
+- [x] Test : détection rupture de stock
+- [x] Test : refus sortie > stock disponible
+- [x] Test : calcul valeur totale stock
+- [x] Test : statuts demande matériel (7 statuts)
+- [x] Test : priorités (4 niveaux)
+- [x] Test : workflow submit/approve/reject/fulfill
+- [x] Test : livraison partielle vs complète
+- [x] Test : blocage livraison excédant quantité demandée
+- [x] Test : format numéro demande MR-XXXXX
+- [x] Test : format SKU
+- [x] Test : permissions Inventory
+- [x] Test : non-régression (716 tests PASS, 0 erreurs TypeScript)
+
+### Documentation
+- [x] Documenter les modules Inventory, Stock Levels & Material Requests (docs/SPRINT11_ERP_INVENTORY.md)
+- [x] Résumé des fichiers créés/modifiés

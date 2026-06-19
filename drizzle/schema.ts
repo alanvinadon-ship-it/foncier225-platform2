@@ -1905,3 +1905,116 @@ export const erpPayments = mysqlTable("erp_payments", {
 
 export type ErpPayment = typeof erpPayments.$inferSelect;
 export type InsertErpPayment = typeof erpPayments.$inferInsert;
+
+// ============================================================
+// ERP INVENTORY — Sprint 11
+// ============================================================
+
+export const erpStockLocations = mysqlTable("erp_stock_locations", {
+  id: int("id").primaryKey().autoincrement(),
+  name: varchar("name", { length: 128 }).notNull(),
+  description: text("description"),
+  address: varchar("address", { length: 255 }),
+  projectId: int("project_id"),
+  createdBy: int("created_by").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  projectIdx: index("idx_erp_stock_locations_project").on(table.projectId),
+}));
+
+export type ErpStockLocation = typeof erpStockLocations.$inferSelect;
+export type InsertErpStockLocation = typeof erpStockLocations.$inferInsert;
+
+export const erpInventoryItems = mysqlTable("erp_inventory_items", {
+  id: int("id").primaryKey().autoincrement(),
+  sku: varchar("sku", { length: 64 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 64 }).notNull(),
+  unit: varchar("unit", { length: 32 }).notNull(),
+  minStock: int("min_stock").notNull().default(0),
+  maxStock: int("max_stock").notNull().default(0),
+  currentStock: int("current_stock").notNull().default(0),
+  unitPrice: int("unit_price").notNull().default(0),
+  locationId: int("location_id"),
+  projectId: int("project_id"),
+  imageUrl: text("image_url"),
+  createdBy: int("created_by").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  skuIdx: index("idx_erp_inventory_items_sku").on(table.sku),
+  categoryIdx: index("idx_erp_inventory_items_category").on(table.category),
+  locationIdx: index("idx_erp_inventory_items_location").on(table.locationId),
+  projectIdx: index("idx_erp_inventory_items_project").on(table.projectId),
+}));
+
+export type ErpInventoryItem = typeof erpInventoryItems.$inferSelect;
+export type InsertErpInventoryItem = typeof erpInventoryItems.$inferInsert;
+
+export const erpStockMovements = mysqlTable("erp_stock_movements", {
+  id: int("id").primaryKey().autoincrement(),
+  itemId: int("item_id").notNull(),
+  locationId: int("location_id"),
+  projectId: int("project_id"),
+  type: varchar("type", { length: 32 }).notNull(), // IN, OUT, TRANSFER, ADJUSTMENT, WASTAGE, RETURN
+  quantity: int("quantity").notNull(),
+  previousStock: int("previous_stock").notNull(),
+  newStock: int("new_stock").notNull(),
+  reference: varchar("reference", { length: 128 }),
+  notes: text("notes"),
+  performedBy: int("performed_by").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  itemIdx: index("idx_erp_stock_movements_item").on(table.itemId),
+  typeIdx: index("idx_erp_stock_movements_type").on(table.type),
+  dateIdx: index("idx_erp_stock_movements_date").on(table.createdAt),
+}));
+
+export type ErpStockMovement = typeof erpStockMovements.$inferSelect;
+export type InsertErpStockMovement = typeof erpStockMovements.$inferInsert;
+
+export const erpMaterialRequests = mysqlTable("erp_material_requests", {
+  id: int("id").primaryKey().autoincrement(),
+  projectId: int("project_id"),
+  requestNumber: varchar("request_number", { length: 32 }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  status: varchar("status", { length: 32 }).notNull().default("draft"), // draft, submitted, approved, rejected, partially_fulfilled, fulfilled, cancelled
+  priority: varchar("priority", { length: 16 }).notNull().default("medium"), // low, medium, high, urgent
+  requestedBy: int("requested_by").notNull(),
+  approvedBy: int("approved_by"),
+  approvedAt: bigint("approved_at", { mode: "number" }),
+  rejectedBy: int("rejected_by"),
+  rejectedAt: bigint("rejected_at", { mode: "number" }),
+  rejectionReason: text("rejection_reason"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  statusIdx: index("idx_erp_material_requests_status").on(table.status),
+  projectIdx: index("idx_erp_material_requests_project").on(table.projectId),
+  requestedByIdx: index("idx_erp_material_requests_requested_by").on(table.requestedBy),
+}));
+
+export type ErpMaterialRequest = typeof erpMaterialRequests.$inferSelect;
+export type InsertErpMaterialRequest = typeof erpMaterialRequests.$inferInsert;
+
+export const erpMaterialRequestLines = mysqlTable("erp_material_request_lines", {
+  id: int("id").primaryKey().autoincrement(),
+  requestId: int("request_id").notNull(),
+  itemId: int("item_id").notNull(),
+  quantityRequested: int("quantity_requested").notNull(),
+  quantityFulfilled: int("quantity_fulfilled").notNull().default(0),
+  notes: text("notes"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  requestIdx: index("idx_erp_material_request_lines_request").on(table.requestId),
+  itemIdx: index("idx_erp_material_request_lines_item").on(table.itemId),
+}));
+
+export type ErpMaterialRequestLine = typeof erpMaterialRequestLines.$inferSelect;
+export type InsertErpMaterialRequestLine = typeof erpMaterialRequestLines.$inferInsert;

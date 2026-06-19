@@ -48,6 +48,7 @@ const ERP_NAV_ITEMS: NavItem[] = [
   { label: "Certifications", href: "/erp/certifications", icon: <Award size={18} />, module: "erp_vendors" },
   { label: "Performance", href: "/erp/performance-ratings", icon: <Star size={18} />, module: "erp_vendors" },
   { label: "Inventaire", href: "/erp/inventory", icon: <Package size={18} />, module: "erp_inventory" },
+  { label: "Demandes Matériel", href: "/erp/material-requests", icon: <Truck size={18} />, module: "erp_inventory" },
   { label: "Factures", href: "/erp/invoices", icon: <ScrollText size={18} />, module: "erp_finance" },
   { label: "Paiements", href: "/erp/payments", icon: <DollarSign size={18} />, module: "erp_finance" },
   { label: "Alertes", href: "/erp/alerts", icon: <Bell size={18} />, module: "erp_alerts" },
