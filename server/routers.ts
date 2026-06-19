@@ -16,6 +16,8 @@ import { interconnexionRouter } from "./interconnexion-router";
 import { analyticsRouter } from "./analytics-router";
 import { citizenMessagingRouter, adminMessagingRouter } from "./messaging-router";
 import { rbacRouter } from "./rbac-router";
+import { isolationRouter } from "./isolation-router";
+import { auditTraceRouter } from "./audit-tracability";
 import { userAdminProcedures } from "./user-admin-procedures";
 import { GeneratedDocumentService } from "./generated-document.service";
 import {
@@ -1174,6 +1176,8 @@ export const appRouter = router({
   messaging: citizenMessagingRouter,
   adminMessaging: adminMessagingRouter,
   rbac: rbacRouter,
+  isolation: isolationRouter,
+  auditTrace: auditTraceRouter,
 });
 
 export type AppRouter = typeof appRouter;

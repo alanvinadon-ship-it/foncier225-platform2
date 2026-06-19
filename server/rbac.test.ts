@@ -41,8 +41,8 @@ describe("RBAC Service", () => {
   });
 
   describe("Rôles système", () => {
-    it("devrait avoir 6 rôles système", () => {
-      expect(SYSTEM_ROLES.length).toBe(6);
+    it("devrait avoir 14 r\u00f4les syst\u00e8me", () => {
+      expect(SYSTEM_ROLES.length).toBe(14);
     });
 
     it("devrait avoir le super_admin", () => {

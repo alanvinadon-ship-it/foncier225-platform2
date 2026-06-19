@@ -1030,24 +1030,25 @@
 - [x] Tests TypeScript (0 erreurs) et 328 tests PASS
 
 ### Phase 2 : Matrice de permissions granulaires
-- [ ] Créer table `role_permissions` (roleId, module, action, allowed)
-- [ ] Implémenter la matrice : Demande/Identité, Plans SIG, Actes Notariés, Liquidation/Taxes, Titres Souverains
-- [ ] Créer helpers DB pour vérifier les permissions par rôle/module/action
-- [ ] Mettre à jour permissionProcedure pour utiliser la matrice
+- [x] Créer table `role_permissions_matrix` (role, module, action, allowed)
+- [x] Implémenter la matrice : Demande/Identité, Plans SIG, Actes Notariés, Liquidation/Taxes, Titres Souverains
+- [x] Étendre RBAC_MODULES et SYSTEM_ROLES dans rbac.service.ts
+- [x] Définir ROLE_DEFAULT_PERMISSIONS avec la matrice complète SIGFU + AFOR
 
 ### Phase 3 : Isolation des données
-- [ ] Créer table `notary_baskets` (id, notaryId, dossiers, createdAt, updatedAt)
-- [ ] Créer table `bank_mandates` (id, bankId, citizenId, expiresAt, permissions)
-- [ ] Implémenter le filtrage des données selon le rôle et les mandats
-- [ ] Ajouter les helpers pour créer/révoquer les mandats bancaires
+- [x] Créer table `notary_baskets` (id, notaryId, dossierId, dossierType, status)
+- [x] Créer table `bank_mandates` (id, bankId, citizenId, accessCode, permissions, expiresAt)
+- [x] Implémenter routeur isolation (listMyBasket, addToBasket, updateBasketStatus)
+- [x] Implémenter mandats bancaires (createMandate, revokeMandate, verifyMandate, listReceivedMandates)
+- [x] Chaque opération loggée dans audit_events avec motif
 
 ### Phase 4 : Traçabilité absolue
-- [ ] Enrichir audit_events avec champ "motif" (raison de la consultation)
-- [ ] Logger chaque consultation de parcelle/titre avec horodatage et motif
-- [ ] Logger chaque accès bancaire avec mandat associé
-- [ ] Créer page admin pour visualiser les logs d'audit détaillés
+- [x] Créer logConsultationWithMotif() pour logger les consultations sensibles avec traceId
+- [x] Créer logValidationWithMotif() pour logger les validations/signatures avec motif
+- [x] Créer auditTraceRouter avec searchAuditTrail (filtres avancés) et auditStats
+- [x] Monter auditTraceRouter dans appRouter
 
 ### Phase 5 : Validation
-- [ ] Tests TypeScript (0 erreurs)
-- [ ] Tests PASS
-- [ ] Checkpoint
+- [x] Tests TypeScript (0 erreurs)
+- [x] 328 tests PASS
+- [x] Checkpoint

@@ -1,24 +1,9 @@
-CREATE TABLE `audit_events_enhanced` (
-	`id` int AUTO_INCREMENT NOT NULL,
-	`actor_id` int NOT NULL,
-	`actor_role` varchar(64) NOT NULL,
-	`action` varchar(255) NOT NULL,
-	`target_type` varchar(64) NOT NULL,
-	`target_id` int,
-	`details` json,
-	`motif` text,
-	`ip_address` varchar(45),
-	`user_agent` text,
-	`created_at` timestamp NOT NULL DEFAULT (now()),
-	CONSTRAINT `audit_events_enhanced_id` PRIMARY KEY(`id`)
-);
---> statement-breakpoint
 CREATE TABLE `bank_mandates` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`bank_id` int NOT NULL,
 	`citizen_id` int NOT NULL,
 	`access_code` varchar(128) NOT NULL,
-	`permissions` json NOT NULL DEFAULT ('[]'),
+	`permissions` json NOT NULL,
 	`expires_at` timestamp NOT NULL,
 	`revoked_at` timestamp,
 	`created_at` timestamp NOT NULL DEFAULT (now()),
@@ -48,14 +33,9 @@ CREATE TABLE `role_permissions_matrix` (
 	CONSTRAINT `role_permissions_matrix_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
-ALTER TABLE `audit_events_enhanced` ADD CONSTRAINT `audit_events_enhanced_actor_id_users_id_fk` FOREIGN KEY (`actor_id`) REFERENCES `users`(`id`) ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `bank_mandates` ADD CONSTRAINT `bank_mandates_bank_id_users_id_fk` FOREIGN KEY (`bank_id`) REFERENCES `users`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `bank_mandates` ADD CONSTRAINT `bank_mandates_citizen_id_users_id_fk` FOREIGN KEY (`citizen_id`) REFERENCES `users`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE `notary_baskets` ADD CONSTRAINT `notary_baskets_notary_id_users_id_fk` FOREIGN KEY (`notary_id`) REFERENCES `users`(`id`) ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX `idx_audit_actor` ON `audit_events_enhanced` (`actor_id`);--> statement-breakpoint
-CREATE INDEX `idx_audit_action` ON `audit_events_enhanced` (`action`);--> statement-breakpoint
-CREATE INDEX `idx_audit_target` ON `audit_events_enhanced` (`target_type`,`target_id`);--> statement-breakpoint
-CREATE INDEX `idx_audit_created` ON `audit_events_enhanced` (`created_at`);--> statement-breakpoint
 CREATE INDEX `idx_mandate_bank` ON `bank_mandates` (`bank_id`);--> statement-breakpoint
 CREATE INDEX `idx_mandate_citizen` ON `bank_mandates` (`citizen_id`);--> statement-breakpoint
 CREATE INDEX `idx_mandate_code` ON `bank_mandates` (`access_code`);--> statement-breakpoint

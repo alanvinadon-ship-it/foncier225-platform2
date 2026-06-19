@@ -1,8 +1,8 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "e9b3296f-d66f-471f-8d7a-e09c7a87df81",
-  "prevId": "b3f84c6a-bbca-4ebd-bd14-a0e28365662f",
+  "id": "f48d4709-220a-434c-9d74-1d12e3161413",
+  "prevId": "4af9ccfb-19aa-4485-9e02-8bd59e5e2a29",
   "tables": {
     "agent_availabilities": {
       "name": "agent_availabilities",
@@ -607,145 +607,6 @@
       "compositePrimaryKeys": {
         "audit_events_id": {
           "name": "audit_events_id",
-          "columns": [
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraint": {}
-    },
-    "audit_events_enhanced": {
-      "name": "audit_events_enhanced",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "actor_id": {
-          "name": "actor_id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "actor_role": {
-          "name": "actor_role",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "action": {
-          "name": "action",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "target_type": {
-          "name": "target_type",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "target_id": {
-          "name": "target_id",
-          "type": "int",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "details": {
-          "name": "details",
-          "type": "json",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "motif": {
-          "name": "motif",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "ip_address": {
-          "name": "ip_address",
-          "type": "varchar(45)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "user_agent": {
-          "name": "user_agent",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(now())"
-        }
-      },
-      "indexes": {
-        "idx_audit_actor": {
-          "name": "idx_audit_actor",
-          "columns": [
-            "actor_id"
-          ],
-          "isUnique": false
-        },
-        "idx_audit_action": {
-          "name": "idx_audit_action",
-          "columns": [
-            "action"
-          ],
-          "isUnique": false
-        },
-        "idx_audit_target": {
-          "name": "idx_audit_target",
-          "columns": [
-            "target_type",
-            "target_id"
-          ],
-          "isUnique": false
-        },
-        "idx_audit_created": {
-          "name": "idx_audit_created",
-          "columns": [
-            "created_at"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "audit_events_enhanced_actor_id_users_id_fk": {
-          "name": "audit_events_enhanced_actor_id_users_id_fk",
-          "tableFrom": "audit_events_enhanced",
-          "tableTo": "users",
-          "columnsFrom": [
-            "actor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "audit_events_enhanced_id": {
-          "name": "audit_events_enhanced_id",
           "columns": [
             "id"
           ]

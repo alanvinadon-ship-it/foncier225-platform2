@@ -24,6 +24,12 @@ export const RBAC_MODULES = [
   "users",
   "rbac",
   "parcels",
+  // Modules SIGFU + AFOR (Matrice nationale)
+  "demande_identite",
+  "plans_sig",
+  "actes_notaries",
+  "liquidation_taxes",
+  "titres_souverains",
 ] as const;
 
 export type RbacModule = (typeof RBAC_MODULES)[number];
@@ -36,6 +42,7 @@ export const RBAC_ACTIONS = [
   "approve",
   "export",
   "manage",
+  "validate",  // Signer / Valider officiellement (SIGFU/AFOR)
 ] as const;
 
 export type RbacAction = (typeof RBAC_ACTIONS)[number];
@@ -48,7 +55,7 @@ export const SYSTEM_ROLES = [
   {
     name: "super_admin",
     displayName: "Super Administrateur",
-    description: "Accès complet à tous les modules sans restriction",
+    description: "Acc\u00e8s complet \u00e0 tous les modules sans restriction",
   },
   {
     name: "admin",
@@ -58,22 +65,63 @@ export const SYSTEM_ROLES = [
   {
     name: "agent_foncier",
     displayName: "Agent Foncier",
-    description: "Traitement des dossiers fonciers (titre, ACD, délimitation)",
+    description: "Traitement des dossiers fonciers (titre, ACD, d\u00e9limitation)",
   },
   {
     name: "agent_terrain",
     displayName: "Agent de Terrain",
-    description: "Collecte de données terrain et vérifications",
+    description: "Collecte de donn\u00e9es terrain et v\u00e9rifications",
   },
   {
     name: "banquier",
     displayName: "Agent Bancaire",
-    description: "Gestion des dossiers de crédit habitat",
+    description: "Gestion des dossiers de cr\u00e9dit habitat",
   },
   {
     name: "citoyen",
     displayName: "Citoyen",
-    description: "Accès aux services en ligne pour les citoyens",
+    description: "Acc\u00e8s aux services en ligne pour les citoyens",
+  },
+  // R\u00f4les SIGFU + AFOR
+  {
+    name: "notaire",
+    displayName: "Notaire",
+    description: "Ma\u00eetre de l'acte notari\u00e9 : contr\u00f4le total sur les actes, consultation SIG et titres",
+  },
+  {
+    name: "agent_dgi",
+    displayName: "Agent DGI (Imp\u00f4ts)",
+    description: "Verrou fiscal obligatoire : liquidation des taxes et droits de mutation",
+  },
+  {
+    name: "autorite_prefectorale",
+    displayName: "Autorit\u00e9 Pr\u00e9fectorale",
+    description: "Signature ACD/CF hors Abidjan, validation officielle des certificats",
+  },
+  {
+    name: "agent_afor",
+    displayName: "Agent AFOR (Rural)",
+    description: "Instruction des dossiers fonciers ruraux (Certificats Fonciers)",
+  },
+  {
+    name: "comite_villageois",
+    displayName: "Comit\u00e9 Villageois",
+    description: "Validation des limites et avis d'enqu\u00eate en zone rurale (Chef de Village)",
+  },
+  {
+    name: "conservateur",
+    displayName: "Conservateur de la Propri\u00e9t\u00e9 Fonci\u00e8re",
+    description: "Autorit\u00e9 de publication : inscription au Livre Foncier et validation du Titre Foncier",
+  },
+  {
+    name: "geometre_urbain",
+    displayName: "G\u00e9om\u00e8tre Urbain / Agr\u00e9\u00e9",
+    description: "Lev\u00e9s topographiques, plans et donn\u00e9es SIG",
+  },
+  {
+    name: "agent_mclu",
+    displayName: "Agent MCLU / Construction",
+    description: "Instruction des dossiers urbains (ACD, permis de construire)",
   },
 ] as const;
 
@@ -189,6 +237,83 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, Array<{ module: RbacModule
     { module: "messaging", action: "view" }, { module: "messaging", action: "create" },
     { module: "parcels", action: "view" },
     { module: "interconnexion", action: "view" },
+    // SIGFU : Demande/Identite (C/L/M), Actes (L), Taxes (L), Titres (L)
+    { module: "demande_identite", action: "create" }, { module: "demande_identite", action: "view" }, { module: "demande_identite", action: "edit" },
+    { module: "plans_sig", action: "view" },
+    { module: "actes_notaries", action: "view" },
+    { module: "liquidation_taxes", action: "view" },
+    { module: "titres_souverains", action: "view" },
+  ],
+
+  // ============ ROLES SIGFU + AFOR ============
+
+  // Notaire : Maitre de l'Acte (C/L/M/V sur actes_notaries, L sur SIG et titres)
+  notaire: [
+    { module: "demande_identite", action: "view" },
+    { module: "plans_sig", action: "view" },
+    { module: "actes_notaries", action: "create" }, { module: "actes_notaries", action: "view" }, { module: "actes_notaries", action: "edit" }, { module: "actes_notaries", action: "validate" },
+    { module: "liquidation_taxes", action: "view" },
+    { module: "titres_souverains", action: "view" },
+    { module: "messaging", action: "view" }, { module: "messaging", action: "create" },
+  ],
+
+  // Agent DGI : Verrou fiscal (C/L/M/V sur liquidation_taxes, L sur demandes)
+  agent_dgi: [
+    { module: "demande_identite", action: "view" },
+    { module: "actes_notaries", action: "view" },
+    { module: "liquidation_taxes", action: "create" }, { module: "liquidation_taxes", action: "view" }, { module: "liquidation_taxes", action: "edit" }, { module: "liquidation_taxes", action: "validate" },
+    { module: "titres_souverains", action: "view" },
+    { module: "messaging", action: "view" }, { module: "messaging", action: "create" },
+  ],
+
+  // Autorite Prefectorale : Signature ACD/CF (V sur titres_souverains)
+  autorite_prefectorale: [
+    { module: "demande_identite", action: "view" },
+    { module: "titres_souverains", action: "validate" },
+    { module: "messaging", action: "view" }, { module: "messaging", action: "create" },
+  ],
+
+  // Agent AFOR : Instruction rurale (C/L/M sur titres_souverains, L sur demandes)
+  agent_afor: [
+    { module: "demande_identite", action: "view" },
+    { module: "plans_sig", action: "view" },
+    { module: "titres_souverains", action: "create" }, { module: "titres_souverains", action: "view" }, { module: "titres_souverains", action: "edit" },
+    { module: "messaging", action: "view" }, { module: "messaging", action: "create" },
+  ],
+
+  // Comite Villageois : Validation limites et avis enquete (L sur SIG, V sur titres)
+  comite_villageois: [
+    { module: "demande_identite", action: "view" },
+    { module: "plans_sig", action: "view" },
+    { module: "titres_souverains", action: "validate" },
+    { module: "messaging", action: "view" }, { module: "messaging", action: "create" },
+  ],
+
+  // Conservateur : Autorite de publication (C/L/M/V sur titres_souverains, L sur tout)
+  conservateur: [
+    { module: "demande_identite", action: "view" },
+    { module: "plans_sig", action: "view" },
+    { module: "actes_notaries", action: "view" },
+    { module: "liquidation_taxes", action: "view" },
+    { module: "titres_souverains", action: "create" }, { module: "titres_souverains", action: "view" }, { module: "titres_souverains", action: "edit" }, { module: "titres_souverains", action: "validate" },
+    { module: "messaging", action: "view" }, { module: "messaging", action: "create" },
+  ],
+
+  // Geometre Urbain : Plans & SIG (C/L/M/V), L sur demandes
+  geometre_urbain: [
+    { module: "demande_identite", action: "view" },
+    { module: "plans_sig", action: "create" }, { module: "plans_sig", action: "view" }, { module: "plans_sig", action: "edit" }, { module: "plans_sig", action: "validate" },
+    { module: "parcels", action: "view" }, { module: "parcels", action: "create" }, { module: "parcels", action: "edit" },
+    { module: "messaging", action: "view" }, { module: "messaging", action: "create" },
+  ],
+
+  // Agent MCLU : Instruction urbaine (C/L/M sur titres_souverains, L sur demandes)
+  agent_mclu: [
+    { module: "demande_identite", action: "view" },
+    { module: "plans_sig", action: "view" },
+    { module: "actes_notaries", action: "view" },
+    { module: "titres_souverains", action: "create" }, { module: "titres_souverains", action: "view" }, { module: "titres_souverains", action: "edit" },
+    { module: "messaging", action: "view" }, { module: "messaging", action: "create" },
   ],
 };
 

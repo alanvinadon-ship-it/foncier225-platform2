@@ -1183,25 +1183,6 @@ export const bankMandates = mysqlTable("bank_mandates", {
 export type BankMandate = typeof bankMandates.$inferSelect;
 export type InsertBankMandate = typeof bankMandates.$inferInsert;
 
-// Enhanced audit events with reason/motif
-export const auditEventsWithMotif = mysqlTable("audit_events_with_motif", {
-  id: int("id").autoincrement().primaryKey(),
-  actorId: int("actor_id").notNull().references(() => users.id, { onDelete: "set null" }),
-  actorRole: varchar("actor_role", { length: 64 }).notNull(),
-  action: varchar("action", { length: 255 }).notNull(),
-  targetType: varchar("target_type", { length: 64 }).notNull(),
-  targetId: int("target_id"),
-  details: json("details").$type<Record<string, any>>(),
-  motif: text("motif"), // Reason for consultation (vetting, verification, etc.)
-  ipAddress: varchar("ip_address", { length: 45 }),
-  userAgent: text("user_agent"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => ({
-  actorIdIdx: index("idx_audit_actor").on(table.actorId),
-  actionIdx: index("idx_audit_action").on(table.action),
-  targetIdx: index("idx_audit_target").on(table.targetType, table.targetId),
-  createdAtIdx: index("idx_audit_created").on(table.createdAt),
-}));
-
-export type AuditEventWithMotif = typeof auditEventsWithMotif.$inferSelect;
-export type InsertAuditEventWithMotif = typeof auditEventsWithMotif.$inferInsert;
+// Enhanced audit events with reason/motif (uses existing audit_events table + motif column)
+// The motif field is stored in the existing audit_events.details JSON column
+// No separate table needed - we extend the existing audit trail

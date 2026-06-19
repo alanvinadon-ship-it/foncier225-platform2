@@ -218,20 +218,6 @@
       "when": 1781592230433,
       "tag": "0030_outgoing_rhodey",
       "breakpoints": true
-    },
-    {
-      "idx": 31,
-      "version": "5",
-      "when": 1781592285388,
-      "tag": "0031_daily_redwing",
-      "breakpoints": true
-    },
-    {
-      "idx": 32,
-      "version": "5",
-      "when": 1781592308017,
-      "tag": "0032_flimsy_thunderbolts",
-      "breakpoints": true
     }
   ]
 }
