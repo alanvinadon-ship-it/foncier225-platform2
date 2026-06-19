@@ -30,6 +30,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useState } from "react";
+import { NotificationBell } from "@/components/erp/NotificationBell";
 
 interface NavItem {
   label: string;
@@ -60,7 +61,8 @@ const ERP_NAV_ITEMS: NavItem[] = [
   { label: "Budgets", href: "/erp/finance/budgets", icon: <Wallet size={18} />, module: "erp_finance" },
   { label: "Trésorerie", href: "/erp/finance/cash-flow", icon: <DollarSign size={18} />, module: "erp_finance" },
   { label: "Rentabilité", href: "/erp/finance/profitability", icon: <BarChart3 size={18} />, module: "erp_finance" },
-  { label: "Alertes", href: "/erp/alerts", icon: <Bell size={18} />, module: "erp_alerts" },
+  { label: "Alertes Dépassement", href: "/erp/finance/overrun-alerts", icon: <Bell size={18} />, module: "erp_alerts" },
+  { label: "Notifications", href: "/erp/notifications", icon: <Bell size={18} />, module: "erp_alerts" },
   { label: "Profil", href: "/erp/profile", icon: <User size={18} />, module: "erp_profile" },
   { label: "Audit Logs", href: "/erp/audit-logs", icon: <ScrollText size={18} />, module: "erp_audit_logs" },
 ];
@@ -203,6 +205,10 @@ export function ErpLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto">
+        {/* Header bar with notification bell */}
+        <div className="h-14 border-b border-border flex items-center justify-end px-6 gap-3">
+          <NotificationBell />
+        </div>
         <div className="p-6">{children}</div>
       </main>
     </div>

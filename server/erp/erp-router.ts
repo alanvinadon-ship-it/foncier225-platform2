@@ -435,6 +435,8 @@ import { erpMaterialRequestsRouter } from "./erp-material-requests-router";
 import { erpSupplierIntegrationRouter } from "./erp-supplier-integration-router";
 import { erpWastageRouter } from "./erp-wastage-router";
 import { erpFinanceRouter } from "./erp-finance-router";
+import { erpOverrunAlertsRouter } from "./erp-overrun-alerts-router";
+import { erpNotificationsRouter } from "./erp-notifications-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -463,4 +465,6 @@ export const erpRouter = router({
   supplierIntegration: erpSupplierIntegrationRouter,
   wastage: erpWastageRouter,
   finance: erpFinanceRouter,
+  overrunAlerts: erpOverrunAlertsRouter,
+  notifications: erpNotificationsRouter,
 });

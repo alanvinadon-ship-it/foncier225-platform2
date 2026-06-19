@@ -1798,3 +1798,62 @@
 
 ### Documentation
 - [x] Documenter l'intégration automatique budget
+
+## Sprint 14 ERP Construction — Overrun Alerts & Notifications
+
+### Schéma DB
+- [x] Créer table `erp_overrun_alerts` (id, projectId, alertType, priority, title, message, threshold, currentValue, isAcknowledged, acknowledgedBy, acknowledgedAt, relatedEntityType, relatedEntityId, createdAt)
+- [x] Créer table `erp_notifications` (id, userId, title, message, module, priority, isRead, readAt, linkUrl, createdAt)
+- [x] Pousser les migrations DB
+
+### Backend — Moteur d'alertes
+- [x] Détection projet en retard
+- [x] Détection tâche en retard
+- [x] Détection jalon dépassé
+- [x] Détection budget consommé à 75%
+- [x] Détection budget consommé à 90%
+- [x] Détection budget consommé à 100%
+- [x] Détection dépassement confirmé (>100%)
+- [x] Détection facture échue
+- [x] Détection document expiré
+- [x] Détection certification expirée
+- [x] Détection stock critique
+- [x] Détection maintenance proche
+- [x] Détection incident sécurité critique
+
+### Backend — Routeur Overrun Alerts
+- [x] Procédure erp.overrunAlerts.list (GET filtres + pagination)
+- [x] Procédure erp.overrunAlerts.check (POST déclencher vérification)
+- [x] Procédure erp.overrunAlerts.acknowledge (POST /:id/acknowledge)
+- [x] Procédure erp.overrunAlerts.byProject (GET /projects/:id/alerts)
+
+### Backend — Routeur Notifications
+- [x] Procédure erp.notifications.list (GET filtres + pagination)
+- [x] Procédure erp.notifications.unread (GET non lues)
+- [x] Procédure erp.notifications.markRead (POST /:id/read)
+- [x] Procédure erp.notifications.markAllRead (POST /read-all)
+
+### Frontend — Pages et composants
+- [x] Page /erp/finance/overrun-alerts (liste alertes + filtres priorité/module)
+- [x] Page /erp/notifications (liste notifications + filtres)
+- [x] Composant NotificationBell (icône + badge unread dans header ERP)
+- [x] Panneau notifications dropdown
+- [x] Routes App.tsx ajoutées
+- [x] Sidebar ERP mise à jour
+
+### Tests
+- [x] Test : alerte à 75% du budget
+- [x] Test : alerte à 90%
+- [x] Test : alerte à 100%
+- [x] Test : alerte dépassement confirmé
+- [x] Test : notification document expiré
+- [x] Test : notification stock critique
+- [x] Test : notification incident critique
+- [x] Test : marquer comme lu
+- [x] Test : marquer tout comme lu
+- [x] Test : compteur unread
+- [x] Test : filtrage par module
+
+### Documentation
+- [x] Documenter les modules Overrun Alerts & Notifications
+- [x] Résumé des fichiers créés/modifiés

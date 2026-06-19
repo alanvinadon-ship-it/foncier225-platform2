@@ -93,6 +93,8 @@ const ErpWastage = lazy(() => import("./pages/erp/ErpWastage"));
 const ErpFinanceBudgets = lazy(() => import("./pages/erp/ErpFinanceBudgets"));
 const ErpFinanceCashFlow = lazy(() => import("./pages/erp/ErpFinanceCashFlow"));
 const ErpFinanceProfitability = lazy(() => import("./pages/erp/ErpFinanceProfitability"));
+const ErpOverrunAlerts = lazy(() => import("./pages/erp/ErpOverrunAlerts"));
+const ErpNotifications = lazy(() => import("./pages/erp/ErpNotifications"));
 
 function RouteFallback() {
   return (
@@ -510,6 +512,16 @@ function Router() {
       <Route path="/erp/finance/profitability">
         <ErpLayout>
           <ErpFinanceProfitability />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/finance/overrun-alerts">
+        <ErpLayout>
+          <ErpOverrunAlerts />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/notifications">
+        <ErpLayout>
+          <ErpNotifications />
         </ErpLayout>
       </Route>
 

@@ -2190,3 +2190,59 @@ export const erpProfitabilitySnapshots = mysqlTable("erp_profitability_snapshots
 
 export type ErpProfitabilitySnapshot = typeof erpProfitabilitySnapshots.$inferSelect;
 export type InsertErpProfitabilitySnapshot = typeof erpProfitabilitySnapshots.$inferInsert;
+
+
+// ============================================================
+// ERP OVERRUN ALERTS — Sprint 14
+// ============================================================
+
+export const erpOverrunAlerts = mysqlTable("erp_overrun_alerts", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("project_id"),
+  alertType: varchar("alert_type", { length: 64 }).notNull(),
+  // Types: project_late, task_late, milestone_overdue, budget_75, budget_90, budget_100, budget_overrun, invoice_overdue, document_expired, certification_expired, stock_critical, maintenance_due, safety_critical
+  priority: mysqlEnum("priority", ["low", "medium", "high", "critical"]).notNull().default("medium"),
+  title: varchar("title", { length: 255 }).notNull(),
+  message: text("message"),
+  threshold: int("threshold"), // e.g. 7500 for 75%
+  currentValue: int("current_value"), // e.g. 8200 for 82%
+  isAcknowledged: boolean("is_acknowledged").default(false).notNull(),
+  acknowledgedBy: int("acknowledged_by").references(() => users.id, { onDelete: "set null" }),
+  acknowledgedAt: bigint("acknowledged_at", { mode: "number" }),
+  relatedEntityType: varchar("related_entity_type", { length: 64 }), // budget, invoice, project, task, document, equipment, etc.
+  relatedEntityId: int("related_entity_id"),
+  module: varchar("module", { length: 64 }).default("finance"), // finance, projects, inventory, safety, compliance, equipment
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  projectIdx: index("idx_erp_overrun_project").on(table.projectId),
+  typeIdx: index("idx_erp_overrun_type").on(table.alertType),
+  priorityIdx: index("idx_erp_overrun_priority").on(table.priority),
+  ackIdx: index("idx_erp_overrun_ack").on(table.isAcknowledged),
+}));
+export type ErpOverrunAlert = typeof erpOverrunAlerts.$inferSelect;
+export type InsertErpOverrunAlert = typeof erpOverrunAlerts.$inferInsert;
+
+// ============================================================
+// ERP NOTIFICATIONS — Sprint 14
+// ============================================================
+
+export const erpNotifications = mysqlTable("erp_notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  message: text("message"),
+  module: varchar("module", { length: 64 }).default("general"), // finance, projects, inventory, safety, compliance, equipment, general
+  priority: mysqlEnum("priority", ["low", "medium", "high", "critical"]).notNull().default("medium"),
+  isRead: boolean("is_read").default(false).notNull(),
+  readAt: bigint("read_at", { mode: "number" }),
+  linkUrl: varchar("link_url", { length: 512 }),
+  alertId: int("alert_id"), // optional link to overrun alert
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  userIdx: index("idx_erp_notif_user").on(table.userId),
+  readIdx: index("idx_erp_notif_read").on(table.isRead),
+  moduleIdx: index("idx_erp_notif_module").on(table.module),
+  createdIdx: index("idx_erp_notif_created").on(table.createdAt),
+}));
+export type ErpNotification = typeof erpNotifications.$inferSelect;
+export type InsertErpNotification = typeof erpNotifications.$inferInsert;

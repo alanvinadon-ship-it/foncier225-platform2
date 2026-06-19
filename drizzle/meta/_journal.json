@@ -295,6 +295,13 @@
       "when": 1781891969853,
       "tag": "0041_slippery_ikaris",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "5",
+      "when": 1781893547599,
+      "tag": "0042_closed_captain_britain",
+      "breakpoints": true
     }
   ]
 }
