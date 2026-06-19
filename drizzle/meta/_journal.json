@@ -267,6 +267,13 @@
       "when": 1781870246569,
       "tag": "0037_fancy_vertigo",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "5",
+      "when": 1781874035922,
+      "tag": "0038_ambiguous_vivisector",
+      "breakpoints": true
     }
   ]
 }

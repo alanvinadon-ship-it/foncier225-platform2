@@ -1533,3 +1533,63 @@
 ### Documentation
 - [x] Documenter le module Performance Rating (docs/SPRINT9_ERP_RATINGS.md)
 - [x] Résumé des fichiers créés/modifiés
+
+## Sprint 10 ERP Construction — Invoices & Payments
+
+### Schéma DB
+- [x] Créer table `erp_invoices` (id, projectId, vendorId, contractorId, invoiceNumber, reference, type, status, issueDate, dueDate, subtotal, taxRate, taxAmount, totalAmount, paidAmount, currency, notes, attachmentUrl, attachmentKey, submittedAt, submittedBy, approvedAt, approvedBy, rejectedAt, rejectedBy, rejectionReason, createdBy, createdAt, updatedAt, deletedAt)
+- [x] Créer table `erp_invoice_lines` (id, invoiceId, description, quantity, unitPrice, amount, taxRate, taxAmount, totalAmount, sortOrder, createdAt)
+- [x] Créer table `erp_payments` (id, invoiceId, amount, paymentDate, paymentMethod, reference, notes, createdBy, createdAt)
+- [x] Pousser les migrations DB
+
+### Backend — Routeur Invoices
+- [x] Procédure erp.invoices.list (GET filtres + pagination)
+- [x] Procédure erp.invoices.getById (GET /:id avec lignes + paiements)
+- [x] Procédure erp.invoices.create (POST brouillon)
+- [x] Procédure erp.invoices.update (PUT /:id)
+- [x] Procédure erp.invoices.delete (DELETE /:id soft delete)
+- [x] Procédure erp.invoices.addLine (POST /:id/lines)
+- [x] Procédure erp.invoices.updateLine (PUT ligne)
+- [x] Procédure erp.invoices.deleteLine (DELETE ligne)
+- [x] Procédure erp.invoices.submit (POST /:id/submit)
+- [x] Procédure erp.invoices.approve (POST /:id/approve)
+- [x] Procédure erp.invoices.reject (POST /:id/reject)
+- [x] Procédure erp.invoices.overdue (GET factures échues)
+- [x] Procédure erp.invoices.unpaid (GET factures impayées)
+- [x] Procédure erp.invoices.stats (GET KPI factures)
+
+### Backend — Routeur Payments
+- [x] Procédure erp.payments.list (GET filtres + pagination)
+- [x] Procédure erp.payments.create (POST paiement + calcul solde + auto-status)
+- [x] Procédure erp.payments.delete (DELETE annuler paiement + recalcul)
+- [x] Procédure erp.payments.stats (GET KPI paiements)
+
+### Frontend — Pages
+- [x] Page /erp/invoices (liste factures + filtres + KPI + onglets Toutes/En retard/Impayées)
+- [x] Dialog création facture + lignes
+- [x] Dialog détail facture + paiements + submit/approve/reject
+- [x] Page /erp/payments (historique paiements + stats + filtres par méthode)
+- [x] Routes App.tsx ajoutées
+- [x] Sidebar ERP mise à jour (liens Factures + Paiements)
+
+### Tests
+- [x] Test : types facture (3 types)
+- [x] Test : statuts facture (8 statuts)
+- [x] Test : workflow transitions
+- [x] Test : calculs lignes (HT, TVA 18%, TTC)
+- [x] Test : recalcul totaux facture
+- [x] Test : méthodes paiement (5)
+- [x] Test : auto-update statut (paid/partially_paid)
+- [x] Test : validation paiement (statuts payables)
+- [x] Test : blocage paiement excédant solde
+- [x] Test : détection overdue
+- [x] Test : format numéro facture
+- [x] Test : formatage XOF
+- [x] Test : permissions Finance
+- [x] Test : contraintes suppression
+- [x] Test : contraintes soumission
+- [x] Test : non-régression (669 tests PASS, 0 erreurs TypeScript)
+
+### Documentation
+- [x] Documenter les modules Invoices & Payments (docs/SPRINT10_ERP_INVOICES.md)
+- [x] Résumé des fichiers créés/modifiés

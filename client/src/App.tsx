@@ -84,6 +84,8 @@ const ErpVendors = lazy(() => import("./pages/erp/ErpVendors"));
 const ErpContractors = lazy(() => import("./pages/erp/ErpContractors"));
 const ErpCertifications = lazy(() => import("./pages/erp/ErpCertifications"));
 const ErpRatings = lazy(() => import("./pages/erp/ErpRatings"));
+const ErpInvoices = lazy(() => import("./pages/erp/ErpInvoices"));
+const ErpPayments = lazy(() => import("./pages/erp/ErpPayments"));
 
 function RouteFallback() {
   return (
@@ -456,6 +458,16 @@ function Router() {
       <Route path="/erp/performance-ratings">
         <ErpLayout>
           <ErpRatings />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/invoices">
+        <ErpLayout>
+          <ErpInvoices />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/payments">
+        <ErpLayout>
+          <ErpPayments />
         </ErpLayout>
       </Route>
 

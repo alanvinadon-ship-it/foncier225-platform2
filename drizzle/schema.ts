@@ -1821,3 +1821,87 @@ export const erpPerformanceRatings = mysqlTable("erp_performance_ratings", {
 
 export type ErpPerformanceRating = typeof erpPerformanceRatings.$inferSelect;
 export type InsertErpPerformanceRating = typeof erpPerformanceRatings.$inferInsert;
+
+// ============================================================
+// ERP INVOICES & PAYMENTS (Sprint 10)
+// ============================================================
+
+export const erpInvoices = mysqlTable("erp_invoices", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("project_id").references(() => erpProjects.id, { onDelete: "set null" }),
+  vendorId: int("vendor_id").references(() => erpVendors.id, { onDelete: "set null" }),
+  contractorId: int("contractor_id").references(() => erpContractors.id, { onDelete: "set null" }),
+  invoiceNumber: varchar("invoice_number", { length: 64 }).notNull(),
+  reference: varchar("reference", { length: 128 }),
+  type: varchar("type", { length: 32 }).notNull().default("standard"), // standard, credit_note, proforma
+  status: varchar("status", { length: 32 }).notNull().default("draft"), // draft, submitted, approved, partially_paid, paid, overdue, rejected, cancelled
+  issueDate: bigint("issue_date", { mode: "number" }).notNull(),
+  dueDate: bigint("due_date", { mode: "number" }).notNull(),
+  subtotal: int("subtotal").notNull().default(0), // montant HT en centimes XOF
+  taxRate: int("tax_rate").notNull().default(1800), // taux TVA en centièmes (1800 = 18%)
+  taxAmount: int("tax_amount").notNull().default(0), // montant TVA en centimes
+  totalAmount: int("total_amount").notNull().default(0), // montant TTC en centimes
+  paidAmount: int("paid_amount").notNull().default(0), // montant payé en centimes
+  currency: varchar("currency", { length: 3 }).notNull().default("XOF"),
+  notes: text("notes"),
+  attachmentUrl: text("attachment_url"),
+  attachmentKey: varchar("attachment_key", { length: 512 }),
+  submittedAt: bigint("submitted_at", { mode: "number" }),
+  submittedBy: int("submitted_by").references(() => users.id, { onDelete: "set null" }),
+  approvedAt: bigint("approved_at", { mode: "number" }),
+  approvedBy: int("approved_by").references(() => users.id, { onDelete: "set null" }),
+  rejectedAt: bigint("rejected_at", { mode: "number" }),
+  rejectedBy: int("rejected_by").references(() => users.id, { onDelete: "set null" }),
+  rejectionReason: text("rejection_reason"),
+  createdBy: int("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  projectIdx: index("idx_erp_invoices_project").on(table.projectId),
+  vendorIdx: index("idx_erp_invoices_vendor").on(table.vendorId),
+  contractorIdx: index("idx_erp_invoices_contractor").on(table.contractorId),
+  statusIdx: index("idx_erp_invoices_status").on(table.status),
+  dueDateIdx: index("idx_erp_invoices_due_date").on(table.dueDate),
+  invoiceNumberIdx: index("idx_erp_invoices_number").on(table.invoiceNumber),
+}));
+
+export type ErpInvoice = typeof erpInvoices.$inferSelect;
+export type InsertErpInvoice = typeof erpInvoices.$inferInsert;
+
+export const erpInvoiceLines = mysqlTable("erp_invoice_lines", {
+  id: int("id").autoincrement().primaryKey(),
+  invoiceId: int("invoice_id").notNull().references(() => erpInvoices.id, { onDelete: "cascade" }),
+  description: varchar("description", { length: 512 }).notNull(),
+  quantity: int("quantity").notNull().default(1), // quantité * 100 pour décimales
+  unitPrice: int("unit_price").notNull(), // prix unitaire en centimes XOF
+  amount: int("amount").notNull(), // quantity/100 * unitPrice
+  taxRate: int("tax_rate").notNull().default(1800), // taux TVA en centièmes
+  taxAmount: int("tax_amount").notNull().default(0),
+  totalAmount: int("total_amount").notNull(), // amount + taxAmount
+  sortOrder: int("sort_order").notNull().default(0),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  invoiceIdx: index("idx_erp_invoice_lines_invoice").on(table.invoiceId),
+}));
+
+export type ErpInvoiceLine = typeof erpInvoiceLines.$inferSelect;
+export type InsertErpInvoiceLine = typeof erpInvoiceLines.$inferInsert;
+
+export const erpPayments = mysqlTable("erp_payments", {
+  id: int("id").autoincrement().primaryKey(),
+  invoiceId: int("invoice_id").notNull().references(() => erpInvoices.id, { onDelete: "cascade" }),
+  amount: int("amount").notNull(), // montant en centimes XOF
+  paymentDate: bigint("payment_date", { mode: "number" }).notNull(),
+  paymentMethod: varchar("payment_method", { length: 32 }).notNull().default("virement"), // virement, cheque, especes, mobile_money, carte
+  reference: varchar("reference", { length: 128 }),
+  notes: text("notes"),
+  createdBy: int("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  invoiceIdx: index("idx_erp_payments_invoice").on(table.invoiceId),
+  dateIdx: index("idx_erp_payments_date").on(table.paymentDate),
+}));
+
+export type ErpPayment = typeof erpPayments.$inferSelect;
+export type InsertErpPayment = typeof erpPayments.$inferInsert;
