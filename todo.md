@@ -1664,3 +1664,59 @@
 ### Documentation
 - [x] Documenter les modules Inventory, Stock Levels & Material Requests (docs/SPRINT11_ERP_INVENTORY.md)
 - [x] Résumé des fichiers créés/modifiés
+
+## Sprint 12 ERP Construction — Supplier Integration & Wastage Analysis
+
+### Schéma DB
+- [x] Créer table `erp_supplier_item_prices` (id, vendorId, itemId, unitPrice, currency, leadTimeDays, minOrderQty, isPreferred, validFrom, validTo, notes, createdBy, createdAt, updatedAt)
+- [x] Créer table `erp_supplier_integrations` (id, vendorId, integrationType, apiUrl, apiKey, lastSyncAt, syncStatus, syncFrequency, isActive, createdBy, createdAt, updatedAt)
+- [x] Créer table `erp_wastage_records` (id, projectId, itemId, quantity, unitCost, totalCost, wastagePercentage, cause, description, correctiveAction, recordedBy, recordedAt, createdAt, updatedAt, deletedAt)
+- [x] Pousser les migrations DB
+
+### Backend — Routeur Supplier Integration
+- [x] Procédure erp.supplierIntegration.listPrices (GET filtres + pagination)
+- [x] Procédure erp.supplierIntegration.createPrice (POST)
+- [x] Procédure erp.supplierIntegration.updatePrice (PUT /:id)
+- [x] Procédure erp.supplierIntegration.deletePrice (DELETE /:id)
+- [x] Procédure erp.supplierIntegration.itemSuppliers (GET fournisseurs d'un article)
+- [x] Procédure erp.supplierIntegration.vendorItems (GET articles d'un fournisseur)
+- [x] Procédure erp.supplierIntegration.compareSuppliers (GET comparaison prix)
+- [x] Procédure erp.supplierIntegration.setPreferred (POST définir fournisseur préféré)
+- [x] Procédure erp.supplierIntegration.listIntegrations (GET intégrations)
+- [x] Procédure erp.supplierIntegration.createIntegration (POST)
+- [x] Procédure erp.supplierIntegration.sync (POST simulation sync)
+
+### Backend — Routeur Wastage
+- [x] Procédure erp.wastage.list (GET filtres + pagination)
+- [x] Procédure erp.wastage.getById (GET /:id)
+- [x] Procédure erp.wastage.create (POST)
+- [x] Procédure erp.wastage.update (PUT /:id)
+- [x] Procédure erp.wastage.delete (DELETE /:id soft delete)
+- [x] Procédure erp.wastage.analysis (GET analyses par projet/matériau/cause)
+- [x] Procédure erp.wastage.byProject (GET pertes d'un projet)
+- [x] Procédure erp.wastage.stats (GET KPI pertes)
+
+### Frontend — Pages
+- [x] Page /erp/supplier-integration (prix fournisseurs + comparaison + intégrations)
+- [x] Page /erp/wastage (liste pertes + analyses + KPI)
+- [x] Routes App.tsx ajoutées
+- [x] Sidebar ERP mise à jour
+
+### Tests
+- [x] Test : association fournisseur-article
+- [x] Test : définition fournisseur préféré
+- [x] Test : comparaison prix
+- [x] Test : délai de livraison
+- [x] Test : simulation synchronisation
+- [x] Test : causes de perte (7)
+- [x] Test : enregistrement perte
+- [x] Test : calcul pourcentage perte
+- [x] Test : calcul coût estimé
+- [x] Test : analyse par projet
+- [x] Test : analyse par cause
+- [x] Test : permissions
+- [x] Test : non-régression
+
+### Documentation
+- [x] Documenter les modules Supplier Integration & Wastage Analysis
+- [x] Résumé des fichiers créés/modifiés

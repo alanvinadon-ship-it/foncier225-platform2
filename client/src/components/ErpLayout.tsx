@@ -24,6 +24,8 @@ import {
   LogOut,
   Menu,
   X,
+  Link2,
+  Trash2,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -49,6 +51,8 @@ const ERP_NAV_ITEMS: NavItem[] = [
   { label: "Performance", href: "/erp/performance-ratings", icon: <Star size={18} />, module: "erp_vendors" },
   { label: "Inventaire", href: "/erp/inventory", icon: <Package size={18} />, module: "erp_inventory" },
   { label: "Demandes Matériel", href: "/erp/material-requests", icon: <Truck size={18} />, module: "erp_inventory" },
+  { label: "Intégration Fournisseurs", href: "/erp/supplier-integration", icon: <Link2 size={18} />, module: "erp_vendors" },
+  { label: "Analyse Gaspillages", href: "/erp/wastage", icon: <Trash2 size={18} />, module: "erp_inventory" },
   { label: "Factures", href: "/erp/invoices", icon: <ScrollText size={18} />, module: "erp_finance" },
   { label: "Paiements", href: "/erp/payments", icon: <DollarSign size={18} />, module: "erp_finance" },
   { label: "Alertes", href: "/erp/alerts", icon: <Bell size={18} />, module: "erp_alerts" },

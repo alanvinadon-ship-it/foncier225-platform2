@@ -432,6 +432,8 @@ import { erpInvoicesRouter } from "./erp-invoices-router";
 import { erpPaymentsRouter } from "./erp-payments-router";
 import { erpInventoryRouter } from "./erp-inventory-router";
 import { erpMaterialRequestsRouter } from "./erp-material-requests-router";
+import { erpSupplierIntegrationRouter } from "./erp-supplier-integration-router";
+import { erpWastageRouter } from "./erp-wastage-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -457,4 +459,6 @@ export const erpRouter = router({
   payments: erpPaymentsRouter,
   inventory: erpInventoryRouter,
   materialRequests: erpMaterialRequestsRouter,
+  supplierIntegration: erpSupplierIntegrationRouter,
+  wastage: erpWastageRouter,
 });

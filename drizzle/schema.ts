@@ -2018,3 +2018,78 @@ export const erpMaterialRequestLines = mysqlTable("erp_material_request_lines", 
 
 export type ErpMaterialRequestLine = typeof erpMaterialRequestLines.$inferSelect;
 export type InsertErpMaterialRequestLine = typeof erpMaterialRequestLines.$inferInsert;
+
+// ============================================================
+// ERP SUPPLIER INTEGRATION & WASTAGE — Sprint 12
+// ============================================================
+
+export const erpSupplierItemPrices = mysqlTable("erp_supplier_item_prices", {
+  id: int("id").primaryKey().autoincrement(),
+  vendorId: int("vendor_id").notNull(),
+  itemId: int("item_id").notNull(),
+  unitPrice: int("unit_price").notNull(), // in XOF centimes
+  currency: varchar("currency", { length: 8 }).notNull().default("XOF"),
+  leadTimeDays: int("lead_time_days").notNull().default(0),
+  minOrderQty: int("min_order_qty").notNull().default(1),
+  isPreferred: boolean("is_preferred").notNull().default(false),
+  validFrom: bigint("valid_from", { mode: "number" }),
+  validTo: bigint("valid_to", { mode: "number" }),
+  notes: text("notes"),
+  createdBy: int("created_by").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  vendorIdx: index("idx_erp_supplier_prices_vendor").on(table.vendorId),
+  itemIdx: index("idx_erp_supplier_prices_item").on(table.itemId),
+  preferredIdx: index("idx_erp_supplier_prices_preferred").on(table.isPreferred),
+}));
+
+export type ErpSupplierItemPrice = typeof erpSupplierItemPrices.$inferSelect;
+export type InsertErpSupplierItemPrice = typeof erpSupplierItemPrices.$inferInsert;
+
+export const erpSupplierIntegrations = mysqlTable("erp_supplier_integrations", {
+  id: int("id").primaryKey().autoincrement(),
+  vendorId: int("vendor_id").notNull(),
+  integrationType: varchar("integration_type", { length: 32 }).notNull(), // api, edi, email, manual
+  apiUrl: text("api_url"),
+  apiKey: text("api_key"),
+  lastSyncAt: bigint("last_sync_at", { mode: "number" }),
+  syncStatus: varchar("sync_status", { length: 32 }).notNull().default("never"), // never, success, failed, in_progress
+  syncFrequency: varchar("sync_frequency", { length: 32 }).notNull().default("manual"), // manual, daily, weekly, monthly
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: int("created_by").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  vendorIdx: index("idx_erp_supplier_integrations_vendor").on(table.vendorId),
+  statusIdx: index("idx_erp_supplier_integrations_status").on(table.syncStatus),
+}));
+
+export type ErpSupplierIntegration = typeof erpSupplierIntegrations.$inferSelect;
+export type InsertErpSupplierIntegration = typeof erpSupplierIntegrations.$inferInsert;
+
+export const erpWastageRecords = mysqlTable("erp_wastage_records", {
+  id: int("id").primaryKey().autoincrement(),
+  projectId: int("project_id"),
+  itemId: int("item_id").notNull(),
+  quantity: int("quantity").notNull(),
+  unitCost: int("unit_cost").notNull(), // XOF
+  totalCost: int("total_cost").notNull(), // quantity * unitCost
+  wastagePercentage: int("wastage_percentage").notNull().default(0), // x100 for precision (e.g. 1250 = 12.50%)
+  cause: varchar("cause", { length: 64 }).notNull(), // breakage, theft, bad_estimate, order_error, poor_storage, supplier_defect, other
+  description: text("description"),
+  correctiveAction: text("corrective_action"),
+  recordedBy: int("recorded_by").notNull(),
+  recordedAt: bigint("recorded_at", { mode: "number" }).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  projectIdx: index("idx_erp_wastage_project").on(table.projectId),
+  itemIdx: index("idx_erp_wastage_item").on(table.itemId),
+  causeIdx: index("idx_erp_wastage_cause").on(table.cause),
+  dateIdx: index("idx_erp_wastage_date").on(table.recordedAt),
+}));
+
+export type ErpWastageRecord = typeof erpWastageRecords.$inferSelect;
+export type InsertErpWastageRecord = typeof erpWastageRecords.$inferInsert;

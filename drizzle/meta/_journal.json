@@ -281,6 +281,13 @@
       "when": 1781875477467,
       "tag": "0039_illegal_apocalypse",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "5",
+      "when": 1781881179475,
+      "tag": "0040_good_solo",
+      "breakpoints": true
     }
   ]
 }
