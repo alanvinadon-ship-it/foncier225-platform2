@@ -1365,3 +1365,53 @@
 ### Documentation
 - [x] Documenter le module Equipment Management (docs/SPRINT6_ERP_EQUIPMENT.md)
 - [x] Résumé des fichiers créés/modifiés
+
+## Sprint 7 ERP Construction — Safety Management
+
+### Schéma DB
+- [x] Créer table `erp_safety_incidents` (id, projectId, title, description, severity, status, location, incidentDate, reportedBy, assignedTo, resolvedAt, resolvedBy, closedAt, closedBy, closureNotes, createdAt, updatedAt, deletedAt)
+- [x] Créer table `erp_safety_audits` (id, projectId, title, description, auditType, scheduledAt, completedAt, auditorName, findings, score, status, createdBy, createdAt, updatedAt, deletedAt)
+- [x] Créer table `erp_safety_corrective_actions` (id, incidentId, title, description, assignedTo, priority, dueDate, completedAt, status, createdBy, createdAt)
+- [x] Pousser les migrations DB
+
+### Backend — Routeur Safety
+- [x] Procédure erp.safety.listIncidents (GET filtres + pagination)
+- [x] Procédure erp.safety.getIncident (GET /:id avec actions correctives)
+- [x] Procédure erp.safety.createIncident (POST + alerte si critique)
+- [x] Procédure erp.safety.updateIncident (PUT /:id)
+- [x] Procédure erp.safety.deleteIncident (DELETE /:id soft delete)
+- [x] Procédure erp.safety.addCorrectiveAction (POST /:id/corrective-actions)
+- [x] Procédure erp.safety.updateCorrectiveAction (PUT /:id mise à jour action)
+- [x] Procédure erp.safety.resolveIncident (POST /:id/resolve)
+- [x] Procédure erp.safety.closeIncident (POST /:id/close — uniquement si résolu)
+- [x] Procédure erp.safety.listAudits (GET filtres + pagination)
+- [x] Procédure erp.safety.createAudit (POST)
+- [x] Procédure erp.safety.updateAudit (PUT /:id)
+- [x] Procédure erp.safety.stats (GET KPI sécurité)
+
+### Frontend — Pages
+- [x] Page /erp/safety (dashboard sécurité + KPI + incidents récents)
+- [x] Tab Incidents (liste incidents + filtres)
+- [x] Dialog création incident
+- [x] Dialog détail incident + actions correctives + resolve/close
+- [x] Tab Audits (liste audits + création)
+- [x] Sidebar ERP déjà configurée (lien Sécurité existe)
+- [x] Routes App.tsx ajoutées
+
+### Tests
+- [x] Test : gravités incident (4 niveaux)
+- [x] Test : statuts incident (5 statuts)
+- [x] Test : workflow incident (open → under_review → corrective_action → resolved → closed)
+- [x] Test : blocage clôture si non résolu
+- [x] Test : incident critique génère alerte
+- [x] Test : types d'audit (7 types)
+- [x] Test : statuts actions correctives (4 statuts)
+- [x] Test : détection retard actions correctives
+- [x] Test : permissions Safety Officer
+- [x] Test : calculs KPI
+- [x] Test : formatage dates
+- [x] Test : non-régression (520 tests PASS, 0 erreurs TypeScript)
+
+### Documentation
+- [x] Documenter le module Safety Management (docs/SPRINT7_ERP_SAFETY.md)
+- [x] Résumé des fichiers créés/modifiés

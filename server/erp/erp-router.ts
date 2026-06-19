@@ -423,6 +423,7 @@ import { erpDocumentsRouter } from "./erp-documents-router";
 import { erpPermitsRouter } from "./erp-permits-router";
 import { erpComplianceRouter } from "./erp-compliance-router";
 import { erpEquipmentRouter } from "./erp-equipment-router";
+import { erpSafetyRouter } from "./erp-safety-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -439,4 +440,5 @@ export const erpRouter = router({
   permits: erpPermitsRouter,
   compliance: erpComplianceRouter,
   equipment: erpEquipmentRouter,
+  safety: erpSafetyRouter,
 });

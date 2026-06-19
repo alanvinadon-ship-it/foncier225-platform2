@@ -1577,3 +1577,82 @@ export const erpEquipmentMaintenance = mysqlTable("erp_equipment_maintenance", {
 
 export type ErpEquipmentMaintenance = typeof erpEquipmentMaintenance.$inferSelect;
 export type InsertErpEquipmentMaintenance = typeof erpEquipmentMaintenance.$inferInsert;
+
+// ============================================================
+// MODULE ERP — SAFETY MANAGEMENT (Sprint 7)
+// ============================================================
+
+export const erpSafetyIncidents = mysqlTable("erp_safety_incidents", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("project_id").references(() => erpProjects.id, { onDelete: "set null" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  severity: varchar("severity", { length: 32 }).default("medium").notNull(), // low, medium, high, critical
+  status: varchar("status", { length: 32 }).default("open").notNull(), // open, under_review, corrective_action, resolved, closed
+  location: varchar("location", { length: 255 }),
+  incidentDate: bigint("incident_date", { mode: "number" }).notNull(),
+  reportedBy: int("reported_by").references(() => users.id, { onDelete: "set null" }),
+  assignedTo: int("assigned_to").references(() => users.id, { onDelete: "set null" }),
+  resolvedAt: bigint("resolved_at", { mode: "number" }),
+  resolvedBy: int("resolved_by").references(() => users.id, { onDelete: "set null" }),
+  resolutionNotes: text("resolution_notes"),
+  closedAt: bigint("closed_at", { mode: "number" }),
+  closedBy: int("closed_by").references(() => users.id, { onDelete: "set null" }),
+  closureNotes: text("closure_notes"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  projectIdx: index("idx_erp_safety_inc_project").on(table.projectId),
+  severityIdx: index("idx_erp_safety_inc_severity").on(table.severity),
+  statusIdx: index("idx_erp_safety_inc_status").on(table.status),
+  dateIdx: index("idx_erp_safety_inc_date").on(table.incidentDate),
+}));
+
+export type ErpSafetyIncident = typeof erpSafetyIncidents.$inferSelect;
+export type InsertErpSafetyIncident = typeof erpSafetyIncidents.$inferInsert;
+
+export const erpSafetyAudits = mysqlTable("erp_safety_audits", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("project_id").references(() => erpProjects.id, { onDelete: "set null" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  auditType: varchar("audit_type", { length: 64 }).default("general").notNull(), // general, fire, electrical, structural, environmental, ppe, autre
+  scheduledAt: bigint("scheduled_at", { mode: "number" }),
+  completedAt: bigint("completed_at", { mode: "number" }),
+  auditorName: varchar("auditor_name", { length: 255 }),
+  findings: text("findings"),
+  score: int("score"), // 0-100
+  status: varchar("status", { length: 32 }).default("planned").notNull(), // planned, in_progress, completed, cancelled
+  createdBy: int("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  projectIdx: index("idx_erp_safety_aud_project").on(table.projectId),
+  statusIdx: index("idx_erp_safety_aud_status").on(table.status),
+  typeIdx: index("idx_erp_safety_aud_type").on(table.auditType),
+}));
+
+export type ErpSafetyAudit = typeof erpSafetyAudits.$inferSelect;
+export type InsertErpSafetyAudit = typeof erpSafetyAudits.$inferInsert;
+
+export const erpSafetyCorrectiveActions = mysqlTable("erp_safety_corrective_actions", {
+  id: int("id").autoincrement().primaryKey(),
+  incidentId: int("incident_id").notNull().references(() => erpSafetyIncidents.id, { onDelete: "cascade" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  assignedTo: varchar("assigned_to", { length: 255 }),
+  priority: varchar("priority", { length: 32 }).default("medium").notNull(), // low, medium, high, critical
+  dueDate: bigint("due_date", { mode: "number" }),
+  completedAt: bigint("completed_at", { mode: "number" }),
+  status: varchar("status", { length: 32 }).default("pending").notNull(), // pending, in_progress, completed, cancelled
+  createdBy: int("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  incidentIdx: index("idx_erp_safety_ca_incident").on(table.incidentId),
+  statusIdx: index("idx_erp_safety_ca_status").on(table.status),
+}));
+
+export type ErpSafetyCorrectiveAction = typeof erpSafetyCorrectiveActions.$inferSelect;
+export type InsertErpSafetyCorrectiveAction = typeof erpSafetyCorrectiveActions.$inferInsert;
