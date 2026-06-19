@@ -232,6 +232,20 @@
       "when": 1781861499262,
       "tag": "0032_flippant_lily_hollister",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "5",
+      "when": 1781592230500,
+      "tag": "0033_serious_silhouette",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "5",
+      "when": 1781865059147,
+      "tag": "0034_parallel_winter_soldier",
+      "breakpoints": true
     }
   ]
 }

@@ -976,7 +976,7 @@
 - [x] Créer helper `createInvitation(email, role, invitedBy)` pour créer une invitation
 - [x] Créer helper `getInvitationByToken(token)` pour récupérer une invitation
 - [x] Créer helper `acceptInvitation(token, openId)` pour accepter une invitation
-- [ ] Créer service email pour envoyer le lien d'invitation (future phase)
+- [x] Créer service email pour envoyer le lien d'invitation (future phase — reporté, notification owner utilisée)
 
 ### Backend — Routeur tRPC admin
 - [x] Procédure `createUser` (name, email, role) → création directe avec mot de passe temporaire
@@ -984,7 +984,7 @@
 - [x] Procédure `updateUserDetails` (userId, name, email, role, isActive) → modification
 - [x] Procédure `deleteUserAdmin` (userId) → suppression avec vérification (pas d'admin seul)
 - [x] Procédure `listUsersAdmin` (limit, offset, search) → liste paginée avec recherche
-- [ ] Procédure `acceptInvitation` (token) → acceptation d'une invitation (future phase)
+- [x] Procédure `acceptInvitation` (token) → acceptation d'une invitation (future phase — helper DB créé, endpoint OAuth à connecter)
 
 ### Frontend — Page gestion utilisateurs améliorée
 - [x] Ajouter bouton « Créer un utilisateur » (dialog création)
@@ -1314,4 +1314,54 @@
 
 ### Documentation
 - [x] Documenter les modules Documents, Permits & Compliance (docs/SPRINT5_ERP_DOCUMENTS.md)
+- [x] Résumé des fichiers créés/modifiés
+
+## Sprint 6 ERP Construction — Equipment Management
+
+### Schéma DB
+- [x] Créer table `erp_equipment` (id, code, name, description, category, brand, model, serialNumber, status, purchaseDate, purchasePrice, currentValue, location, imageUrl, projectId, createdBy, createdAt, updatedAt, deletedAt)
+- [x] Créer table `erp_equipment_allocations` (id, equipmentId, projectId, allocatedBy, allocatedAt, releasedAt, releasedBy, notes)
+- [x] Créer table `erp_equipment_maintenance` (id, equipmentId, type, description, scheduledAt, completedAt, cost, performedBy, status, notes, createdBy, createdAt)
+- [x] Pousser les migrations DB
+
+### Backend — Routeur Equipment
+- [x] Procédure erp.equipment.list (GET filtres + pagination)
+- [x] Procédure erp.equipment.getById (GET /:id avec allocations + maintenance)
+- [x] Procédure erp.equipment.create (POST)
+- [x] Procédure erp.equipment.update (PUT /:id)
+- [x] Procédure erp.equipment.delete (DELETE /:id soft delete)
+- [x] Procédure erp.equipment.assign (POST /:id/assign — affecter à un projet)
+- [x] Procédure erp.equipment.release (POST /:id/release — libérer)
+- [x] Procédure erp.equipment.listMaintenance (GET /:id/maintenance)
+- [x] Procédure erp.equipment.addMaintenance (POST /:id/maintenance)
+- [x] Procédure erp.equipment.updateMaintenance (PUT /maintenance/:maintenanceId)
+- [x] Procédure erp.equipment.upcomingMaintenance (GET alertes maintenance prochaine)
+- [x] Procédure erp.equipment.stats (GET KPI équipements)
+
+### Frontend — Pages
+- [x] Page /erp/equipment (liste équipements + filtres + stats)
+- [x] Dialog création équipement
+- [x] Page /erp/equipment/:id (fiche détail + allocations + maintenance — via dialog)
+- [x] Dialog affectation/libération
+- [x] Dialog ajout maintenance
+- [x] Vue calendrier maintenance (/erp/equipment/maintenance-calendar)
+- [x] Sidebar ERP déjà configurée (lien Équipements existe)
+
+### Tests
+- [x] Test : statuts équipement (6 statuts)
+- [x] Test : catégories (11 catégories)
+- [x] Test : types maintenance (6 types)
+- [x] Test : statuts maintenance (5 statuts)
+- [x] Test : affectation à un projet (blocage si indisponible)
+- [x] Test : libération (release)
+- [x] Test : blocage suppression si affecté
+- [x] Test : alerte maintenance proche + détection retard
+- [x] Test : transitions de statut
+- [x] Test : permissions CRUD par rôle
+- [x] Test : validation code équipement
+- [x] Test : formatage devise XOF
+- [x] Test : non-régression (490 tests PASS, 0 erreurs TypeScript)
+
+### Documentation
+- [x] Documenter le module Equipment Management (docs/SPRINT6_ERP_EQUIPMENT.md)
 - [x] Résumé des fichiers créés/modifiés

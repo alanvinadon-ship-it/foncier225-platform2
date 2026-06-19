@@ -1503,3 +1503,77 @@ export const erpComplianceChecks = mysqlTable("erp_compliance_checks", {
 
 export type ErpComplianceCheck = typeof erpComplianceChecks.$inferSelect;
 export type InsertErpComplianceCheck = typeof erpComplianceChecks.$inferInsert;
+
+// ============================================================
+// ERP EQUIPMENT (Sprint 6)
+// ============================================================
+
+export const erpEquipment = mysqlTable("erp_equipment", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 32 }).notNull().unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 64 }).notNull(),
+  brand: varchar("brand", { length: 128 }),
+  model: varchar("model", { length: 128 }),
+  serialNumber: varchar("serial_number", { length: 128 }),
+  status: varchar("status", { length: 32 }).default("available").notNull(),
+  purchaseDate: bigint("purchase_date", { mode: "number" }),
+  purchasePrice: bigint("purchase_price", { mode: "number" }),
+  currentValue: bigint("current_value", { mode: "number" }),
+  location: varchar("location", { length: 255 }),
+  imageUrl: text("image_url"),
+  projectId: int("project_id").references(() => erpProjects.id, { onDelete: "set null" }),
+  nextMaintenanceAt: bigint("next_maintenance_at", { mode: "number" }),
+  createdBy: int("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  statusIdx: index("idx_erp_equip_status").on(table.status),
+  categoryIdx: index("idx_erp_equip_category").on(table.category),
+  projectIdx: index("idx_erp_equip_project").on(table.projectId),
+  codeIdx: index("idx_erp_equip_code").on(table.code),
+}));
+
+export type ErpEquipment = typeof erpEquipment.$inferSelect;
+export type InsertErpEquipment = typeof erpEquipment.$inferInsert;
+
+export const erpEquipmentAllocations = mysqlTable("erp_equipment_allocations", {
+  id: int("id").autoincrement().primaryKey(),
+  equipmentId: int("equipment_id").notNull().references(() => erpEquipment.id, { onDelete: "cascade" }),
+  projectId: int("project_id").notNull().references(() => erpProjects.id, { onDelete: "cascade" }),
+  allocatedBy: int("allocated_by").references(() => users.id, { onDelete: "set null" }),
+  allocatedAt: bigint("allocated_at", { mode: "number" }).notNull(),
+  releasedAt: bigint("released_at", { mode: "number" }),
+  releasedBy: int("released_by").references(() => users.id, { onDelete: "set null" }),
+  notes: text("notes"),
+}, (table) => ({
+  equipmentIdx: index("idx_erp_equip_alloc_equip").on(table.equipmentId),
+  projectIdx: index("idx_erp_equip_alloc_project").on(table.projectId),
+}));
+
+export type ErpEquipmentAllocation = typeof erpEquipmentAllocations.$inferSelect;
+export type InsertErpEquipmentAllocation = typeof erpEquipmentAllocations.$inferInsert;
+
+export const erpEquipmentMaintenance = mysqlTable("erp_equipment_maintenance", {
+  id: int("id").autoincrement().primaryKey(),
+  equipmentId: int("equipment_id").notNull().references(() => erpEquipment.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 64 }).notNull(),
+  description: text("description"),
+  scheduledAt: bigint("scheduled_at", { mode: "number" }).notNull(),
+  completedAt: bigint("completed_at", { mode: "number" }),
+  cost: bigint("cost", { mode: "number" }),
+  performedBy: varchar("performed_by", { length: 255 }),
+  status: varchar("status", { length: 32 }).default("scheduled").notNull(),
+  notes: text("notes"),
+  createdBy: int("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  equipmentIdx: index("idx_erp_equip_maint_equip").on(table.equipmentId),
+  statusIdx: index("idx_erp_equip_maint_status").on(table.status),
+  scheduledIdx: index("idx_erp_equip_maint_sched").on(table.scheduledAt),
+}));
+
+export type ErpEquipmentMaintenance = typeof erpEquipmentMaintenance.$inferSelect;
+export type InsertErpEquipmentMaintenance = typeof erpEquipmentMaintenance.$inferInsert;
