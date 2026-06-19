@@ -1493,3 +1493,43 @@
 ### Documentation
 - [x] Documenter les modules Vendors, Contractors & Certifications (docs/SPRINT8_ERP_VENDORS.md)
 - [x] Résumé des fichiers créés/modifiés
+
+## Sprint 9 ERP Construction — Performance Rating
+
+### Schéma DB
+- [x] Créer table `erp_performance_ratings` (id, rateableType, rateableId, projectId, qualityScore, delayScore, costScore, safetyScore, complianceScore, communicationScore, overallScore, comment, ratedBy, createdAt, updatedAt)
+- [x] Pousser les migrations DB
+
+### Backend — Routeur Performance Ratings
+- [x] Procédure erp.ratings.list (GET filtres + pagination)
+- [x] Procédure erp.ratings.create (POST notation avec calcul overallScore)
+- [x] Procédure erp.ratings.update (PUT /:id)
+- [x] Procédure erp.ratings.delete (DELETE /:id)
+- [x] Procédure erp.ratings.forEntity (GET ratings d'un vendor/contractor)
+- [x] Procédure erp.ratings.top (GET meilleurs partenaires)
+- [x] Procédure erp.ratings.low (GET moins bons partenaires)
+- [x] Procédure erp.ratings.stats (GET KPI globaux)
+
+### Frontend — Pages
+- [x] Page /erp/performance-ratings (dashboard + classement + formulaire notation)
+- [x] Routes App.tsx ajoutées
+- [x] Sidebar ERP mise à jour (lien Performance avec icône Star)
+
+### Tests
+- [x] Test : types rateable (2 types)
+- [x] Test : 6 critères de notation
+- [x] Test : blocage note hors intervalle (1-5)
+- [x] Test : rejet scores non-entiers
+- [x] Test : calcul overallScore (average * 100)
+- [x] Test : calcul moyenne rating entité
+- [x] Test : classement top (DESC)
+- [x] Test : classement low (ASC)
+- [x] Test : filtrage par type
+- [x] Test : permissions view/rate/delete
+- [x] Test : mise à jour rating après suppression
+- [x] Test : formatage affichage
+- [x] Test : non-régression (604 tests PASS, 0 erreurs TypeScript)
+
+### Documentation
+- [x] Documenter le module Performance Rating (docs/SPRINT9_ERP_RATINGS.md)
+- [x] Résumé des fichiers créés/modifiés

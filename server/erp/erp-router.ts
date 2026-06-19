@@ -427,6 +427,7 @@ import { erpSafetyRouter } from "./erp-safety-router";
 import { erpVendorsRouter } from "./erp-vendors-router";
 import { erpContractorsRouter } from "./erp-contractors-router";
 import { erpCertificationsRouter } from "./erp-certifications-router";
+import { erpRatingsRouter } from "./erp-ratings-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -447,4 +448,5 @@ export const erpRouter = router({
   vendors: erpVendorsRouter,
   contractors: erpContractorsRouter,
   certifications: erpCertificationsRouter,
+  ratings: erpRatingsRouter,
 });

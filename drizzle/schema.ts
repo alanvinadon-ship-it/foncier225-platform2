@@ -1792,3 +1792,32 @@ export const erpCertifications = mysqlTable("erp_certifications", {
 
 export type ErpCertification = typeof erpCertifications.$inferSelect;
 export type InsertErpCertification = typeof erpCertifications.$inferInsert;
+
+// ============================================================
+// Sprint 9 — Performance Rating
+// ============================================================
+
+export const erpPerformanceRatings = mysqlTable("erp_performance_ratings", {
+  id: int("id").autoincrement().primaryKey(),
+  rateableType: varchar("rateable_type", { length: 32 }).notNull(), // vendor, contractor
+  rateableId: int("rateable_id").notNull(),
+  projectId: int("project_id").references(() => erpProjects.id, { onDelete: "set null" }),
+  qualityScore: int("quality_score").notNull(), // 1-5
+  delayScore: int("delay_score").notNull(), // 1-5
+  costScore: int("cost_score").notNull(), // 1-5
+  safetyScore: int("safety_score").notNull(), // 1-5
+  complianceScore: int("compliance_score").notNull(), // 1-5
+  communicationScore: int("communication_score").notNull(), // 1-5
+  overallScore: int("overall_score").notNull(), // calculated average * 100 (for precision)
+  comment: text("comment"),
+  ratedBy: int("rated_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  rateableIdx: index("idx_erp_perf_ratings_rateable").on(table.rateableType, table.rateableId),
+  projectIdx: index("idx_erp_perf_ratings_project").on(table.projectId),
+  overallIdx: index("idx_erp_perf_ratings_overall").on(table.overallScore),
+}));
+
+export type ErpPerformanceRating = typeof erpPerformanceRatings.$inferSelect;
+export type InsertErpPerformanceRating = typeof erpPerformanceRatings.$inferInsert;
