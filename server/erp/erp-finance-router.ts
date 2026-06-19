@@ -10,6 +10,7 @@ import {
   erpProfitabilitySnapshots,
   erpProjects,
 } from "../../drizzle/schema";
+import { syncBudgetFromProject } from "./erp-budget-sync";
 
 // ============================================================
 // ERP FINANCE ROUTER — Sprint 13
@@ -542,8 +543,28 @@ const profitabilityRouter = router({
 // COMBINED FINANCE ROUTER
 // ============================================================
 
+// ============================================================
+// BUDGET SYNC ROUTER
+// ============================================================
+
+const budgetSyncRouter = router({
+  /**
+   * POST — Sync budget engagedAmount/paidAmount from invoices & payments
+   */
+  syncFromInvoices: erpPermissionProcedure("finance", "edit").input(
+    z.object({ projectId: z.number() })
+  ).mutation(async ({ input, ctx }) => {
+    const result = await syncBudgetFromProject(input.projectId);
+    if (result.synced) {
+      await createAuditEvent({ actorId: ctx.user.id, action: "erp.finance.budget.sync", details: { projectId: input.projectId, budgetId: result.budgetId } });
+    }
+    return result;
+  }),
+});
+
 export const erpFinanceRouter = router({
   budgets: budgetRouter,
   cashFlow: cashFlowRouter,
   profitability: profitabilityRouter,
+  budgetSync: budgetSyncRouter,
 });

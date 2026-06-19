@@ -1777,3 +1777,24 @@
 ### Documentation
 - [x] Documenter les modules Finance, Budget, Cash Flow, Profitability
 - [x] Résumé des fichiers créés/modifiés
+
+## Intégration automatique Factures/Paiements → Lignes budgétaires
+
+### Backend
+- [x] Analyser les routeurs Invoices et Payments existants
+- [x] Créer procédure erp.finance.budgets.syncFromInvoices (recalcul engagé depuis factures)
+- [x] Créer procédure erp.finance.budgets.syncFromPayments (recalcul payé depuis paiements)
+- [x] Ajouter hook automatique dans erp.invoices.create → mise à jour engagedAmount
+- [x] Ajouter hook automatique dans erp.invoices.update (status=approved) → mise à jour engagedAmount
+- [x] Ajouter hook automatique dans erp.payments.create → mise à jour paidAmount
+- [x] Ajouter hook automatique dans erp.payments.update (status=completed) → mise à jour paidAmount
+- [x] Recalcul automatique des totaux budget après chaque sync
+
+### Tests
+- [x] Test : création facture met à jour engagedAmount
+- [x] Test : paiement complété met à jour paidAmount
+- [x] Test : recalcul totaux budget correct
+- [x] Test : non-régression modules existants
+
+### Documentation
+- [x] Documenter l'intégration automatique budget

@@ -4,6 +4,7 @@ import { router, erpPermissionProcedure } from "../_core/trpc";
 import { getDb } from "../db";
 import { createAuditEvent } from "../db";
 import { erpPayments, erpInvoices } from "../../drizzle/schema";
+import { syncBudgetFromInvoice } from "./erp-budget-sync";
 
 // ============================================================
 // CONSTANTS
@@ -140,6 +141,9 @@ export const erpPaymentsRouter = router({
         },
       });
 
+      // Auto-sync budget paidAmount
+      await syncBudgetFromInvoice(input.invoiceId);
+
       return { id: result.insertId };
     }),
 
@@ -188,6 +192,9 @@ export const erpPaymentsRouter = router({
           amount: payment.amount,
         },
       });
+
+      // Auto-sync budget paidAmount (reverse)
+      await syncBudgetFromInvoice(payment.invoiceId);
 
       return { success: true };
     }),
