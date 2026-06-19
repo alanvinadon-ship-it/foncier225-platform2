@@ -3,6 +3,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
 import { hasPermission } from "../rbac.service";
+import { hasErpPermission, hasAnyErpRole } from "../erp/erp-rbac.service";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -142,6 +143,72 @@ export function permissionProcedure(module: string, action: string) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: `Accès refusé : permission '${module}.${action}' requise`,
+        });
+      }
+
+      return next({ ctx: { ...ctx, user: ctx.user } });
+    }),
+  );
+}
+
+// ============================================================
+// ERP CONSTRUCTION — MIDDLEWARES
+// ============================================================
+
+/**
+ * Middleware ERP : vérifie que l'utilisateur a au moins un rôle ERP.
+ * Bloque l'accès à tout le périmètre /erp si aucun rôle ERP assigné.
+ */
+export const erpProtectedProcedure = t.procedure.use(
+  t.middleware(async opts => {
+    const { ctx, next } = opts;
+
+    if (!ctx.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+    }
+
+    // Admin Foncier225 a accès à l'ERP par défaut (super admin implicite)
+    if (ctx.user.role === 'admin') {
+      return next({ ctx: { ...ctx, user: ctx.user } });
+    }
+
+    const hasErp = await hasAnyErpRole(ctx.user.id);
+    if (!hasErp) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Acc\u00e8s refus\u00e9 : aucun r\u00f4le ERP Construction assign\u00e9",
+      });
+    }
+
+    return next({ ctx: { ...ctx, user: ctx.user } });
+  }),
+);
+
+/**
+ * Middleware ERP de contrôle d'accès par permission.
+ * Usage : erpPermissionProcedure("erp_projects", "create")
+ * Vérifie que l'utilisateur a la permission ERP spécifique via ses rôles ERP.
+ * Les admins Foncier225 (role === 'admin') passent toujours.
+ */
+export function erpPermissionProcedure(module: string, action: string) {
+  return t.procedure.use(
+    t.middleware(async opts => {
+      const { ctx, next } = opts;
+
+      if (!ctx.user) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+      }
+
+      // Admin Foncier225 passe toujours (super admin implicite)
+      if (ctx.user.role === 'admin') {
+        return next({ ctx: { ...ctx, user: ctx.user } });
+      }
+
+      const allowed = await hasErpPermission(ctx.user.id, module, action);
+      if (!allowed) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `Acc\u00e8s ERP refus\u00e9 : permission '${module}.${action}' requise`,
         });
       }
 

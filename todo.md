@@ -1052,3 +1052,51 @@
 - [x] Tests TypeScript (0 erreurs)
 - [x] 328 tests PASS
 - [x] Checkpoint
+
+## Sprint 1 ERP Construction — Architecture, Rôles, Permissions
+
+### Schéma DB
+- [x] Créer table `erp_roles` (id, name, displayName, description, isSystem, createdAt, updatedAt)
+- [x] Créer table `erp_permissions` (id, module, action, displayName, description)
+- [x] Créer table `erp_role_permissions` (id, roleId, permissionId)
+- [x] Créer table `erp_user_roles` (id, userId, roleId, assignedAt, assignedBy)
+- [x] Pousser les migrations DB
+
+### Service RBAC ERP
+- [x] Créer erp-rbac.service.ts avec constantes (ERP_MODULES, ERP_ACTIONS, ERP_SYSTEM_ROLES)
+- [x] Implémenter getUserErpPermissions(userId)
+- [x] Implémenter hasErpPermission(userId, module, action)
+- [x] Implémenter seedErpRbac() pour les rôles/permissions par défaut
+- [x] Créer middleware erpPermissionProcedure(module, action)
+
+### Routeur tRPC ERP
+- [x] Procédure erp.auth.me (infos utilisateur ERP + rôles + permissions)
+- [x] Procédure erp.roles.list (GET /api/erp/roles)
+- [x] Procédure erp.roles.create (POST /api/erp/roles)
+- [x] Procédure erp.roles.update (PUT /api/erp/roles/{id})
+- [x] Procédure erp.roles.delete (DELETE /api/erp/roles/{id})
+- [x] Procédure erp.permissions.list (GET /api/erp/permissions)
+- [x] Procédure erp.userRoles.assign (POST /api/erp/users/{id}/roles)
+- [x] Procédure erp.userRoles.remove (DELETE /api/erp/users/{id}/roles/{roleId})
+
+### Pages Frontend ERP
+- [x] Page /erp (dashboard ERP avec accès modules)
+- [x] Page /erp/admin/users (gestion utilisateurs ERP)
+- [x] Page /erp/admin/roles (gestion rôles ERP)
+- [x] Page /erp/admin/permissions (matrice permissions ERP)
+- [x] Navigation sidebar ERP avec filtrage par permissions
+
+### Tests
+- [x] Test : 14 modules ERP définis
+- [x] Test : 12 actions ERP définies
+- [x] Test : 9 rôles système ERP avec champs requis
+- [x] Test : Super Admin accède à tous les modules
+- [x] Test : Viewer consulte uniquement (view/download)
+- [x] Test : Project Manager crée des projets
+- [x] Test : Contractor n'a pas accès finance delete
+- [x] Test : aucun doublon dans les permissions par défaut
+- [x] Test : 339 tests PASS (non-régression complète)
+
+### Documentation
+- [x] Documenter les rôles et permissions ERP
+- [x] Résumé des fichiers créés/modifiés ci-dessous

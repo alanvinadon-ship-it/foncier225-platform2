@@ -1186,3 +1186,62 @@ export type InsertBankMandate = typeof bankMandates.$inferInsert;
 // Enhanced audit events with reason/motif (uses existing audit_events table + motif column)
 // The motif field is stored in the existing audit_events.details JSON column
 // No separate table needed - we extend the existing audit trail
+
+// ============================================================
+// ERP CONSTRUCTION — RÔLES ET PERMISSIONS
+// ============================================================
+
+export const erpRoles = mysqlTable("erp_roles", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 64 }).notNull().unique(),
+  displayName: varchar("display_name", { length: 128 }).notNull(),
+  description: text("description"),
+  isSystem: boolean("is_system").default(false).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+
+export type ErpRole = typeof erpRoles.$inferSelect;
+export type InsertErpRole = typeof erpRoles.$inferInsert;
+
+export const erpPermissions = mysqlTable("erp_permissions", {
+  id: int("id").autoincrement().primaryKey(),
+  module: varchar("module", { length: 64 }).notNull(),
+  action: varchar("action", { length: 64 }).notNull(),
+  displayName: varchar("display_name", { length: 128 }).notNull(),
+  description: text("description"),
+}, (table) => ({
+  moduleActionUnique: unique("uq_erp_perm_module_action").on(table.module, table.action),
+  moduleIdx: index("idx_erp_perm_module").on(table.module),
+}));
+
+export type ErpPermission = typeof erpPermissions.$inferSelect;
+export type InsertErpPermission = typeof erpPermissions.$inferInsert;
+
+export const erpRolePermissions = mysqlTable("erp_role_permissions", {
+  id: int("id").autoincrement().primaryKey(),
+  roleId: int("role_id").notNull().references(() => erpRoles.id, { onDelete: "cascade" }),
+  permissionId: int("permission_id").notNull().references(() => erpPermissions.id, { onDelete: "cascade" }),
+}, (table) => ({
+  rolePermUnique: unique("uq_erp_role_perm").on(table.roleId, table.permissionId),
+  roleIdx: index("idx_erp_rp_role").on(table.roleId),
+  permIdx: index("idx_erp_rp_perm").on(table.permissionId),
+}));
+
+export type ErpRolePermission = typeof erpRolePermissions.$inferSelect;
+export type InsertErpRolePermission = typeof erpRolePermissions.$inferInsert;
+
+export const erpUserRoles = mysqlTable("erp_user_roles", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  roleId: int("role_id").notNull().references(() => erpRoles.id, { onDelete: "cascade" }),
+  assignedAt: bigint("assigned_at", { mode: "number" }).notNull(),
+  assignedBy: int("assigned_by").references(() => users.id, { onDelete: "set null" }),
+}, (table) => ({
+  userRoleUnique: unique("uq_erp_user_role").on(table.userId, table.roleId),
+  userIdx: index("idx_erp_ur_user").on(table.userId),
+  roleIdx: index("idx_erp_ur_role").on(table.roleId),
+}));
+
+export type ErpUserRole = typeof erpUserRoles.$inferSelect;
+export type InsertErpUserRole = typeof erpUserRoles.$inferInsert;

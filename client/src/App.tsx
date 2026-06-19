@@ -6,6 +6,7 @@ import { Route, Switch } from "wouter";
 import AnalyticsScript from "./components/AnalyticsScript";
 import CitizenLayout from "./components/CitizenLayout";
 import DashboardLayout from "./components/DashboardLayout";
+import { ErpLayout } from "./components/ErpLayout";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { BankLayout } from "./components/bank/BankLayout";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -59,6 +60,12 @@ const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
 const SuiviDossiers = lazy(() => import("./pages/citizen/SuiviDossiers"));
 const CitizenMessages = lazy(() => import("./pages/citizen/Messages"));
 const AdminRbac = lazy(() => import("./pages/admin/AdminRbac"));
+
+// ERP Construction
+const ErpDashboard = lazy(() => import("./pages/erp/ErpDashboard"));
+const ErpAdminUsers = lazy(() => import("./pages/erp/ErpAdminUsers"));
+const ErpAdminRoles = lazy(() => import("./pages/erp/ErpAdminRoles"));
+const ErpAdminPermissions = lazy(() => import("./pages/erp/ErpAdminPermissions"));
 
 function RouteFallback() {
   return (
@@ -320,6 +327,28 @@ function Router() {
         <DashboardLayout>
           <AdminUrbanAcdDetail />
         </DashboardLayout>
+      </Route>
+
+      {/* ERP Construction routes */}
+      <Route path="/erp">
+        <ErpLayout>
+          <ErpDashboard />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/admin/users">
+        <ErpLayout>
+          <ErpAdminUsers />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/admin/roles">
+        <ErpLayout>
+          <ErpAdminRoles />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/admin/permissions">
+        <ErpLayout>
+          <ErpAdminPermissions />
+        </ErpLayout>
       </Route>
 
       <Route path="/404" component={NotFound} />
