@@ -26,6 +26,8 @@ import {
   X,
   Link2,
   Trash2,
+  Wallet,
+  BarChart3,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -55,6 +57,9 @@ const ERP_NAV_ITEMS: NavItem[] = [
   { label: "Analyse Gaspillages", href: "/erp/wastage", icon: <Trash2 size={18} />, module: "erp_inventory" },
   { label: "Factures", href: "/erp/invoices", icon: <ScrollText size={18} />, module: "erp_finance" },
   { label: "Paiements", href: "/erp/payments", icon: <DollarSign size={18} />, module: "erp_finance" },
+  { label: "Budgets", href: "/erp/finance/budgets", icon: <Wallet size={18} />, module: "erp_finance" },
+  { label: "Trésorerie", href: "/erp/finance/cash-flow", icon: <DollarSign size={18} />, module: "erp_finance" },
+  { label: "Rentabilité", href: "/erp/finance/profitability", icon: <BarChart3 size={18} />, module: "erp_finance" },
   { label: "Alertes", href: "/erp/alerts", icon: <Bell size={18} />, module: "erp_alerts" },
   { label: "Profil", href: "/erp/profile", icon: <User size={18} />, module: "erp_profile" },
   { label: "Audit Logs", href: "/erp/audit-logs", icon: <ScrollText size={18} />, module: "erp_audit_logs" },

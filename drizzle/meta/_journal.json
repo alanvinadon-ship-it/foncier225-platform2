@@ -288,6 +288,13 @@
       "when": 1781881179475,
       "tag": "0040_good_solo",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "5",
+      "when": 1781891969853,
+      "tag": "0041_slippery_ikaris",
+      "breakpoints": true
     }
   ]
 }

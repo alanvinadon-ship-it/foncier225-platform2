@@ -434,6 +434,7 @@ import { erpInventoryRouter } from "./erp-inventory-router";
 import { erpMaterialRequestsRouter } from "./erp-material-requests-router";
 import { erpSupplierIntegrationRouter } from "./erp-supplier-integration-router";
 import { erpWastageRouter } from "./erp-wastage-router";
+import { erpFinanceRouter } from "./erp-finance-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -461,4 +462,5 @@ export const erpRouter = router({
   materialRequests: erpMaterialRequestsRouter,
   supplierIntegration: erpSupplierIntegrationRouter,
   wastage: erpWastageRouter,
+  finance: erpFinanceRouter,
 });

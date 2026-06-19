@@ -1720,3 +1720,60 @@
 ### Documentation
 - [x] Documenter les modules Supplier Integration & Wastage Analysis
 - [x] Résumé des fichiers créés/modifiés
+
+## Sprint 13 ERP Construction — Finance, Budget, Cash Flow, Profitability
+
+### Schéma DB
+- [x] Créer table `erp_budgets` (id, projectId, name, status, totalInitial, totalRevised, totalEngaged, totalPaid, approvedBy, approvedAt, createdBy, createdAt, updatedAt)
+- [x] Créer table `erp_budget_lines` (id, budgetId, category, description, initialAmount, revisedAmount, engagedAmount, paidAmount, createdAt, updatedAt)
+- [x] Créer table `erp_cash_flows` (id, projectId, type, category, amount, description, flowDate, dueDate, isPaid, paidAt, createdBy, createdAt, updatedAt)
+- [x] Créer table `erp_profitability_snapshots` (id, projectId, revenue, directCosts, indirectCosts, grossMargin, netMargin, grossMarginPercent, netMarginPercent, snapshotDate, createdAt)
+- [x] Pousser les migrations DB
+
+### Backend — Routeur Finance/Budget
+- [x] Procédure erp.finance.budgets.list (GET filtres + pagination)
+- [x] Procédure erp.finance.budgets.create (POST)
+- [x] Procédure erp.finance.budgets.getById (GET /:id)
+- [x] Procédure erp.finance.budgets.update (PUT /:id)
+- [x] Procédure erp.finance.budgets.approve (POST /:id/approve)
+- [x] Procédure erp.finance.budgets.byProject (GET /projects/:id/budget)
+- [x] Procédure erp.finance.budgets.variance (GET /projects/:id/budget-variance)
+
+### Backend — Routeur Finance/Cash Flow
+- [x] Procédure erp.finance.cashFlow.list (GET filtres + pagination)
+- [x] Procédure erp.finance.cashFlow.create (POST)
+- [x] Procédure erp.finance.cashFlow.summary (GET résumé par période)
+- [x] Procédure erp.finance.cashFlow.byProject (GET /projects/:id/cash-flow)
+- [x] Procédure erp.finance.cashFlow.forecast (GET prévisions)
+
+### Backend — Routeur Finance/Profitability
+- [x] Procédure erp.finance.profitability.list (GET tous les projets)
+- [x] Procédure erp.finance.profitability.byProject (GET /projects/:id/profitability)
+- [x] Procédure erp.finance.profitability.recalculate (POST recalcul)
+- [x] Procédure erp.finance.profitability.ranking (GET classement)
+
+### Frontend — Pages
+- [x] Page /erp/finance (dashboard finance global)
+- [x] Page /erp/finance/budgets (liste budgets + création)
+- [x] Page /erp/finance/cash-flow (flux de trésorerie)
+- [x] Page /erp/finance/profitability (rentabilité + classement)
+- [x] Routes App.tsx ajoutées
+- [x] Sidebar ERP mise à jour (section Finance)
+
+### Tests
+- [x] Test : création budget
+- [x] Test : ajout lignes budgétaires
+- [x] Test : calcul reste disponible
+- [x] Test : comparaison prévu/réalisé
+- [x] Test : approbation budget
+- [x] Test : blocage modification budget approuvé
+- [x] Test : ajout entrée de trésorerie
+- [x] Test : ajout sortie de trésorerie
+- [x] Test : résumé cash flow par période
+- [x] Test : calcul marge brute
+- [x] Test : calcul marge nette
+- [x] Test : classement rentabilité
+
+### Documentation
+- [x] Documenter les modules Finance, Budget, Cash Flow, Profitability
+- [x] Résumé des fichiers créés/modifiés

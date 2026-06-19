@@ -2093,3 +2093,100 @@ export const erpWastageRecords = mysqlTable("erp_wastage_records", {
 
 export type ErpWastageRecord = typeof erpWastageRecords.$inferSelect;
 export type InsertErpWastageRecord = typeof erpWastageRecords.$inferInsert;
+
+
+// ============================================================
+// Sprint 13 — Finance, Budget, Cash Flow, Profitability
+// ============================================================
+
+export const erpBudgets = mysqlTable("erp_budgets", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("project_id").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  status: mysqlEnum("status", ["draft", "submitted", "approved", "rejected", "revised"]).default("draft").notNull(),
+  totalInitial: bigint("total_initial", { mode: "number" }).default(0).notNull(),
+  totalRevised: bigint("total_revised", { mode: "number" }).default(0).notNull(),
+  totalEngaged: bigint("total_engaged", { mode: "number" }).default(0).notNull(),
+  totalPaid: bigint("total_paid", { mode: "number" }).default(0).notNull(),
+  approvedBy: int("approved_by"),
+  approvedAt: bigint("approved_at", { mode: "number" }),
+  createdBy: int("created_by").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  projectIdx: index("idx_erp_budget_project").on(table.projectId),
+  statusIdx: index("idx_erp_budget_status").on(table.status),
+}));
+
+export type ErpBudget = typeof erpBudgets.$inferSelect;
+export type InsertErpBudget = typeof erpBudgets.$inferInsert;
+
+export const erpBudgetLines = mysqlTable("erp_budget_lines", {
+  id: int("id").autoincrement().primaryKey(),
+  budgetId: int("budget_id").notNull(),
+  category: mysqlEnum("category", [
+    "labour", "materials", "equipment", "subcontracting",
+    "permits", "transport", "other",
+  ]).notNull(),
+  description: varchar("description", { length: 500 }),
+  initialAmount: bigint("initial_amount", { mode: "number" }).default(0).notNull(),
+  revisedAmount: bigint("revised_amount", { mode: "number" }).default(0).notNull(),
+  engagedAmount: bigint("engaged_amount", { mode: "number" }).default(0).notNull(),
+  paidAmount: bigint("paid_amount", { mode: "number" }).default(0).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  budgetIdx: index("idx_erp_budgetline_budget").on(table.budgetId),
+  categoryIdx: index("idx_erp_budgetline_category").on(table.category),
+}));
+
+export type ErpBudgetLine = typeof erpBudgetLines.$inferSelect;
+export type InsertErpBudgetLine = typeof erpBudgetLines.$inferInsert;
+
+export const erpCashFlows = mysqlTable("erp_cash_flows", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("project_id"),
+  type: mysqlEnum("type", ["inflow", "outflow"]).notNull(),
+  category: mysqlEnum("category", [
+    "labour", "materials", "equipment", "subcontracting",
+    "permits", "transport", "client_payment", "advance", "retention", "other",
+  ]).notNull(),
+  amount: bigint("amount", { mode: "number" }).notNull(),
+  description: varchar("description", { length: 500 }),
+  flowDate: bigint("flow_date", { mode: "number" }).notNull(),
+  dueDate: bigint("due_date", { mode: "number" }),
+  isPaid: boolean("is_paid").default(false).notNull(),
+  paidAt: bigint("paid_at", { mode: "number" }),
+  createdBy: int("created_by").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  projectIdx: index("idx_erp_cashflow_project").on(table.projectId),
+  typeIdx: index("idx_erp_cashflow_type").on(table.type),
+  flowDateIdx: index("idx_erp_cashflow_date").on(table.flowDate),
+  dueDateIdx: index("idx_erp_cashflow_due").on(table.dueDate),
+  isPaidIdx: index("idx_erp_cashflow_paid").on(table.isPaid),
+}));
+
+export type ErpCashFlow = typeof erpCashFlows.$inferSelect;
+export type InsertErpCashFlow = typeof erpCashFlows.$inferInsert;
+
+export const erpProfitabilitySnapshots = mysqlTable("erp_profitability_snapshots", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("project_id").notNull(),
+  revenue: bigint("revenue", { mode: "number" }).default(0).notNull(),
+  directCosts: bigint("direct_costs", { mode: "number" }).default(0).notNull(),
+  indirectCosts: bigint("indirect_costs", { mode: "number" }).default(0).notNull(),
+  grossMargin: bigint("gross_margin", { mode: "number" }).default(0).notNull(),
+  netMargin: bigint("net_margin", { mode: "number" }).default(0).notNull(),
+  grossMarginPercent: int("gross_margin_percent").default(0).notNull(),
+  netMarginPercent: int("net_margin_percent").default(0).notNull(),
+  snapshotDate: bigint("snapshot_date", { mode: "number" }).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  projectIdx: index("idx_erp_profit_project").on(table.projectId),
+  dateIdx: index("idx_erp_profit_date").on(table.snapshotDate),
+}));
+
+export type ErpProfitabilitySnapshot = typeof erpProfitabilitySnapshots.$inferSelect;
+export type InsertErpProfitabilitySnapshot = typeof erpProfitabilitySnapshots.$inferInsert;

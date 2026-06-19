@@ -90,6 +90,9 @@ const ErpInventory = lazy(() => import("./pages/erp/ErpInventory"));
 const ErpMaterialRequests = lazy(() => import("./pages/erp/ErpMaterialRequests"));
 const ErpSupplierIntegration = lazy(() => import("./pages/erp/ErpSupplierIntegration"));
 const ErpWastage = lazy(() => import("./pages/erp/ErpWastage"));
+const ErpFinanceBudgets = lazy(() => import("./pages/erp/ErpFinanceBudgets"));
+const ErpFinanceCashFlow = lazy(() => import("./pages/erp/ErpFinanceCashFlow"));
+const ErpFinanceProfitability = lazy(() => import("./pages/erp/ErpFinanceProfitability"));
 
 function RouteFallback() {
   return (
@@ -492,6 +495,21 @@ function Router() {
       <Route path="/erp/wastage">
         <ErpLayout>
           <ErpWastage />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/finance/budgets">
+        <ErpLayout>
+          <ErpFinanceBudgets />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/finance/cash-flow">
+        <ErpLayout>
+          <ErpFinanceCashFlow />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/finance/profitability">
+        <ErpLayout>
+          <ErpFinanceProfitability />
         </ErpLayout>
       </Route>
 
