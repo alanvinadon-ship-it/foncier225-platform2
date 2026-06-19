@@ -66,6 +66,12 @@ const ErpDashboard = lazy(() => import("./pages/erp/ErpDashboard"));
 const ErpAdminUsers = lazy(() => import("./pages/erp/ErpAdminUsers"));
 const ErpAdminRoles = lazy(() => import("./pages/erp/ErpAdminRoles"));
 const ErpAdminPermissions = lazy(() => import("./pages/erp/ErpAdminPermissions"));
+const ErpProjectsList = lazy(() => import("./pages/erp/ErpProjectsList"));
+const ErpProjectCreate = lazy(() => import("./pages/erp/ErpProjectCreate"));
+const ErpProjectDetail = lazy(() => import("./pages/erp/ErpProjectDetail"));
+const ErpProjectEdit = lazy(() => import("./pages/erp/ErpProjectEdit"));
+const ErpProjectTasks = lazy(() => import("./pages/erp/ErpProjectTasks"));
+const ErpTaskDetail = lazy(() => import("./pages/erp/ErpTaskDetail"));
 
 function RouteFallback() {
   return (
@@ -348,6 +354,36 @@ function Router() {
       <Route path="/erp/admin/permissions">
         <ErpLayout>
           <ErpAdminPermissions />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/projects">
+        <ErpLayout>
+          <ErpProjectsList />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/projects/create">
+        <ErpLayout>
+          <ErpProjectCreate />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/projects/:id">
+        <ErpLayout>
+          <ErpProjectDetail />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/projects/:id/edit">
+        <ErpLayout>
+          <ErpProjectEdit />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/projects/:id/tasks">
+        <ErpLayout>
+          <ErpProjectTasks />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/tasks/:id">
+        <ErpLayout>
+          <ErpTaskDetail />
         </ErpLayout>
       </Route>
 

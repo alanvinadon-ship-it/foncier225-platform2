@@ -1142,3 +1142,59 @@
 ### Documentation
 - [x] Documenter le dashboard ERP
 - [x] Résumé des fichiers créés/modifiés ci-dessous
+
+## Sprint 3 ERP Construction — Projects & Project Management
+
+### Schéma DB
+- [x] Créer table `erp_projects` (id, code, name, description, status, priority, etc.)
+- [x] Créer table `erp_tasks` (id, project_id, title, description, status, priority, assignee, dates, progress, etc.)
+- [x] Créer table `erp_task_dependencies` (id, task_id, depends_on_task_id, dependency_type, created_at)
+- [x] Pousser les migrations DB
+
+### Backend — Routeur Projects
+- [x] Procédure erp.projects.list (GET filtres + pagination + recherche)
+- [x] Procédure erp.projects.create (POST)
+- [x] Procédure erp.projects.getById (GET /:id)
+- [x] Procédure erp.projects.update (PUT /:id)
+- [x] Procédure erp.projects.delete (DELETE /:id soft delete)
+- [x] Procédure erp.projects.archive (POST /:id/archive)
+- [x] Procédure erp.projects.assignManager (POST /:id/assign-manager)
+- [x] Procédure erp.projects.summary (GET /:id/summary)
+
+### Backend — Routeur Tasks
+- [x] Procédure erp.tasks.listByProject (GET /projects/:projectId/tasks)
+- [x] Procédure erp.tasks.create (POST)
+- [x] Procédure erp.tasks.getById (GET /:id)
+- [x] Procédure erp.tasks.update (PUT /:id)
+- [x] Procédure erp.tasks.delete (DELETE /:id soft delete)
+- [x] Procédure erp.tasks.assign (POST /:id/assign)
+- [x] Procédure erp.tasks.complete (POST /:id/complete)
+- [x] Procédure erp.tasks.addDependency (POST /:id/dependencies)
+- [x] Détection automatique des tâches en retard (isLate flag)
+
+### Frontend — Pages
+- [x] Page /erp/projects (liste avec filtres, recherche, pagination)
+- [x] Page /erp/projects/create (formulaire création)
+- [x] Page /erp/projects/:id (détail projet + résumé + progression)
+- [x] Page /erp/projects/:id/edit (formulaire modification)
+- [x] Page /erp/projects/:id/tasks (liste tâches du projet + création)
+- [x] Page /erp/tasks/:id (détail tâche + dépendances)
+
+### Tests
+- [x] Test : module erp_projects défini dans RBAC
+- [x] Test : 7 statuts projet valides
+- [x] Test : 7 statuts tâche valides
+- [x] Test : 4 niveaux de priorité
+- [x] Test : permissions project_manager (create)
+- [x] Test : permissions contractor (view)
+- [x] Test : permissions viewer (pas de create)
+- [x] Test : permissions super_admin (toutes)
+- [x] Test : 4 types de dépendances
+- [x] Test : génération code PRJ-XXXXXX
+- [x] Test : détection tâche en retard
+- [x] Test : validation progression 0-100
+- [x] Test : non-régression (369 tests PASS)
+
+### Documentation
+- [x] Documenter le module Projects
+- [x] Résumé des fichiers créés/modifiés ci-dessous

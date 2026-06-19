@@ -1266,3 +1266,83 @@ export const erpDashboardWidgets = mysqlTable("erp_dashboard_widgets", {
 
 export type ErpDashboardWidget = typeof erpDashboardWidgets.$inferSelect;
 export type InsertErpDashboardWidget = typeof erpDashboardWidgets.$inferInsert;
+
+// ============================================================
+// ERP CONSTRUCTION — PROJECTS & TASKS
+// ============================================================
+
+export const erpProjects = mysqlTable("erp_projects", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 32 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  clientName: varchar("client_name", { length: 255 }),
+  location: varchar("location", { length: 500 }),
+  startDate: bigint("start_date", { mode: "number" }),
+  plannedEndDate: bigint("planned_end_date", { mode: "number" }),
+  actualEndDate: bigint("actual_end_date", { mode: "number" }),
+  initialBudget: bigint("initial_budget", { mode: "number" }).default(0),
+  revisedBudget: bigint("revised_budget", { mode: "number" }).default(0),
+  status: varchar("status", { length: 32 }).default("draft").notNull(),
+  priority: varchar("priority", { length: 16 }).default("medium").notNull(),
+  progressPercentage: int("progress_percentage").default(0).notNull(),
+  projectManagerId: int("project_manager_id").references(() => users.id, { onDelete: "set null" }),
+  createdBy: int("created_by").references(() => users.id, { onDelete: "set null" }),
+  updatedBy: int("updated_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  codeUnique: unique("uq_erp_project_code").on(table.code),
+  statusIdx: index("idx_erp_project_status").on(table.status),
+  managerIdx: index("idx_erp_project_manager").on(table.projectManagerId),
+  deletedIdx: index("idx_erp_project_deleted").on(table.deletedAt),
+}));
+
+export type ErpProject = typeof erpProjects.$inferSelect;
+export type InsertErpProject = typeof erpProjects.$inferInsert;
+
+export const erpTasks = mysqlTable("erp_tasks", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("project_id").notNull().references(() => erpProjects.id, { onDelete: "cascade" }),
+  parentTaskId: int("parent_task_id"),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  assignedTo: int("assigned_to").references(() => users.id, { onDelete: "set null" }),
+  startDate: bigint("start_date", { mode: "number" }),
+  dueDate: bigint("due_date", { mode: "number" }),
+  completedAt: bigint("completed_at", { mode: "number" }),
+  priority: varchar("priority", { length: 16 }).default("medium").notNull(),
+  status: varchar("status", { length: 32 }).default("todo").notNull(),
+  progressPercentage: int("progress_percentage").default(0).notNull(),
+  estimatedHours: int("estimated_hours").default(0),
+  actualHours: int("actual_hours").default(0),
+  createdBy: int("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  projectIdx: index("idx_erp_task_project").on(table.projectId),
+  assignedIdx: index("idx_erp_task_assigned").on(table.assignedTo),
+  statusIdx: index("idx_erp_task_status").on(table.status),
+  dueDateIdx: index("idx_erp_task_due").on(table.dueDate),
+  deletedIdx: index("idx_erp_task_deleted").on(table.deletedAt),
+}));
+
+export type ErpTask = typeof erpTasks.$inferSelect;
+export type InsertErpTask = typeof erpTasks.$inferInsert;
+
+export const erpTaskDependencies = mysqlTable("erp_task_dependencies", {
+  id: int("id").autoincrement().primaryKey(),
+  taskId: int("task_id").notNull().references(() => erpTasks.id, { onDelete: "cascade" }),
+  dependsOnTaskId: int("depends_on_task_id").notNull().references(() => erpTasks.id, { onDelete: "cascade" }),
+  dependencyType: varchar("dependency_type", { length: 32 }).default("finish_to_start").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  taskDepUnique: unique("uq_erp_task_dep").on(table.taskId, table.dependsOnTaskId),
+  taskIdx: index("idx_erp_dep_task").on(table.taskId),
+  dependsIdx: index("idx_erp_dep_depends").on(table.dependsOnTaskId),
+}));
+
+export type ErpTaskDependency = typeof erpTaskDependencies.$inferSelect;
+export type InsertErpTaskDependency = typeof erpTaskDependencies.$inferInsert;
