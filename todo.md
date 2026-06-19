@@ -1245,3 +1245,73 @@
 ### Documentation
 - [x] Documenter le module Gantt & Milestones
 - [x] Résumé des fichiers créés/modifiés ci-dessous
+
+## Sprint 5 ERP Construction — Documents, Permits & Compliance
+
+### Schéma DB
+- [x] Créer table `erp_documents` (id, projectId, title, type, status, fileUrl, fileKey, fileName, mimeType, fileSize, issuedAt, expiresAt, uploadedBy, validatedBy, rejectedBy, rejectionReason, createdAt, updatedAt, deletedAt)
+- [x] Créer table `erp_document_versions` (id, documentId, version, fileUrl, fileKey, fileName, mimeType, fileSize, uploadedBy, comment, createdAt)
+- [x] Créer table `erp_permits` (id, projectId, type, reference, issuedBy, issuedAt, expiresAt, status, validatedBy, rejectedBy, rejectionReason, alertDaysBefore, createdBy, createdAt, updatedAt, deletedAt)
+- [x] Créer table `erp_compliance_requirements` (id, projectId, title, description, category, priority, dueDate, status, createdBy, createdAt, updatedAt, deletedAt)
+- [x] Créer table `erp_compliance_checks` (id, requirementId, checkedBy, status, comment, evidenceUrl, checkedAt, createdAt)
+- [x] Pousser les migrations DB
+
+### Backend — Routeur Documents
+- [x] Procédure erp.documents.list (GET filtres + pagination)
+- [x] Procédure erp.documents.create (POST + upload S3)
+- [x] Procédure erp.documents.getById (GET /:id)
+- [x] Procédure erp.documents.update (PUT /:id)
+- [x] Procédure erp.documents.delete (DELETE /:id soft delete)
+- [x] Procédure erp.documents.download (GET /:id/download — presigned URL)
+- [x] Procédure erp.documents.addVersion (POST /:id/versions)
+- [x] Procédure erp.documents.validate (POST /:id/validate)
+- [x] Procédure erp.documents.reject (POST /:id/reject)
+
+### Backend — Routeur Permits
+- [x] Procédure erp.permits.list (GET filtres + pagination)
+- [x] Procédure erp.permits.create (POST)
+- [x] Procédure erp.permits.update (PUT /:id)
+- [x] Procédure erp.permits.delete (DELETE /:id soft delete)
+- [x] Procédure erp.permits.validate (POST /:id/validate)
+- [x] Procédure erp.permits.reject (POST /:id/reject)
+- [x] Procédure erp.permits.upcomingExpirations (GET alertes expiration)
+
+### Backend — Routeur Compliance
+- [x] Procédure erp.compliance.listRequirements (GET filtres + pagination)
+- [x] Procédure erp.compliance.getRequirement (GET /:id avec checks)
+- [x] Procédure erp.compliance.createRequirement (POST)
+- [x] Procédure erp.compliance.updateRequirement (PUT /:id)
+- [x] Procédure erp.compliance.deleteRequirement (DELETE /:id soft delete)
+- [x] Procédure erp.compliance.addCheck (POST vérification + auto-update statut)
+- [x] Procédure erp.compliance.expiredRequirements (GET exigences en retard)
+- [x] Procédure erp.compliance.upcomingRequirements (GET prochaines échéances)
+- [x] Procédure erp.compliance.stats (GET KPI conformité)
+
+### Frontend — Pages
+- [x] Page /erp/documents (liste documents + création + validate/reject + détail versions)
+- [x] Page /erp/permits (liste permis + création + validate/reject + alertes expiration)
+- [x] Page /erp/compliance (dashboard conformité + KPI + exigences + vérifications)
+- [x] Sidebar ERP mise à jour (liens Documents, Permis, Conformité)
+- [x] Routes App.tsx ajoutées (/erp/documents, /erp/permits, /erp/compliance)
+
+### Tests
+- [x] Test : types de documents (8 types)
+- [x] Test : refus fichier dangereux (extension interdite)
+- [x] Test : types de permis (8 types)
+- [x] Test : statuts de permis (5 statuts workflow)
+- [x] Test : catégories conformité (9 catégories)
+- [x] Test : priorités (4 niveaux)
+- [x] Test : statuts conformité (5 statuts)
+- [x] Test : statuts vérification (5 statuts)
+- [x] Test : logique expiration
+- [x] Test : logique auto-update conformité
+- [x] Test : calcul taux conformité
+- [x] Test : versionnement document
+- [x] Test : formatage taille fichier
+- [x] Test : permissions Documents par rôle
+- [x] Test : permissions Compliance par rôle
+- [x] Test : non-régression (455 tests PASS, 0 erreurs TypeScript)
+
+### Documentation
+- [x] Documenter les modules Documents, Permits & Compliance (docs/SPRINT5_ERP_DOCUMENTS.md)
+- [x] Résumé des fichiers créés/modifiés

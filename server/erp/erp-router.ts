@@ -419,6 +419,9 @@ import { erpProjectsRouter } from "./erp-projects-router";
 import { erpTasksRouter } from "./erp-tasks-router";
 import { erpMilestonesRouter } from "./erp-milestones-router";
 import { erpGanttRouter } from "./erp-gantt-router";
+import { erpDocumentsRouter } from "./erp-documents-router";
+import { erpPermitsRouter } from "./erp-permits-router";
+import { erpComplianceRouter } from "./erp-compliance-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -431,4 +434,7 @@ export const erpRouter = router({
   tasks: erpTasksRouter,
   milestones: erpMilestonesRouter,
   gantt: erpGanttRouter,
+  documents: erpDocumentsRouter,
+  permits: erpPermitsRouter,
+  compliance: erpComplianceRouter,
 });

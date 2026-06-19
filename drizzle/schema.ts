@@ -1373,3 +1373,133 @@ export const erpMilestones = mysqlTable("erp_milestones", {
 
 export type ErpMilestone = typeof erpMilestones.$inferSelect;
 export type InsertErpMilestone = typeof erpMilestones.$inferInsert;
+
+// ============================================================
+// ERP CONSTRUCTION — DOCUMENTS, PERMITS & COMPLIANCE
+// ============================================================
+
+export const erpDocuments = mysqlTable("erp_documents", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("project_id").references(() => erpProjects.id, { onDelete: "set null" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  type: varchar("type", { length: 64 }).default("autre").notNull(),
+  status: varchar("status", { length: 32 }).default("pending").notNull(),
+  fileUrl: text("file_url"),
+  fileKey: varchar("file_key", { length: 512 }),
+  fileName: varchar("file_name", { length: 255 }),
+  mimeType: varchar("mime_type", { length: 128 }),
+  fileSize: int("file_size").default(0),
+  issuedAt: bigint("issued_at", { mode: "number" }),
+  expiresAt: bigint("expires_at", { mode: "number" }),
+  uploadedBy: int("uploaded_by").references(() => users.id, { onDelete: "set null" }),
+  validatedBy: int("validated_by").references(() => users.id, { onDelete: "set null" }),
+  validatedAt: bigint("validated_at", { mode: "number" }),
+  rejectedBy: int("rejected_by").references(() => users.id, { onDelete: "set null" }),
+  rejectedAt: bigint("rejected_at", { mode: "number" }),
+  rejectionReason: text("rejection_reason"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  projectIdx: index("idx_erp_doc_project").on(table.projectId),
+  typeIdx: index("idx_erp_doc_type").on(table.type),
+  statusIdx: index("idx_erp_doc_status").on(table.status),
+  expiresIdx: index("idx_erp_doc_expires").on(table.expiresAt),
+  deletedIdx: index("idx_erp_doc_deleted").on(table.deletedAt),
+}));
+
+export type ErpDocument = typeof erpDocuments.$inferSelect;
+export type InsertErpDocument = typeof erpDocuments.$inferInsert;
+
+export const erpDocumentVersions = mysqlTable("erp_document_versions", {
+  id: int("id").autoincrement().primaryKey(),
+  documentId: int("document_id").notNull().references(() => erpDocuments.id, { onDelete: "cascade" }),
+  version: int("version").notNull(),
+  fileUrl: text("file_url").notNull(),
+  fileKey: varchar("file_key", { length: 512 }).notNull(),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  mimeType: varchar("mime_type", { length: 128 }),
+  fileSize: int("file_size").default(0),
+  uploadedBy: int("uploaded_by").references(() => users.id, { onDelete: "set null" }),
+  comment: text("comment"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  documentIdx: index("idx_erp_docver_document").on(table.documentId),
+  versionIdx: index("idx_erp_docver_version").on(table.documentId, table.version),
+}));
+
+export type ErpDocumentVersion = typeof erpDocumentVersions.$inferSelect;
+export type InsertErpDocumentVersion = typeof erpDocumentVersions.$inferInsert;
+
+export const erpPermits = mysqlTable("erp_permits", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("project_id").references(() => erpProjects.id, { onDelete: "set null" }),
+  type: varchar("type", { length: 64 }).notNull(),
+  reference: varchar("reference", { length: 128 }),
+  description: text("description"),
+  issuedBy: varchar("issued_by", { length: 255 }),
+  issuedAt: bigint("issued_at", { mode: "number" }),
+  expiresAt: bigint("expires_at", { mode: "number" }),
+  status: varchar("status", { length: 32 }).default("pending").notNull(),
+  validatedBy: int("validated_by").references(() => users.id, { onDelete: "set null" }),
+  validatedAt: bigint("validated_at", { mode: "number" }),
+  rejectedBy: int("rejected_by").references(() => users.id, { onDelete: "set null" }),
+  rejectedAt: bigint("rejected_at", { mode: "number" }),
+  rejectionReason: text("rejection_reason"),
+  alertDaysBefore: int("alert_days_before").default(30),
+  createdBy: int("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  projectIdx: index("idx_erp_permit_project").on(table.projectId),
+  typeIdx: index("idx_erp_permit_type").on(table.type),
+  statusIdx: index("idx_erp_permit_status").on(table.status),
+  expiresIdx: index("idx_erp_permit_expires").on(table.expiresAt),
+  deletedIdx: index("idx_erp_permit_deleted").on(table.deletedAt),
+}));
+
+export type ErpPermit = typeof erpPermits.$inferSelect;
+export type InsertErpPermit = typeof erpPermits.$inferInsert;
+
+export const erpComplianceRequirements = mysqlTable("erp_compliance_requirements", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("project_id").references(() => erpProjects.id, { onDelete: "set null" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 64 }).default("general").notNull(),
+  priority: varchar("priority", { length: 16 }).default("medium").notNull(),
+  dueDate: bigint("due_date", { mode: "number" }),
+  status: varchar("status", { length: 32 }).default("pending").notNull(),
+  createdBy: int("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  projectIdx: index("idx_erp_compreq_project").on(table.projectId),
+  categoryIdx: index("idx_erp_compreq_category").on(table.category),
+  statusIdx: index("idx_erp_compreq_status").on(table.status),
+  dueDateIdx: index("idx_erp_compreq_due").on(table.dueDate),
+  deletedIdx: index("idx_erp_compreq_deleted").on(table.deletedAt),
+}));
+
+export type ErpComplianceRequirement = typeof erpComplianceRequirements.$inferSelect;
+export type InsertErpComplianceRequirement = typeof erpComplianceRequirements.$inferInsert;
+
+export const erpComplianceChecks = mysqlTable("erp_compliance_checks", {
+  id: int("id").autoincrement().primaryKey(),
+  requirementId: int("requirement_id").notNull().references(() => erpComplianceRequirements.id, { onDelete: "cascade" }),
+  checkedBy: int("checked_by").references(() => users.id, { onDelete: "set null" }),
+  status: varchar("status", { length: 32 }).default("pending").notNull(),
+  comment: text("comment"),
+  evidenceUrl: text("evidence_url"),
+  checkedAt: bigint("checked_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  requirementIdx: index("idx_erp_compcheck_req").on(table.requirementId),
+  checkedByIdx: index("idx_erp_compcheck_by").on(table.checkedBy),
+  statusIdx: index("idx_erp_compcheck_status").on(table.status),
+}));
+
+export type ErpComplianceCheck = typeof erpComplianceChecks.$inferSelect;
+export type InsertErpComplianceCheck = typeof erpComplianceChecks.$inferInsert;
