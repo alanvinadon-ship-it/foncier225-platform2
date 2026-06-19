@@ -1016,3 +1016,38 @@
 
 ### Validation
 - [x] Tests TypeScript (0 erreurs) et 328 tests PASS
+
+## v3.28 — Matrice Complète de Permissions (Système SIGFU + AFOR)
+
+### Phase 1 : Ajouter les 4 rôles manquants
+- [x] Ajouter rôle "agent_dgi" (Agent DGI - Impôts)
+- [x] Ajouter rôle "autorite_prefectorale" (Autorité Préfectorale)
+- [x] Ajouter rôle "agent_afor" (Agent AFOR - Rural)
+- [x] Ajouter rôle "comite_villageois" (Comité Villageois)
+- [x] Mettre à jour l'énumération des rôles dans users et user_invitations
+- [x] Mettre à jour backend (user-admin-procedures.ts) avec les 4 rôles
+- [x] Mettre à jour frontend (UsersAdmin.tsx) avec les 4 rôles et couleurs
+- [x] Tests TypeScript (0 erreurs) et 328 tests PASS
+
+### Phase 2 : Matrice de permissions granulaires
+- [ ] Créer table `role_permissions` (roleId, module, action, allowed)
+- [ ] Implémenter la matrice : Demande/Identité, Plans SIG, Actes Notariés, Liquidation/Taxes, Titres Souverains
+- [ ] Créer helpers DB pour vérifier les permissions par rôle/module/action
+- [ ] Mettre à jour permissionProcedure pour utiliser la matrice
+
+### Phase 3 : Isolation des données
+- [ ] Créer table `notary_baskets` (id, notaryId, dossiers, createdAt, updatedAt)
+- [ ] Créer table `bank_mandates` (id, bankId, citizenId, expiresAt, permissions)
+- [ ] Implémenter le filtrage des données selon le rôle et les mandats
+- [ ] Ajouter les helpers pour créer/révoquer les mandats bancaires
+
+### Phase 4 : Traçabilité absolue
+- [ ] Enrichir audit_events avec champ "motif" (raison de la consultation)
+- [ ] Logger chaque consultation de parcelle/titre avec horodatage et motif
+- [ ] Logger chaque accès bancaire avec mandat associé
+- [ ] Créer page admin pour visualiser les logs d'audit détaillés
+
+### Phase 5 : Validation
+- [ ] Tests TypeScript (0 erreurs)
+- [ ] Tests PASS
+- [ ] Checkpoint

@@ -1,0 +1,2 @@
+ALTER TABLE `user_invitations` MODIFY COLUMN `role` enum('citizen','agent_terrain','agent_mclu','geometre_urbain','conservateur','notaire','agent_dgi','autorite_prefectorale','agent_afor','comite_villageois','bank','admin') NOT NULL DEFAULT 'citizen';--> statement-breakpoint
+ALTER TABLE `users` MODIFY COLUMN `role` enum('citizen','agent_terrain','agent_mclu','geometre_urbain','conservateur','notaire','agent_dgi','autorite_prefectorale','agent_afor','comite_villageois','bank','admin') NOT NULL DEFAULT 'citizen';

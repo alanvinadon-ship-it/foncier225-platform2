@@ -36,6 +36,10 @@ const ROLE_LABELS: Record<string, { label: string; color: string }> = {
   geometre_urbain: { label: "Géomètre Urbain", color: "bg-indigo-50 text-indigo-700" },
   conservateur: { label: "Conservateur", color: "bg-amber-50 text-amber-700" },
   notaire: { label: "Notaire", color: "bg-orange-50 text-orange-700" },
+  agent_dgi: { label: "Agent DGI", color: "bg-pink-50 text-pink-700" },
+  autorite_prefectorale: { label: "Autorite Prefectorale", color: "bg-rose-50 text-rose-700" },
+  agent_afor: { label: "Agent AFOR", color: "bg-lime-50 text-lime-700" },
+  comite_villageois: { label: "Comite Villageois", color: "bg-teal-50 text-teal-700" },
   bank: { label: "Banque", color: "bg-purple-50 text-purple-700" },
   admin: { label: "Admin", color: "bg-red-50 text-red-700" },
 };
@@ -193,6 +197,10 @@ export default function UsersAdmin() {
                       <SelectItem value="geometre_urbain">Géomètre Urbain</SelectItem>
                       <SelectItem value="conservateur">Conservateur</SelectItem>
                       <SelectItem value="notaire">Notaire</SelectItem>
+                      <SelectItem value="agent_dgi">Agent DGI</SelectItem>
+                      <SelectItem value="autorite_prefectorale">Autorite Prefectorale</SelectItem>
+                      <SelectItem value="agent_afor">Agent AFOR</SelectItem>
+                      <SelectItem value="comite_villageois">Comite Villageois</SelectItem>
                       <SelectItem value="bank">Banque</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
@@ -239,6 +247,10 @@ export default function UsersAdmin() {
                       <SelectItem value="geometre_urbain">Géomètre Urbain</SelectItem>
                       <SelectItem value="conservateur">Conservateur</SelectItem>
                       <SelectItem value="notaire">Notaire</SelectItem>
+                      <SelectItem value="agent_dgi">Agent DGI</SelectItem>
+                      <SelectItem value="autorite_prefectorale">Autorite Prefectorale</SelectItem>
+                      <SelectItem value="agent_afor">Agent AFOR</SelectItem>
+                      <SelectItem value="comite_villageois">Comite Villageois</SelectItem>
                       <SelectItem value="bank">Banque</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>

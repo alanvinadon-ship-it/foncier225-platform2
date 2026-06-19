@@ -1,0 +1,1 @@
+ALTER TABLE `bank_mandates` MODIFY COLUMN `permissions` json NOT NULL;

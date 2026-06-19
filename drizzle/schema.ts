@@ -18,7 +18,7 @@ export const users = mysqlTable("users", {
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["citizen", "agent_terrain", "agent_mclu", "geometre_urbain", "conservateur", "notaire", "bank", "admin"]).default("citizen").notNull(),
+  role: mysqlEnum("role", ["citizen", "agent_terrain", "agent_mclu", "geometre_urbain", "conservateur", "notaire", "agent_dgi", "autorite_prefectorale", "agent_afor", "comite_villageois", "bank", "admin"]).default("citizen").notNull(),
   zoneCodes: json("zoneCodes").$type<string[]>(),
   isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -1116,7 +1116,7 @@ export const userInvitations = mysqlTable("user_invitations", {
   id: int("id").autoincrement().primaryKey(),
   email: varchar("email", { length: 320 }).notNull(),
   token: varchar("token", { length: 128 }).notNull().unique(),
-  role: mysqlEnum("role", ["citizen", "agent_terrain", "agent_mclu", "geometre_urbain", "conservateur", "notaire", "bank", "admin"]).default("citizen").notNull(),
+  role: mysqlEnum("role", ["citizen", "agent_terrain", "agent_mclu", "geometre_urbain", "conservateur", "notaire", "agent_dgi", "autorite_prefectorale", "agent_afor", "comite_villageois", "bank", "admin"]).default("citizen").notNull(),
   invitedBy: int("invited_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at").notNull(),
@@ -1129,3 +1129,79 @@ export const userInvitations = mysqlTable("user_invitations", {
 
 export type UserInvitation = typeof userInvitations.$inferSelect;
 export type InsertUserInvitation = typeof userInvitations.$inferInsert;
+
+// Role-based permissions matrix (SIGFU + AFOR system)
+export const rolePermissionsMatrix = mysqlTable("role_permissions_matrix", {
+  id: int("id").autoincrement().primaryKey(),
+  role: varchar("role", { length: 64 }).notNull(),
+  module: varchar("module", { length: 64 }).notNull(), // "demand_identity", "plans_sig", "actes_notaries", "liquidation_taxes", "titres_souverains"
+  action: varchar("action", { length: 64 }).notNull(), // "create", "read", "modify", "validate"
+  allowed: boolean("allowed").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  roleModuleActionIdx: index("idx_role_module_action").on(table.role, table.module, table.action),
+}));
+
+export type RolePermissionMatrix = typeof rolePermissionsMatrix.$inferSelect;
+export type InsertRolePermissionMatrix = typeof rolePermissionsMatrix.$inferInsert;
+
+// Notary work baskets (isolation des données notariales)
+export const notaryBaskets = mysqlTable("notary_baskets", {
+  id: int("id").autoincrement().primaryKey(),
+  notaryId: int("notary_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  dossierId: int("dossier_id").notNull(),
+  dossierType: varchar("dossier_type", { length: 64 }).notNull(), // "acte_vente", "donation", "hypotheque"
+  status: varchar("status", { length: 64 }).default("draft").notNull(), // "draft", "submitted", "validated"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  notaryIdIdx: index("idx_basket_notary").on(table.notaryId),
+  dossierIdIdx: index("idx_basket_dossier").on(table.dossierId),
+}));
+
+export type NotaryBasket = typeof notaryBaskets.$inferSelect;
+export type InsertNotaryBasket = typeof notaryBaskets.$inferInsert;
+
+// Bank access mandates (isolation des données bancaires)
+export const bankMandates = mysqlTable("bank_mandates", {
+  id: int("id").autoincrement().primaryKey(),
+  bankId: int("bank_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  citizenId: int("citizen_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  accessCode: varchar("access_code", { length: 128 }).notNull().unique(),
+  permissions: json("permissions").$type<string[]>().notNull(), // ["read_parcel", "read_title", "read_hypotheque"]
+  expiresAt: timestamp("expires_at").notNull(),
+  revokedAt: timestamp("revoked_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  bankIdIdx: index("idx_mandate_bank").on(table.bankId),
+  citizenIdIdx: index("idx_mandate_citizen").on(table.citizenId),
+  accessCodeIdx: index("idx_mandate_code").on(table.accessCode),
+  expiresAtIdx: index("idx_mandate_expires").on(table.expiresAt),
+}));
+
+export type BankMandate = typeof bankMandates.$inferSelect;
+export type InsertBankMandate = typeof bankMandates.$inferInsert;
+
+// Enhanced audit events with reason/motif
+export const auditEventsWithMotif = mysqlTable("audit_events_with_motif", {
+  id: int("id").autoincrement().primaryKey(),
+  actorId: int("actor_id").notNull().references(() => users.id, { onDelete: "set null" }),
+  actorRole: varchar("actor_role", { length: 64 }).notNull(),
+  action: varchar("action", { length: 255 }).notNull(),
+  targetType: varchar("target_type", { length: 64 }).notNull(),
+  targetId: int("target_id"),
+  details: json("details").$type<Record<string, any>>(),
+  motif: text("motif"), // Reason for consultation (vetting, verification, etc.)
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  actorIdIdx: index("idx_audit_actor").on(table.actorId),
+  actionIdx: index("idx_audit_action").on(table.action),
+  targetIdx: index("idx_audit_target").on(table.targetType, table.targetId),
+  createdAtIdx: index("idx_audit_created").on(table.createdAt),
+}));
+
+export type AuditEventWithMotif = typeof auditEventsWithMotif.$inferSelect;
+export type InsertAuditEventWithMotif = typeof auditEventsWithMotif.$inferInsert;
