@@ -253,6 +253,13 @@
       "when": 1781866740324,
       "tag": "0035_tranquil_darkhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "5",
+      "when": 1781869222633,
+      "tag": "0036_curvy_otto_octavius",
+      "breakpoints": true
     }
   ]
 }

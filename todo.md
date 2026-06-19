@@ -1415,3 +1415,81 @@
 ### Documentation
 - [x] Documenter le module Safety Management (docs/SPRINT7_ERP_SAFETY.md)
 - [x] Résumé des fichiers créés/modifiés
+
+## Sprint 8 ERP Construction — Vendors, Contractors, Certifications
+
+### Schéma DB
+- [x] Créer table `erp_vendors` (id, name, description, category, status, email, phone, address, website, taxId, createdBy, createdAt, updatedAt, deletedAt)
+- [x] Créer table `erp_vendor_contacts` (id, vendorId, name, role, email, phone, isPrimary, createdAt)
+- [x] Créer table `erp_contractors` (id, name, description, specialty, status, email, phone, address, licenseNumber, insuranceExpiry, createdBy, createdAt, updatedAt, deletedAt)
+- [x] Créer table `erp_project_contractors` (id, projectId, contractorId, role, startDate, endDate, assignedBy, assignedAt, releasedAt)
+- [x] Créer table `erp_contracts` (id, contractorId, projectId, title, reference, amount, startDate, endDate, status, createdBy, createdAt, updatedAt)
+- [x] Créer table `erp_certifications` (id, entityType, entityId, title, issuedBy, issuedAt, expiresAt, renewedAt, status, alertDaysBefore, createdBy, createdAt, updatedAt, deletedAt)
+- [x] Pousser les migrations DB
+
+### Backend — Routeur Vendors
+- [x] Procédure erp.vendors.list (GET filtres + pagination)
+- [x] Procédure erp.vendors.getById (GET /:id avec contacts)
+- [x] Procédure erp.vendors.create (POST)
+- [x] Procédure erp.vendors.update (PUT /:id)
+- [x] Procédure erp.vendors.delete (DELETE /:id soft delete)
+- [x] Procédure erp.vendors.addContact (POST /:id/contacts)
+- [x] Procédure erp.vendors.updateContact (PUT contact)
+- [x] Procédure erp.vendors.deleteContact (DELETE contact)
+- [x] Procédure erp.vendors.updateStatus (PUT /:id/status)
+- [x] Procédure erp.vendors.rate (POST /:id/rate)
+
+### Backend — Routeur Contractors
+- [x] Procédure erp.contractors.list (GET filtres + pagination)
+- [x] Procédure erp.contractors.getById (GET /:id avec projets + contrats)
+- [x] Procédure erp.contractors.create (POST)
+- [x] Procédure erp.contractors.update (PUT /:id)
+- [x] Procédure erp.contractors.delete (DELETE /:id soft delete)
+- [x] Procédure erp.contractors.assignToProject (POST affectation projet)
+- [x] Procédure erp.contractors.releaseFromProject (DELETE libération projet)
+- [x] Procédure erp.contractors.updateStatus (PUT /:id/status)
+- [x] Procédure erp.contractors.listContracts (GET contrats)
+- [x] Procédure erp.contractors.createContract (POST contrat)
+- [x] Procédure erp.contractors.updateContract (PUT contrat)
+
+### Backend — Routeur Certifications
+- [x] Procédure erp.certifications.list (GET filtres + pagination)
+- [x] Procédure erp.certifications.getById (GET /:id)
+- [x] Procédure erp.certifications.create (POST)
+- [x] Procédure erp.certifications.update (PUT /:id)
+- [x] Procédure erp.certifications.delete (DELETE /:id soft delete)
+- [x] Procédure erp.certifications.expired (GET certifications expirées)
+- [x] Procédure erp.certifications.upcomingExpirations (GET prochaines expirations)
+- [x] Procédure erp.certifications.renew (POST /:id/renew)
+
+### Frontend — Pages
+- [x] Page /erp/vendors (liste fournisseurs + filtres + CRUD + contacts)
+- [x] Page /erp/contractors (liste sous-traitants + filtres + CRUD + affectation + contrats)
+- [x] Page /erp/certifications (liste certifications + filtres + CRUD + expirées + renouvellement)
+- [x] Routes App.tsx ajoutées
+- [x] Sidebar ERP mise à jour (lien Certifications ajouté)
+
+### Tests
+- [x] Test : catégories fournisseurs (7)
+- [x] Test : statuts fournisseurs (5)
+- [x] Test : création fournisseur
+- [x] Test : ajout contact fournisseur
+- [x] Test : suspension fournisseur
+- [x] Test : blocage fournisseur blacklisté
+- [x] Test : spécialités sous-traitants (10)
+- [x] Test : création sous-traitant
+- [x] Test : affectation sous-traitant à projet
+- [x] Test : blocage suppression si affectation active
+- [x] Test : statuts contrats (5)
+- [x] Test : création contrat
+- [x] Test : formatage montant XOF
+- [x] Test : types entités certifications (4)
+- [x] Test : détection certification expirée
+- [x] Test : renouvellement certification
+- [x] Test : alerte avant expiration
+- [x] Test : permissions CRUD
+- [x] Test : non-régression (572 tests PASS, 0 erreurs TypeScript)
+
+### Documentation
+- [x] Documenter les modules Vendors, Contractors & Certifications (docs/SPRINT8_ERP_VENDORS.md)
+- [x] Résumé des fichiers créés/modifiés

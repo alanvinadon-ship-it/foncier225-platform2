@@ -424,6 +424,9 @@ import { erpPermitsRouter } from "./erp-permits-router";
 import { erpComplianceRouter } from "./erp-compliance-router";
 import { erpEquipmentRouter } from "./erp-equipment-router";
 import { erpSafetyRouter } from "./erp-safety-router";
+import { erpVendorsRouter } from "./erp-vendors-router";
+import { erpContractorsRouter } from "./erp-contractors-router";
+import { erpCertificationsRouter } from "./erp-certifications-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -441,4 +444,7 @@ export const erpRouter = router({
   compliance: erpComplianceRouter,
   equipment: erpEquipmentRouter,
   safety: erpSafetyRouter,
+  vendors: erpVendorsRouter,
+  contractors: erpContractorsRouter,
+  certifications: erpCertificationsRouter,
 });

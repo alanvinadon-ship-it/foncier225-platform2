@@ -1656,3 +1656,139 @@ export const erpSafetyCorrectiveActions = mysqlTable("erp_safety_corrective_acti
 
 export type ErpSafetyCorrectiveAction = typeof erpSafetyCorrectiveActions.$inferSelect;
 export type InsertErpSafetyCorrectiveAction = typeof erpSafetyCorrectiveActions.$inferInsert;
+
+// ============================================================
+// Sprint 8 — Vendors, Contractors, Certifications
+// ============================================================
+
+export const erpVendors = mysqlTable("erp_vendors", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 64 }).default("general").notNull(), // general, materials, equipment, services, transport, consulting, autre
+  status: varchar("status", { length: 32 }).default("pending_approval").notNull(), // active, inactive, suspended, blacklisted, pending_approval
+  email: varchar("email", { length: 320 }),
+  phone: varchar("phone", { length: 32 }),
+  address: text("address"),
+  website: varchar("website", { length: 512 }),
+  taxId: varchar("tax_id", { length: 64 }),
+  rating: int("rating"), // 1-5
+  createdBy: int("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  statusIdx: index("idx_erp_vendors_status").on(table.status),
+  categoryIdx: index("idx_erp_vendors_category").on(table.category),
+  nameIdx: index("idx_erp_vendors_name").on(table.name),
+}));
+
+export type ErpVendor = typeof erpVendors.$inferSelect;
+export type InsertErpVendor = typeof erpVendors.$inferInsert;
+
+export const erpVendorContacts = mysqlTable("erp_vendor_contacts", {
+  id: int("id").autoincrement().primaryKey(),
+  vendorId: int("vendor_id").notNull().references(() => erpVendors.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 255 }).notNull(),
+  role: varchar("role", { length: 128 }),
+  email: varchar("email", { length: 320 }),
+  phone: varchar("phone", { length: 32 }),
+  isPrimary: boolean("is_primary").default(false).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  vendorIdx: index("idx_erp_vendor_contacts_vendor").on(table.vendorId),
+}));
+
+export type ErpVendorContact = typeof erpVendorContacts.$inferSelect;
+export type InsertErpVendorContact = typeof erpVendorContacts.$inferInsert;
+
+export const erpContractors = mysqlTable("erp_contractors", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  specialty: varchar("specialty", { length: 64 }).default("general").notNull(), // general, gros_oeuvre, electricite, plomberie, peinture, menuiserie, carrelage, toiture, vrd, autre
+  status: varchar("status", { length: 32 }).default("pending_approval").notNull(), // active, inactive, suspended, blacklisted, pending_approval
+  email: varchar("email", { length: 320 }),
+  phone: varchar("phone", { length: 32 }),
+  address: text("address"),
+  licenseNumber: varchar("license_number", { length: 128 }),
+  insuranceExpiry: bigint("insurance_expiry", { mode: "number" }),
+  rating: int("rating"), // 1-5
+  createdBy: int("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  statusIdx: index("idx_erp_contractors_status").on(table.status),
+  specialtyIdx: index("idx_erp_contractors_specialty").on(table.specialty),
+  nameIdx: index("idx_erp_contractors_name").on(table.name),
+}));
+
+export type ErpContractor = typeof erpContractors.$inferSelect;
+export type InsertErpContractor = typeof erpContractors.$inferInsert;
+
+export const erpProjectContractors = mysqlTable("erp_project_contractors", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("project_id").notNull().references(() => erpProjects.id, { onDelete: "cascade" }),
+  contractorId: int("contractor_id").notNull().references(() => erpContractors.id, { onDelete: "cascade" }),
+  role: varchar("role", { length: 128 }),
+  startDate: bigint("start_date", { mode: "number" }),
+  endDate: bigint("end_date", { mode: "number" }),
+  assignedBy: int("assigned_by").references(() => users.id, { onDelete: "set null" }),
+  assignedAt: bigint("assigned_at", { mode: "number" }).notNull(),
+  releasedAt: bigint("released_at", { mode: "number" }),
+}, (table) => ({
+  projectIdx: index("idx_erp_proj_contr_project").on(table.projectId),
+  contractorIdx: index("idx_erp_proj_contr_contractor").on(table.contractorId),
+}));
+
+export type ErpProjectContractor = typeof erpProjectContractors.$inferSelect;
+export type InsertErpProjectContractor = typeof erpProjectContractors.$inferInsert;
+
+export const erpContracts = mysqlTable("erp_contracts", {
+  id: int("id").autoincrement().primaryKey(),
+  contractorId: int("contractor_id").references(() => erpContractors.id, { onDelete: "set null" }),
+  projectId: int("project_id").references(() => erpProjects.id, { onDelete: "set null" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  reference: varchar("reference", { length: 128 }),
+  amount: bigint("amount", { mode: "number" }), // in XOF
+  startDate: bigint("start_date", { mode: "number" }),
+  endDate: bigint("end_date", { mode: "number" }),
+  status: varchar("status", { length: 32 }).default("draft").notNull(), // draft, active, completed, terminated, expired
+  createdBy: int("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  contractorIdx: index("idx_erp_contracts_contractor").on(table.contractorId),
+  projectIdx: index("idx_erp_contracts_project").on(table.projectId),
+  statusIdx: index("idx_erp_contracts_status").on(table.status),
+}));
+
+export type ErpContract = typeof erpContracts.$inferSelect;
+export type InsertErpContract = typeof erpContracts.$inferInsert;
+
+export const erpCertifications = mysqlTable("erp_certifications", {
+  id: int("id").autoincrement().primaryKey(),
+  entityType: varchar("entity_type", { length: 32 }).notNull(), // vendor, contractor, equipment, user
+  entityId: int("entity_id").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  certNumber: varchar("cert_number", { length: 128 }),
+  issuedBy: varchar("issued_by", { length: 255 }),
+  issuedAt: bigint("issued_at", { mode: "number" }),
+  expiresAt: bigint("expires_at", { mode: "number" }),
+  renewedAt: bigint("renewed_at", { mode: "number" }),
+  status: varchar("status", { length: 32 }).default("active").notNull(), // active, expired, revoked, pending_renewal
+  alertDaysBefore: int("alert_days_before").default(30),
+  documentUrl: varchar("document_url", { length: 512 }),
+  createdBy: int("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  entityIdx: index("idx_erp_certs_entity").on(table.entityType, table.entityId),
+  statusIdx: index("idx_erp_certs_status").on(table.status),
+  expiresIdx: index("idx_erp_certs_expires").on(table.expiresAt),
+}));
+
+export type ErpCertification = typeof erpCertifications.$inferSelect;
+export type InsertErpCertification = typeof erpCertifications.$inferInsert;
