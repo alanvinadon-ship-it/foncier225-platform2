@@ -1857,3 +1857,46 @@
 ### Documentation
 - [x] Documenter les modules Overrun Alerts & Notifications
 - [x] Résumé des fichiers créés/modifiés
+
+## Sprint 15 ERP Construction — Profile Details & Audit Logs
+
+### Schéma DB
+- [x] Créer table `erp_user_profiles` (phone, company, position, avatar, preferences, securitySettings)
+- [x] Vérifier/réutiliser table `audit_events` existante pour les logs ERP
+- [x] Pousser les migrations DB
+
+### Backend — Routeur Profile
+- [x] Procédure erp.profile.get (GET profil complet)
+- [x] Procédure erp.profile.update (PUT nom, téléphone, entreprise, poste)
+- [x] Procédure erp.profile.updatePassword (PUT mot de passe)
+- [x] Procédure erp.profile.uploadAvatar (POST avatar)
+- [x] Procédure erp.profile.getPreferences (GET préférences)
+- [x] Procédure erp.profile.updatePreferences (PUT préférences)
+
+### Backend — Routeur Audit Logs
+- [x] Procédure erp.auditLogs.list (GET filtres + pagination)
+- [x] Procédure erp.auditLogs.getById (GET /:id)
+- [x] Procédure erp.auditLogs.byProject (GET /projects/:id/audit-logs)
+
+### Frontend — Pages
+- [x] Page /erp/profile (consulter/modifier profil)
+- [x] Page /erp/profile/security (mot de passe, paramètres sécurité)
+- [x] Page /erp/profile/preferences (préférences utilisateur)
+- [x] Page /erp/audit-logs (consultation logs)
+- [x] Routes App.tsx ajoutées
+- [x] Sidebar ERP mise à jour
+
+### Tests
+- [x] Test : modification profil
+- [x] Test : modification mot de passe
+- [x] Test : upload avatar
+- [x] Test : sauvegarde préférences
+- [x] Test : création log après modification projet
+- [x] Test : création log après suppression facture
+- [x] Test : création log après validation document
+- [x] Test : accès audit réservé aux admins
+- [x] Test : non-régression
+
+### Documentation
+- [x] Documenter les modules Profile Details & Audit Logs
+- [x] Résumé des fichiers créés/modifiés

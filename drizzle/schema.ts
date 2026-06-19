@@ -2246,3 +2246,35 @@ export const erpNotifications = mysqlTable("erp_notifications", {
 }));
 export type ErpNotification = typeof erpNotifications.$inferSelect;
 export type InsertErpNotification = typeof erpNotifications.$inferInsert;
+
+// ============================================================
+// Sprint 15 — Profile Details
+// ============================================================
+
+export const erpUserProfiles = mysqlTable("erp_user_profiles", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  phone: varchar("phone", { length: 32 }),
+  company: varchar("company", { length: 255 }),
+  position: varchar("position", { length: 128 }),
+  avatarUrl: varchar("avatar_url", { length: 512 }),
+  preferences: json("preferences").$type<{
+    language: string;
+    timezone: string;
+    dateFormat: string;
+    currency: string;
+    emailNotifications: boolean;
+    pushNotifications: boolean;
+    theme: string;
+  }>(),
+  securitySettings: json("security_settings").$type<{
+    twoFactorEnabled: boolean;
+    sessionTimeout: number;
+    loginAlerts: boolean;
+    lastPasswordChange: number | null;
+  }>(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => [
+  { name: "idx_erp_profile_user", columns: [table.userId] },
+]);

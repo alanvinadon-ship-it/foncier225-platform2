@@ -302,6 +302,13 @@
       "when": 1781893547599,
       "tag": "0042_closed_captain_britain",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "5",
+      "when": 1781894410873,
+      "tag": "0043_closed_toro",
+      "breakpoints": true
     }
   ]
 }

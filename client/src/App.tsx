@@ -95,6 +95,10 @@ const ErpFinanceCashFlow = lazy(() => import("./pages/erp/ErpFinanceCashFlow"));
 const ErpFinanceProfitability = lazy(() => import("./pages/erp/ErpFinanceProfitability"));
 const ErpOverrunAlerts = lazy(() => import("./pages/erp/ErpOverrunAlerts"));
 const ErpNotifications = lazy(() => import("./pages/erp/ErpNotifications"));
+const ErpProfile = lazy(() => import("./pages/erp/ErpProfile"));
+const ErpProfileSecurity = lazy(() => import("./pages/erp/ErpProfileSecurity"));
+const ErpProfilePreferences = lazy(() => import("./pages/erp/ErpProfilePreferences"));
+const ErpAuditLogs = lazy(() => import("./pages/erp/ErpAuditLogs"));
 
 function RouteFallback() {
   return (
@@ -522,6 +526,26 @@ function Router() {
       <Route path="/erp/notifications">
         <ErpLayout>
           <ErpNotifications />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/profile/security">
+        <ErpLayout>
+          <ErpProfileSecurity />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/profile/preferences">
+        <ErpLayout>
+          <ErpProfilePreferences />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/profile">
+        <ErpLayout>
+          <ErpProfile />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/audit-logs">
+        <ErpLayout>
+          <ErpAuditLogs />
         </ErpLayout>
       </Route>
 
