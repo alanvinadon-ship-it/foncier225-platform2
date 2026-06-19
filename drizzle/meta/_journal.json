@@ -225,6 +225,13 @@
       "when": 1781858880774,
       "tag": "0031_massive_shinobi_shaw",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "5",
+      "when": 1781861499262,
+      "tag": "0032_flippant_lily_hollister",
+      "breakpoints": true
     }
   ]
 }

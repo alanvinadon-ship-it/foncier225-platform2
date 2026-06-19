@@ -414,10 +414,13 @@ const erpAdminRouter = router({
 // ERP ROUTER PRINCIPAL
 // ============================================================
 
+import { erpDashboardRouter } from "./erp-dashboard-router";
+
 export const erpRouter = router({
   auth: erpAuthRouter,
   roles: erpRolesRouter,
   permissions: erpPermissionsRouter,
   userRoles: erpUserRolesRouter,
   admin: erpAdminRouter,
+  dashboard: erpDashboardRouter,
 });

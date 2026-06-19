@@ -1245,3 +1245,24 @@ export const erpUserRoles = mysqlTable("erp_user_roles", {
 
 export type ErpUserRole = typeof erpUserRoles.$inferSelect;
 export type InsertErpUserRole = typeof erpUserRoles.$inferInsert;
+
+// ============================================================
+// ERP CONSTRUCTION — DASHBOARD WIDGETS
+// ============================================================
+
+export const erpDashboardWidgets = mysqlTable("erp_dashboard_widgets", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  widgetKey: varchar("widget_key", { length: 64 }).notNull(),
+  position: int("position").default(0).notNull(),
+  isVisible: boolean("is_visible").default(true).notNull(),
+  settingsJson: json("settings_json").$type<Record<string, unknown>>(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  userWidgetUnique: unique("uq_erp_widget_user_key").on(table.userId, table.widgetKey),
+  userIdx: index("idx_erp_widget_user").on(table.userId),
+}));
+
+export type ErpDashboardWidget = typeof erpDashboardWidgets.$inferSelect;
+export type InsertErpDashboardWidget = typeof erpDashboardWidgets.$inferInsert;

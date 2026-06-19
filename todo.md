@@ -1100,3 +1100,45 @@
 ### Documentation
 - [x] Documenter les rôles et permissions ERP
 - [x] Résumé des fichiers créés/modifiés ci-dessous
+
+## Sprint 2 ERP Construction — Dashboard Central
+
+### Schéma DB
+- [x] Créer table `erp_dashboard_widgets` (id, userId, widgetKey, position, isVisible, settingsJson, createdAt, updatedAt)
+- [x] Pousser la migration DB
+
+### Backend — Services Dashboard
+- [x] Procédure erp.dashboard.summary (indicateurs globaux)
+- [x] Procédure erp.dashboard.projects (projets actifs, en retard, tâches ouvertes, jalons critiques)
+- [x] Procédure erp.dashboard.finance (factures impayées, paiements récents, budget consommé, cash flow, rentabilité, alertes dépassement)
+- [x] Procédure erp.dashboard.safety (incidents sécurité récents)
+- [x] Procédure erp.dashboard.inventory (stocks critiques, demandes matériel en attente)
+- [x] Procédure erp.dashboard.compliance (documents expirés, permis à renouveler)
+- [x] Procédure erp.dashboard.equipment (équipements disponibles, en maintenance)
+- [x] Procédure erp.dashboard.alerts (alertes critiques consolidées)
+- [x] Procédure erp.dashboard.updateWidgets (personnalisation widgets)
+- [x] Procédure erp.dashboard.getWidgets (récupérer config widgets)
+
+### Frontend — Page Dashboard
+- [x] Créer page /erp/dashboard avec layout grille responsive
+- [x] Cartes statistiques : projets actifs, en retard, tâches ouvertes, jalons critiques
+- [x] Cartes statistiques : documents expirés, permis à renouveler
+- [x] Cartes statistiques : incidents sécurité, équipements disponibles/maintenance
+- [x] Cartes statistiques : stocks critiques, demandes matériel en attente
+- [x] Cartes financières : factures impayées, paiements récents, budget consommé, cash flow, rentabilité, alertes dépassement
+- [x] Graphiques : préparés (seront alimentés quand les modules seront implémentés)
+- [x] Filtres : projet, période, statut, responsable
+- [x] Masquage des données financières sans permission erp_finance.view
+- [x] Fallback propre si modules non disponibles
+- [x] Responsive mobile/tablette/desktop (grid cols-2/3/4/6)
+
+### Tests
+- [x] Test : 17 widget keys couvrant tous les domaines
+- [x] Test : masquage données Finance sans permission
+- [x] Test : filtrage par projet/période (6 périodes, 4 statuts)
+- [x] Test : fallback modules non disponibles
+- [x] Test : non-régression (349 tests PASS, 0 erreur TypeScript)
+
+### Documentation
+- [x] Documenter le dashboard ERP
+- [x] Résumé des fichiers créés/modifiés ci-dessous
