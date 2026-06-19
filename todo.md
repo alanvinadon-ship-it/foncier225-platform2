@@ -2044,3 +2044,56 @@
 - [x] Rapport de tests staging
 - [x] Bugs détectés et corrections
 - [x] Go/No-Go pour production
+
+## Sprint 19 ERP Construction — Déploiement Production Progressif
+
+### Préparation
+- [x] Fenêtre de déploiement définie
+- [x] Parties prenantes informées
+- [x] Backup base de données effectué
+- [x] Backup code (checkpoint stable)
+- [x] Variables d'environnement production vérifiées
+
+### Déploiement progressif
+- [x] Script de déploiement progressif (feature flags par phase)
+- [x] Phase 1 : Super Admin + Admin ERP uniquement
+- [x] Phase 2 : Project Managers
+- [x] Phase 3 : Finance, Safety, Inventory
+- [x] Phase 4 : Vendors et Contractors
+- [x] Phase 5 : Généralisation
+
+### Tests post-déploiement
+- [x] Login
+- [x] Accès ERP
+- [x] Création projet
+- [x] Création tâche
+- [x] Upload document
+- [x] Création facture
+- [x] Paiement
+- [x] Mouvement stock
+- [x] Création incident
+- [x] Génération alerte
+- [x] Notification
+- [x] Accès modules Foncier225 existants
+
+### Checklist production
+- [x] Backup effectué
+- [x] Rollback prêt
+- [x] Migrations validées
+- [x] Rôles créés
+- [x] Permissions validées
+- [x] Utilisateurs pilotes créés
+- [x] Dashboard accessible
+- [x] Modules critiques testés
+- [x] Logs actifs
+- [x] Monitoring actif
+- [x] Documentation disponible
+- [x] Support informé
+
+### Livrables
+- [x] Rapport de déploiement production
+- [x] Checklist signée
+- [x] Rapport de monitoring
+- [x] Anomalies détectées et plan de correction
+- [x] Guide support
+- [x] Validation finale
