@@ -1998,3 +1998,49 @@
 - [x] Rapport non-régression
 - [x] Corrections nécessaires
 - [x] Validation finale
+
+## Sprint 18 ERP Construction — Déploiement Staging
+
+### Préparation environnement
+- [x] Vérifier variables d'environnement staging
+- [x] Vérifier état base de données (tables, migrations)
+- [x] Vérifier configuration serveur (port, CORS, sessions)
+
+### Seed données
+- [x] Script seed rôles et permissions ERP
+- [x] Script seed utilisateurs de test
+- [x] Exécuter les seeds en staging
+
+### Tests staging
+- [x] Exécuter tests fonctionnels (29 modules)
+- [x] Exécuter tests sécurité
+- [x] Exécuter tests non-régression
+- [x] Exécuter test E2E
+- [x] Vérifier performances (temps de réponse)
+- [x] Vérifier logs (pas d'erreurs critiques)
+
+### Checklist staging
+- [x] Application démarre
+- [x] Login fonctionne
+- [x] Rôles ERP disponibles
+- [x] Dashboard accessible
+- [x] Projets créables
+- [x] Documents uploadables
+- [x] Factures créables
+- [x] Stocks modifiables
+- [x] Alertes générées
+- [x] Notifications visibles
+- [x] Données Finance protégées
+- [x] Modules Foncier225 existants fonctionnent
+
+### Rollback
+- [x] Plan de rollback documenté
+- [x] Test de rollback validé
+
+### Livrables
+- [x] Rapport de déploiement staging
+- [x] Liste des migrations exécutées
+- [x] Liste des variables d'environnement
+- [x] Rapport de tests staging
+- [x] Bugs détectés et corrections
+- [x] Go/No-Go pour production
