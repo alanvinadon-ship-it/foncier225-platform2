@@ -62,7 +62,7 @@ export default function ErpWastage() {
   const statsQuery = trpc.erp.wastage.stats.useQuery({});
   const analysisQuery = trpc.erp.wastage.analysis.useQuery({ groupBy: analysisGroupBy });
   const projectsQuery = trpc.erp.projects.list.useQuery({ limit: 100, offset: 0 });
-  const itemsQuery = trpc.erp.inventory.listItems.useQuery({ limit: 200, offset: 0 });
+  const itemsQuery = trpc.erp.inventory.listItems.useQuery({ limit: 100, offset: 0 });
 
   // Mutations
   const createWastage = trpc.erp.wastage.create.useMutation({

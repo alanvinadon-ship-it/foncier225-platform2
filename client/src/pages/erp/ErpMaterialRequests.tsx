@@ -74,7 +74,7 @@ export default function ErpMaterialRequests() {
 
   // Projects list for assignment
   const projectsQuery = trpc.erp.projects.list.useQuery({ limit: 100, offset: 0 });
-  const itemsQuery = trpc.erp.inventory.listItems.useQuery({ limit: 200, offset: 0 });
+  const itemsQuery = trpc.erp.inventory.listItems.useQuery({ limit: 100, offset: 0 });
 
   // Mutations
   const createRequest = trpc.erp.materialRequests.create.useMutation({

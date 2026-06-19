@@ -53,8 +53,8 @@ export default function ErpSupplierIntegration() {
   // Queries
   const pricesQuery = trpc.erp.supplierIntegration.listPrices.useQuery({ limit: 100, offset: 0 });
   const integrationsQuery = trpc.erp.supplierIntegration.listIntegrations.useQuery({ limit: 100, offset: 0 });
-  const vendorsQuery = trpc.erp.vendors.list.useQuery({ limit: 200, offset: 0 });
-  const itemsQuery = trpc.erp.inventory.listItems.useQuery({ limit: 200, offset: 0 });
+  const vendorsQuery = trpc.erp.vendors.list.useQuery({ limit: 100, offset: 0 });
+  const itemsQuery = trpc.erp.inventory.listItems.useQuery({ limit: 100, offset: 0 });
 
   const compareQuery = trpc.erp.supplierIntegration.compareSuppliers.useQuery(
     { itemId: compareItemId! },
