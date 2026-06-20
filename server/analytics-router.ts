@@ -84,20 +84,24 @@ export const analyticsRouter = router({
   // Paiements par mois (12 derniers mois)
   getPaymentsByMonth: permissionProcedure("analytics", "view").query(async () => {
     const db = (await getDb())!;
-    const results = await db.select({
-      month: sql<string>`DATE_FORMAT(FROM_UNIXTIME(${payments.createdAt} / 1000), '%Y-%m')`,
-      count: count(),
-      total: sql<string>`COALESCE(SUM(${payments.amount}), 0)`,
-    }).from(payments)
-      .where(gte(payments.createdAt, Date.now() - 365 * 24 * 60 * 60 * 1000))
-      .groupBy(sql`DATE_FORMAT(FROM_UNIXTIME(${payments.createdAt} / 1000), '%Y-%m')`)
-      .orderBy(sql`DATE_FORMAT(FROM_UNIXTIME(${payments.createdAt} / 1000), '%Y-%m')`);
+    try {
+      const results = await db.select({
+        month: sql<string>`CONCAT(YEAR(FROM_UNIXTIME(${payments.createdAt} / 1000)), '-', LPAD(MONTH(FROM_UNIXTIME(${payments.createdAt} / 1000)), 2, '0'))`,
+        count: count(),
+        total: sql<string>`COALESCE(SUM(${payments.amount}), 0)`,
+      }).from(payments)
+        .where(gte(payments.createdAt, Date.now() - 365 * 24 * 60 * 60 * 1000))
+        .groupBy(sql`CONCAT(YEAR(FROM_UNIXTIME(${payments.createdAt} / 1000)), '-', LPAD(MONTH(FROM_UNIXTIME(${payments.createdAt} / 1000)), 2, '0'))`)
+        .orderBy(sql`CONCAT(YEAR(FROM_UNIXTIME(${payments.createdAt} / 1000)), '-', LPAD(MONTH(FROM_UNIXTIME(${payments.createdAt} / 1000)), 2, '0'))`);
 
-    return results.map(r => ({
-      month: r.month,
-      count: r.count,
-      total: Number(r.total),
-    }));
+      return results.map(r => ({
+        month: r.month,
+        count: r.count,
+        total: Number(r.total),
+      }));
+    } catch {
+      return [];
+    }
   }),
 
   // Paiements par provider
