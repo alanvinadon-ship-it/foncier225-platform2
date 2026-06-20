@@ -9,7 +9,7 @@ import {
 } from "../../drizzle/schema";
 
 // ============================================================
-// ERP MODULES (14 modules)
+// ERP MODULES (22 modules)
 // ============================================================
 
 export const ERP_MODULES = [
@@ -32,6 +32,9 @@ export const ERP_MODULES = [
   "erp_accounting",
   "erp_real_estate",
   "erp_full_accounting",
+  "erp_rfqs",
+  "erp_invoice_matching",
+  "erp_accounting_exports",
 ] as const;
 
 export type ErpModule = (typeof ERP_MODULES)[number];
@@ -235,6 +238,26 @@ export const ERP_DEFAULT_PERMISSIONS: Array<{
   { module: "erp_full_accounting", action: "delete", displayName: "Supprimer une écriture", description: "Supprimer une écriture brouillon" },
   { module: "erp_full_accounting", action: "approve", displayName: "Valider une écriture", description: "Valider et verrouiller une écriture comptable" },
   { module: "erp_full_accounting", action: "export", displayName: "Exporter la comptabilité", description: "Exporter les rapports comptables" },
+
+  // RFQ (Demandes de Prix)
+  { module: "erp_rfqs", action: "view", displayName: "Voir les RFQ", description: "Consulter les demandes de prix" },
+  { module: "erp_rfqs", action: "create", displayName: "Créer une RFQ", description: "Créer une demande de prix" },
+  { module: "erp_rfqs", action: "update", displayName: "Modifier une RFQ", description: "Modifier une demande de prix" },
+  { module: "erp_rfqs", action: "delete", displayName: "Supprimer une RFQ", description: "Supprimer ou annuler une demande de prix" },
+  { module: "erp_rfqs", action: "approve", displayName: "Attribuer une RFQ", description: "Sélectionner un fournisseur et attribuer la RFQ" },
+  { module: "erp_rfqs", action: "export", displayName: "Exporter les RFQ", description: "Exporter les données RFQ" },
+
+  // Invoice Matching (Rapprochement Factures/PO)
+  { module: "erp_invoice_matching", action: "view", displayName: "Voir les rapprochements", description: "Consulter les rapprochements factures/BC" },
+  { module: "erp_invoice_matching", action: "create", displayName: "Créer un rapprochement", description: "Lancer un rapprochement automatique" },
+  { module: "erp_invoice_matching", action: "approve", displayName: "Approuver un rapprochement", description: "Valider ou rejeter un rapprochement" },
+  { module: "erp_invoice_matching", action: "export", displayName: "Exporter les rapprochements", description: "Exporter les données de rapprochement" },
+
+  // Accounting Exports (Export Comptable)
+  { module: "erp_accounting_exports", action: "view", displayName: "Voir les exports comptables", description: "Consulter les exports générés" },
+  { module: "erp_accounting_exports", action: "create", displayName: "Générer un export", description: "Générer un fichier d'export comptable" },
+  { module: "erp_accounting_exports", action: "delete", displayName: "Annuler un export", description: "Annuler un export comptable" },
+  { module: "erp_accounting_exports", action: "export", displayName: "Télécharger un export", description: "Télécharger le fichier CSV généré" },
 ];
 
 // ============================================================

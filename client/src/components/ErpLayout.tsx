@@ -42,6 +42,8 @@ import {
   Calculator,
   Scale,
   Landmark,
+  FileSpreadsheet,
+  Sparkles,
 } from "lucide-react";
 import { useState } from "react";
 import { NotificationBell } from "@/components/erp/NotificationBell";
@@ -94,6 +96,8 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
       { label: "Demandes d'Achat", href: "/erp/purchase-requests", icon: <ClipboardList size={18} />, module: "erp_purchases" },
       { label: "Bons de Commande", href: "/erp/purchase-orders", icon: <FileText size={18} />, module: "erp_purchases" },
       { label: "Réceptions", href: "/erp/goods-receipts", icon: <PackageCheck size={18} />, module: "erp_purchases" },
+      { label: "Demandes de Prix", href: "/erp/rfqs", icon: <Sparkles size={18} />, module: "erp_rfqs" },
+      { label: "Rapprochement", href: "/erp/invoice-matching", icon: <Link2 size={18} />, module: "erp_invoice_matching" },
     ],
   },
   // Groupe Dépenses
@@ -139,6 +143,7 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
       { label: "Journaux", href: "/erp/accounting-journals", icon: <BookOpen size={18} />, module: "erp_full_accounting" },
       { label: "Écritures", href: "/erp/accounting-entries", icon: <ScrollText size={18} />, module: "erp_full_accounting" },
       { label: "Balance", href: "/erp/accounting-balance", icon: <Scale size={18} />, module: "erp_full_accounting" },
+      { label: "Export Comptable", href: "/erp/accounting-export", icon: <FileSpreadsheet size={18} />, module: "erp_accounting_exports" },
     ],
   },
   { label: "Notifications", href: "/erp/notifications", icon: <Bell size={18} />, module: "erp_alerts" },

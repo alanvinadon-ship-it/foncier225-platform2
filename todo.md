@@ -2190,3 +2190,20 @@
 - [x] Routes App.tsx — 11 nouvelles routes + lazy imports
 - [x] Tests Sprint 22 (sprint22.test.ts) — 48 tests PASS
 - [x] 1166 tests PASS total, 0 erreur TypeScript
+
+## Sprint 23 — RFQ, Rapprochement Factures/PO, Export Comptable SAGE/CODA
+- [x] Audit existant (tables, routeurs, pages)
+- [x] Tables DB : erp_rfqs, erp_rfq_lines, erp_rfq_vendors, erp_vendor_quotes, erp_vendor_quote_lines
+- [x] Tables DB : erp_invoice_po_matches, erp_invoice_po_match_lines, erp_matching_settings
+- [x] Tables DB : erp_accounting_export_formats, erp_accounting_exports, erp_accounting_export_lines
+- [x] Routeur tRPC RFQ (CRUD, envoi, quotes, comparaison, sélection auto, conversion PO)
+- [x] Routeur tRPC Rapprochement Factures/PO (matching auto, approbation, variances)
+- [x] Routeur tRPC Export Comptable (formats, génération, téléchargement)
+- [x] Page /erp/rfqs — Liste RFQ
+- [x] Page /erp/rfqs détail — Détail RFQ avec comparaison offres
+- [x] Page /erp/invoice-matching — Rapprochement Factures/PO
+- [x] Page /erp/accounting-exports — Export Comptable SAGE/CODA
+- [x] Permissions RBAC (erp_rfqs, erp_invoice_matching, erp_accounting_exports)
+- [x] Sidebar + routes App.tsx
+- [x] Tests Sprint 23
+- [x] Checkpoint final

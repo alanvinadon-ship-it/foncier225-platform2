@@ -2500,7 +2500,12 @@ export const erpRfqs = mysqlTable("erp_rfqs", {
   description: text("description"),
   issueDate: bigint("issue_date", { mode: "number" }).notNull(),
   responseDeadline: bigint("response_deadline", { mode: "number" }),
-  status: varchar("status", { length: 32 }).notNull().default("draft"), // draft, sent, responses_received, under_evaluation, awarded, cancelled
+  status: varchar("status", { length: 32 }).notNull().default("draft"), // draft, sent, responses_pending, responses_received, under_evaluation, awarded, converted_to_po, cancelled, expired
+  selectionMethod: varchar("selection_method", { length: 32 }).default("lowest_price"), // lowest_price, best_delivery_time, best_score, manual
+  selectedVendorId: int("selected_vendor_id").references(() => erpVendors.id, { onDelete: "set null" }),
+  selectedQuoteId: int("selected_quote_id"),
+  approvedBy: int("approved_by").references(() => users.id, { onDelete: "set null" }),
+  approvedAt: bigint("approved_at", { mode: "number" }),
   createdBy: int("created_by").notNull().references(() => users.id, { onDelete: "restrict" }),
   createdAt: bigint("created_at", { mode: "number" }).notNull(),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
@@ -3280,3 +3285,180 @@ export const erpTaxDeclarations = mysqlTable("erp_tax_declarations", {
   statusIdx: index("idx_tax_decl_status").on(table.status),
 }));
 export type ErpTaxDeclaration = typeof erpTaxDeclarations.$inferSelect;
+
+
+// ============================================================
+// Sprint 23 — RFQ Lines, Vendor Quote Lines, Invoice/PO Matching, Export Comptable
+// ============================================================
+
+// --- RFQ Lines ---
+export const erpRfqLines = mysqlTable("erp_rfq_lines", {
+  id: int("id").autoincrement().primaryKey(),
+  rfqId: int("rfq_id").notNull().references(() => erpRfqs.id, { onDelete: "cascade" }),
+  itemType: varchar("item_type", { length: 32 }).notNull().default("material"), // material, equipment, service, subcontracting, other
+  inventoryItemId: int("inventory_item_id"),
+  description: varchar("description", { length: 512 }).notNull(),
+  quantity: int("quantity").notNull().default(100), // *100 for decimals
+  unit: varchar("unit", { length: 32 }).notNull().default("unité"),
+  estimatedUnitPrice: int("estimated_unit_price").default(0), // centimes XOF
+  estimatedTotal: int("estimated_total").default(0),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  rfqIdx: index("idx_erp_rfqlines_rfq").on(table.rfqId),
+}));
+export type ErpRfqLine = typeof erpRfqLines.$inferSelect;
+
+// --- Vendor Quote Lines ---
+export const erpVendorQuoteLines = mysqlTable("erp_vendor_quote_lines", {
+  id: int("id").autoincrement().primaryKey(),
+  vendorQuoteId: int("vendor_quote_id").notNull().references(() => erpVendorQuotes.id, { onDelete: "cascade" }),
+  rfqLineId: int("rfq_line_id").references(() => erpRfqLines.id, { onDelete: "set null" }),
+  description: varchar("description", { length: 512 }).notNull(),
+  quantity: int("quantity").notNull().default(100),
+  unit: varchar("unit", { length: 32 }).notNull().default("unité"),
+  unitPrice: int("unit_price").notNull().default(0), // centimes XOF
+  discountRate: int("discount_rate").default(0), // en centièmes (1000 = 10%)
+  taxRate: int("tax_rate").default(1800), // centièmes (1800 = 18%)
+  taxAmount: int("tax_amount").default(0),
+  lineTotal: int("line_total").notNull().default(0),
+  deliveryDelayDays: int("delivery_delay_days"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  quoteIdx: index("idx_erp_vqlines_quote").on(table.vendorQuoteId),
+  rfqLineIdx: index("idx_erp_vqlines_rfqline").on(table.rfqLineId),
+}));
+export type ErpVendorQuoteLine = typeof erpVendorQuoteLines.$inferSelect;
+
+// --- Invoice/PO Matching ---
+export const erpInvoicePoMatches = mysqlTable("erp_invoice_po_matches", {
+  id: int("id").autoincrement().primaryKey(),
+  invoiceId: int("invoice_id").notNull().references(() => erpInvoices.id, { onDelete: "cascade" }),
+  purchaseOrderId: int("purchase_order_id").notNull().references(() => erpPurchaseOrders.id, { onDelete: "cascade" }),
+  vendorId: int("vendor_id").references(() => erpVendors.id, { onDelete: "set null" }),
+  projectId: int("project_id").references(() => erpProjects.id, { onDelete: "set null" }),
+  matchStatus: varchar("match_status", { length: 32 }).notNull().default("pending"), // auto_matched, partial_match, variance_detected, manual_review, rejected, approved
+  matchScore: int("match_score").default(0), // 0-100
+  priceVarianceAmount: int("price_variance_amount").default(0), // centimes
+  quantityVariance: int("quantity_variance").default(0),
+  taxVarianceAmount: int("tax_variance_amount").default(0),
+  totalVarianceAmount: int("total_variance_amount").default(0),
+  variancePercentage: int("variance_percentage").default(0), // centièmes (500 = 5%)
+  matchedBy: int("matched_by").references(() => users.id, { onDelete: "set null" }),
+  matchedAt: bigint("matched_at", { mode: "number" }),
+  reviewedBy: int("reviewed_by").references(() => users.id, { onDelete: "set null" }),
+  reviewedAt: bigint("reviewed_at", { mode: "number" }),
+  approvalStatus: varchar("approval_status", { length: 32 }).notNull().default("pending_review"), // pending_review, approved, rejected, escalated
+  notes: text("notes"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  invoiceIdx: index("idx_erp_ipm_invoice").on(table.invoiceId),
+  poIdx: index("idx_erp_ipm_po").on(table.purchaseOrderId),
+  statusIdx: index("idx_erp_ipm_status").on(table.matchStatus),
+}));
+export type ErpInvoicePoMatch = typeof erpInvoicePoMatches.$inferSelect;
+
+export const erpInvoicePoMatchLines = mysqlTable("erp_invoice_po_match_lines", {
+  id: int("id").autoincrement().primaryKey(),
+  invoicePoMatchId: int("invoice_po_match_id").notNull().references(() => erpInvoicePoMatches.id, { onDelete: "cascade" }),
+  invoiceLineId: int("invoice_line_id").references(() => erpInvoiceLines.id, { onDelete: "set null" }),
+  purchaseOrderLineId: int("purchase_order_line_id").references(() => erpPurchaseOrderLines.id, { onDelete: "set null" }),
+  description: varchar("description", { length: 512 }),
+  invoiceQuantity: int("invoice_quantity").default(0),
+  poQuantity: int("po_quantity").default(0),
+  quantityVariance: int("quantity_variance").default(0),
+  invoiceUnitPrice: int("invoice_unit_price").default(0),
+  poUnitPrice: int("po_unit_price").default(0),
+  priceVariance: int("price_variance").default(0),
+  invoiceTaxAmount: int("invoice_tax_amount").default(0),
+  poTaxAmount: int("po_tax_amount").default(0),
+  taxVariance: int("tax_variance").default(0),
+  invoiceLineTotal: int("invoice_line_total").default(0),
+  poLineTotal: int("po_line_total").default(0),
+  lineVariance: int("line_variance").default(0),
+  matchStatus: varchar("match_status", { length: 32 }).default("pending"), // matched, variance, missing_in_invoice, missing_in_po
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  matchIdx: index("idx_erp_ipmlines_match").on(table.invoicePoMatchId),
+}));
+export type ErpInvoicePoMatchLine = typeof erpInvoicePoMatchLines.$inferSelect;
+
+// --- Matching Settings ---
+export const erpMatchingSettings = mysqlTable("erp_matching_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  settingKey: varchar("setting_key", { length: 128 }).notNull().unique(),
+  settingValue: varchar("setting_value", { length: 255 }).notNull(),
+  description: varchar("description", { length: 512 }),
+  isActive: int("is_active").notNull().default(1),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+export type ErpMatchingSetting = typeof erpMatchingSettings.$inferSelect;
+
+// --- Accounting Export Formats ---
+export const erpAccountingExportFormats = mysqlTable("erp_accounting_export_formats", {
+  id: int("id").autoincrement().primaryKey(),
+  formatCode: varchar("format_code", { length: 32 }).notNull().unique(), // STANDARD_CSV, SAGE_CSV, CODA_CSV
+  formatName: varchar("format_name", { length: 128 }).notNull(),
+  description: text("description"),
+  delimiter: varchar("delimiter", { length: 4 }).notNull().default(";"),
+  dateFormat: varchar("date_format", { length: 32 }).notNull().default("DD/MM/YYYY"),
+  decimalSeparator: varchar("decimal_separator", { length: 2 }).notNull().default(","),
+  encoding: varchar("encoding", { length: 16 }).notNull().default("UTF-8"),
+  hasHeader: int("has_header").notNull().default(1),
+  fieldMappingJson: text("field_mapping_json"), // JSON mapping of fields
+  isActive: int("is_active").notNull().default(1),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+export type ErpAccountingExportFormat = typeof erpAccountingExportFormats.$inferSelect;
+
+// --- Accounting Exports ---
+export const erpAccountingExports = mysqlTable("erp_accounting_exports", {
+  id: int("id").autoincrement().primaryKey(),
+  exportNumber: varchar("export_number", { length: 32 }).notNull().unique(),
+  formatId: int("format_id").notNull().references(() => erpAccountingExportFormats.id, { onDelete: "restrict" }),
+  dateFrom: bigint("date_from", { mode: "number" }).notNull(),
+  dateTo: bigint("date_to", { mode: "number" }).notNull(),
+  status: varchar("status", { length: 16 }).notNull().default("draft"), // draft, generated, downloaded, failed, cancelled
+  fileContent: text("file_content"), // generated CSV content
+  fileName: varchar("file_name", { length: 255 }),
+  exportedBy: int("exported_by").notNull().references(() => users.id, { onDelete: "restrict" }),
+  exportedAt: bigint("exported_at", { mode: "number" }),
+  entriesCount: int("entries_count").default(0),
+  totalDebit: bigint("total_debit", { mode: "number" }).default(0),
+  totalCredit: bigint("total_credit", { mode: "number" }).default(0),
+  notes: text("notes"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  statusIdx: index("idx_erp_acctexport_status").on(table.status),
+  dateIdx: index("idx_erp_acctexport_date").on(table.dateFrom, table.dateTo),
+}));
+export type ErpAccountingExport = typeof erpAccountingExports.$inferSelect;
+
+// --- Accounting Export Lines ---
+export const erpAccountingExportLines = mysqlTable("erp_acct_export_lines", {
+  id: int("id").autoincrement().primaryKey(),
+  exportId: int("export_id").notNull().references(() => erpAccountingExports.id, { onDelete: "cascade" }),
+  preEntryId: int("pre_entry_id").references(() => erpAccountingPreEntries.id, { onDelete: "set null" }),
+  preEntryLineId: int("pre_entry_line_id").references(() => erpAccountingPreEntryLines.id, { onDelete: "set null" }),
+  accountCode: varchar("account_code", { length: 16 }),
+  journalCode: varchar("journal_code", { length: 16 }),
+  entryDate: bigint("entry_date", { mode: "number" }),
+  label: varchar("label", { length: 512 }),
+  debitAmount: int("debit_amount").default(0),
+  creditAmount: int("credit_amount").default(0),
+  thirdPartyCode: varchar("third_party_code", { length: 64 }),
+  projectCode: varchar("project_code", { length: 64 }),
+  taxCode: varchar("tax_code", { length: 16 }),
+  exportLineJson: text("export_line_json"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  exportIdx: index("idx_erp_acctexportlines_export").on(table.exportId),
+}));
+export type ErpAccountingExportLine = typeof erpAccountingExportLines.$inferSelect;

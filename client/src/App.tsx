@@ -121,6 +121,11 @@ const ErpAccountingDashboard = lazy(() => import("./pages/erp/ErpAccountingDashb
 const ErpAccountingJournals = lazy(() => import("./pages/erp/ErpAccountingJournals"));
 const ErpAccountingEntries = lazy(() => import("./pages/erp/ErpAccountingEntries"));
 const ErpAccountingBalance = lazy(() => import("./pages/erp/ErpAccountingBalance"));
+const ErpRfqs = lazy(() => import("./pages/erp/ErpRfqs"));
+const ErpRfqDetail = lazy(() => import("./pages/erp/ErpRfqDetail"));
+const ErpRfqCompare = lazy(() => import("./pages/erp/ErpRfqCompare"));
+const ErpInvoiceMatching = lazy(() => import("./pages/erp/ErpInvoiceMatching"));
+const ErpAccountingExport = lazy(() => import("./pages/erp/ErpAccountingExport"));
 
 function RouteFallback() {
   return (
@@ -637,6 +642,31 @@ function Router() {
       <Route path="/erp/accounting-balance">
         <ErpLayout>
           <ErpAccountingBalance />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/rfqs">
+        <ErpLayout>
+          <ErpRfqs />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/rfqs/:id">
+        <ErpLayout>
+          <ErpRfqDetail />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/rfqs/:id/compare">
+        <ErpLayout>
+          <ErpRfqCompare />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/invoice-matching">
+        <ErpLayout>
+          <ErpInvoiceMatching />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/accounting-export">
+        <ErpLayout>
+          <ErpAccountingExport />
         </ErpLayout>
       </Route>
 

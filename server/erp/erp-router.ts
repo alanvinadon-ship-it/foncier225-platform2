@@ -445,6 +445,9 @@ import { erpPurchasesRouter } from "./erp-purchases-router";
 import { erpExpensesRouter } from "./erp-expenses-router";
 import { realEstateRouter } from "./erp-real-estate-router";
 import { fullAccountingRouter } from "./erp-full-accounting-router";
+import { rfqRouter } from "./erp-rfq-router";
+import { invoiceMatchingRouter } from "./erp-invoice-matching-router";
+import { accountingExportRouter } from "./erp-accounting-export-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -483,4 +486,7 @@ export const erpRouter = router({
   expenses: erpExpensesRouter,
   realEstate: realEstateRouter,
   fullAccounting: fullAccountingRouter,
+  rfq: rfqRouter,
+  invoiceMatching: invoiceMatchingRouter,
+  accountingExport: accountingExportRouter,
 });
