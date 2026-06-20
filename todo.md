@@ -2109,3 +2109,6 @@
 - [x] Corriger action "edit" → "update" (action ERP correcte) dans frontend et serveur
 - [x] Corriger erpPermissionProcedure("inventory",...) → erpPermissionProcedure("erp_inventory",...) dans tous les routeurs serveur
 - [x] Corriger erpPermissionProcedure("finance",...) → erpPermissionProcedure("erp_finance",...) dans erp-finance-router et erp-overrun-alerts-router
+
+## Regrouper les modules Finance dans un sous-menu
+- [x] Créer un menu déroulant/collapsible "Finance" dans la sidebar ERP regroupant Factures, Paiements, Budgets, Trésorerie, Rentabilité, Alertes Dépassement

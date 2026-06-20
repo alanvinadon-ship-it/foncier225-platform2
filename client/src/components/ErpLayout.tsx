@@ -21,13 +21,15 @@ import {
   Award,
   Star,
   ChevronLeft,
+  ChevronDown,
+  ChevronRight,
   LogOut,
   Menu,
-  X,
   Link2,
   Trash2,
   Wallet,
   BarChart3,
+  Banknote,
 } from "lucide-react";
 import { useState } from "react";
 import { NotificationBell } from "@/components/erp/NotificationBell";
@@ -39,7 +41,20 @@ interface NavItem {
   module: string;
 }
 
-const ERP_NAV_ITEMS: NavItem[] = [
+interface NavGroup {
+  label: string;
+  icon: React.ReactNode;
+  module: string;
+  children: NavItem[];
+}
+
+type NavEntry = NavItem | NavGroup;
+
+function isNavGroup(entry: NavEntry): entry is NavGroup {
+  return "children" in entry;
+}
+
+const ERP_NAV_ENTRIES: NavEntry[] = [
   { label: "Dashboard", href: "/erp", icon: <LayoutDashboard size={18} />, module: "erp_dashboard" },
   { label: "Projets", href: "/erp/projects", icon: <FolderKanban size={18} />, module: "erp_projects" },
   { label: "Gantt", href: "/erp/gantt", icon: <GanttChart size={18} />, module: "erp_gantt" },
@@ -56,12 +71,20 @@ const ERP_NAV_ITEMS: NavItem[] = [
   { label: "Demandes Matériel", href: "/erp/material-requests", icon: <Truck size={18} />, module: "erp_inventory" },
   { label: "Intégration Fournisseurs", href: "/erp/supplier-integration", icon: <Link2 size={18} />, module: "erp_vendors" },
   { label: "Analyse Gaspillages", href: "/erp/wastage", icon: <Trash2 size={18} />, module: "erp_inventory" },
-  { label: "Factures", href: "/erp/invoices", icon: <ScrollText size={18} />, module: "erp_finance" },
-  { label: "Paiements", href: "/erp/payments", icon: <DollarSign size={18} />, module: "erp_finance" },
-  { label: "Budgets", href: "/erp/finance/budgets", icon: <Wallet size={18} />, module: "erp_finance" },
-  { label: "Trésorerie", href: "/erp/finance/cash-flow", icon: <DollarSign size={18} />, module: "erp_finance" },
-  { label: "Rentabilité", href: "/erp/finance/profitability", icon: <BarChart3 size={18} />, module: "erp_finance" },
-  { label: "Alertes Dépassement", href: "/erp/finance/overrun-alerts", icon: <Bell size={18} />, module: "erp_alerts" },
+  // Groupe Finance
+  {
+    label: "Finance",
+    icon: <Banknote size={18} />,
+    module: "erp_finance",
+    children: [
+      { label: "Factures", href: "/erp/invoices", icon: <ScrollText size={18} />, module: "erp_finance" },
+      { label: "Paiements", href: "/erp/payments", icon: <DollarSign size={18} />, module: "erp_finance" },
+      { label: "Budgets", href: "/erp/finance/budgets", icon: <Wallet size={18} />, module: "erp_finance" },
+      { label: "Trésorerie", href: "/erp/finance/cash-flow", icon: <DollarSign size={18} />, module: "erp_finance" },
+      { label: "Rentabilité", href: "/erp/finance/profitability", icon: <BarChart3 size={18} />, module: "erp_finance" },
+      { label: "Alertes Dépassement", href: "/erp/finance/overrun-alerts", icon: <Bell size={18} />, module: "erp_alerts" },
+    ],
+  },
   { label: "Notifications", href: "/erp/notifications", icon: <Bell size={18} />, module: "erp_alerts" },
   { label: "Profil", href: "/erp/profile", icon: <User size={18} />, module: "erp_profile" },
   { label: "Audit Logs", href: "/erp/audit-logs", icon: <ScrollText size={18} />, module: "erp_audit_logs" },
@@ -78,6 +101,33 @@ export function ErpLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const { hasAccess, isLoading, canAccessModule, isErpAdmin } = useErpPermissions();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
+    // Auto-expand group if current location matches one of its children
+    const expanded = new Set<string>();
+    for (const entry of ERP_NAV_ENTRIES) {
+      if (isNavGroup(entry)) {
+        for (const child of entry.children) {
+          if (location === child.href || location.startsWith(child.href + "/")) {
+            expanded.add(entry.label);
+            break;
+          }
+        }
+      }
+    }
+    return expanded;
+  });
+
+  const toggleGroup = (label: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
+  };
 
   if (isLoading) {
     return (
@@ -104,8 +154,15 @@ export function ErpLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Filtrer les items de navigation selon les permissions
-  const visibleNavItems = ERP_NAV_ITEMS.filter(item => canAccessModule(item.module));
+  // Filtrer les entries de navigation selon les permissions
+  const visibleNavEntries = ERP_NAV_ENTRIES.filter(entry => {
+    if (isNavGroup(entry)) {
+      // Show group if user can access the group module or any child module
+      return canAccessModule(entry.module) || entry.children.some(c => canAccessModule(c.module));
+    }
+    return canAccessModule(entry.module);
+  });
+
   const visibleAdminItems = isErpAdmin() ? ERP_ADMIN_ITEMS : [];
 
   return (
@@ -132,10 +189,66 @@ export function ErpLayout({ children }: { children: React.ReactNode }) {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-1">
-          {visibleNavItems.map(item => {
-            const isActive = location === item.href || (item.href !== "/erp" && location.startsWith(item.href));
+          {visibleNavEntries.map(entry => {
+            if (isNavGroup(entry)) {
+              const isExpanded = expandedGroups.has(entry.label);
+              const isChildActive = entry.children.some(
+                child => location === child.href || location.startsWith(child.href + "/")
+              );
+              const visibleChildren = entry.children.filter(c => canAccessModule(c.module));
+
+              if (visibleChildren.length === 0) return null;
+
+              return (
+                <div key={entry.label}>
+                  {/* Group header */}
+                  <button
+                    onClick={() => toggleGroup(entry.label)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm cursor-pointer transition-colors ${
+                      isChildActive && !isExpanded
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                    }`}
+                  >
+                    {entry.icon}
+                    {sidebarOpen && (
+                      <>
+                        <span className="flex-1 text-left">{entry.label}</span>
+                        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                      </>
+                    )}
+                  </button>
+
+                  {/* Group children */}
+                  {sidebarOpen && isExpanded && (
+                    <div className="ml-4 pl-3 border-l border-border/50 space-y-0.5 mt-0.5">
+                      {visibleChildren.map(child => {
+                        const isActive = location === child.href || location.startsWith(child.href + "/");
+                        return (
+                          <Link key={child.href} href={child.href}>
+                            <div
+                              className={`flex items-center gap-3 px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors ${
+                                isActive
+                                  ? "bg-primary/10 text-primary font-medium"
+                                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                              }`}
+                            >
+                              {child.icon}
+                              <span>{child.label}</span>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            // Regular nav item
+            const isActive = location === entry.href || (entry.href !== "/erp" && location.startsWith(entry.href));
             return (
-              <Link key={item.href} href={item.href}>
+              <Link key={entry.href} href={entry.href}>
                 <div
                   className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm cursor-pointer transition-colors ${
                     isActive
@@ -143,8 +256,8 @@ export function ErpLayout({ children }: { children: React.ReactNode }) {
                       : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   }`}
                 >
-                  {item.icon}
-                  {sidebarOpen && <span>{item.label}</span>}
+                  {entry.icon}
+                  {sidebarOpen && <span>{entry.label}</span>}
                 </div>
               </Link>
             );
