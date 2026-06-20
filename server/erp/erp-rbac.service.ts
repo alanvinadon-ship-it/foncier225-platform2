@@ -9,7 +9,7 @@ import {
 } from "../../drizzle/schema";
 
 // ============================================================
-// ERP MODULES (22 modules)
+// ERP MODULES (26 modules)
 // ============================================================
 
 export const ERP_MODULES = [
@@ -36,12 +36,15 @@ export const ERP_MODULES = [
   "erp_invoice_matching",
   "erp_accounting_exports",
   "erp_budget_v2",
+  "erp_sales_targets",
+  "erp_analytics",
+  "erp_budget_integrations",
 ] as const;
 
 export type ErpModule = (typeof ERP_MODULES)[number];
 
 // ============================================================
-// ERP ACTIONS (12 actions)
+// ERP ACTIONS (16 actions)
 // ============================================================
 
 export const ERP_ACTIONS = [
@@ -275,6 +278,28 @@ export const ERP_DEFAULT_PERMISSIONS: Array<{
   { module: "erp_budget_v2", action: "seed", displayName: "Seed données démo", description: "Créer ou supprimer les données de démonstration" },
   { module: "erp_budget_v2", action: "sync", displayName: "Synchroniser les réalisés", description: "Lancer la synchronisation des données réelles" },
   { module: "erp_budget_v2", action: "recalculate", displayName: "Recalculer snapshots", description: "Générer ou recalculer les snapshots P&L et Cash Flow" },
+
+  // Sales Targets (Objectifs Commerciaux)
+  { module: "erp_sales_targets", action: "view", displayName: "Voir les objectifs", description: "Consulter les objectifs commerciaux" },
+  { module: "erp_sales_targets", action: "create", displayName: "Créer un objectif", description: "Définir un nouvel objectif commercial" },
+  { module: "erp_sales_targets", action: "update", displayName: "Modifier un objectif", description: "Modifier un objectif commercial" },
+  { module: "erp_sales_targets", action: "delete", displayName: "Supprimer un objectif", description: "Supprimer un objectif commercial" },
+  { module: "erp_sales_targets", action: "approve", displayName: "Approuver un objectif", description: "Valider et verrouiller un objectif" },
+  { module: "erp_sales_targets", action: "sync", displayName: "Synchroniser les résultats", description: "Synchroniser les résultats depuis les ventes" },
+  { module: "erp_sales_targets", action: "export", displayName: "Exporter les objectifs", description: "Exporter les objectifs et résultats" },
+
+  // Analytics (Comptabilité Analytique)
+  { module: "erp_analytics", action: "view", displayName: "Voir l'analytique", description: "Consulter les axes, centres de coûts et allocations" },
+  { module: "erp_analytics", action: "create", displayName: "Créer un centre de coûts", description: "Créer un centre de coûts ou une allocation" },
+  { module: "erp_analytics", action: "update", displayName: "Modifier l'analytique", description: "Modifier les centres de coûts ou allocations" },
+  { module: "erp_analytics", action: "delete", displayName: "Supprimer un élément analytique", description: "Supprimer un centre de coûts ou allocation" },
+  { module: "erp_analytics", action: "export", displayName: "Exporter l'analytique", description: "Exporter les rapports analytiques" },
+  { module: "erp_analytics", action: "recalculate", displayName: "Générer un snapshot", description: "Générer un snapshot analytique" },
+
+  // Budget Integrations (Intégrations Budget)
+  { module: "erp_budget_integrations", action: "view", displayName: "Voir les intégrations", description: "Consulter les jobs d'intégration budget" },
+  { module: "erp_budget_integrations", action: "sync", displayName: "Lancer une synchronisation", description: "Déclencher un job d'intégration" },
+  { module: "erp_budget_integrations", action: "export", displayName: "Exporter les jobs", description: "Exporter l'historique des jobs" },
 ];
 
 // ============================================================

@@ -3195,17 +3195,27 @@ export type ErpAnalyticAxis = typeof erpAnalyticAxes.$inferSelect;
 // --- Allocations analytiques ---
 export const erpAnalyticAllocations = mysqlTable("erp_analytic_allocations", {
   id: int("id").autoincrement().primaryKey(),
-  sourceType: varchar("source_type", { length: 32 }).notNull(), // entry, invoice, expense, sale
+  sourceType: varchar("source_type", { length: 32 }).notNull(), // entry, invoice, expense, sale, purchase_order, payment, real_estate_sale, customer_payment, accounting_entry, stock_movement, equipment, payroll, manual_adjustment
   sourceId: int("source_id").notNull(),
   projectId: int("project_id"),
+  programId: int("program_id"),
+  costCenterId: int("cost_center_id"),
+  budgetId: int("budget_id"),
+  budgetLineId: int("budget_line_id"),
+  accountingEntryId: int("accounting_entry_id"),
+  accountingEntryLineId: int("accounting_entry_line_id"),
   analyticAxisId: int("analytic_axis_id").notNull(),
   percentage: decimal("percentage", { precision: 5, scale: 2 }),
   amount: bigint("amount", { mode: "number" }),
+  currency: varchar("currency", { length: 8 }).default("XOF"),
+  allocatedAmount: bigint("allocated_amount", { mode: "number" }).default(0),
   createdAt: bigint("created_at", { mode: "number" }).notNull(),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
 }, (table) => ({
   sourceIdx: index("idx_analytic_alloc_src").on(table.sourceType, table.sourceId),
   axisIdx: index("idx_analytic_alloc_axis").on(table.analyticAxisId),
+  programIdx: index("idx_alloc_program").on(table.programId),
+  costCenterIdx: index("idx_alloc_cc").on(table.costCenterId),
 }));
 export type ErpAnalyticAllocation = typeof erpAnalyticAllocations.$inferSelect;
 
@@ -3784,3 +3794,205 @@ export const erpBudgetSnapshotJobs = mysqlTable("erp_budget_snapshot_jobs", {
 }));
 export type ErpBudgetSnapshotJob = typeof erpBudgetSnapshotJobs.$inferSelect;
 export type InsertErpBudgetSnapshotJob = typeof erpBudgetSnapshotJobs.$inferInsert;
+
+// ============================================================
+// Sprint Budget-Objectifs-Analytique — Tables
+// ============================================================
+
+// --- Objectifs Commerciaux ---
+export const erpSalesTargets = mysqlTable("erp_sales_targets", {
+  id: int("id").autoincrement().primaryKey(),
+  targetCode: varchar("target_code", { length: 32 }).notNull().unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  fiscalYear: int("fiscal_year").notNull(),
+  periodType: varchar("period_type", { length: 16 }).notNull().default("monthly"), // monthly, quarterly, annual
+  periodMonth: int("period_month"), // 1-12
+  periodQuarter: int("period_quarter"), // 1-4
+  programId: int("program_id"),
+  projectId: int("project_id"),
+  salespersonId: int("salesperson_id"),
+  unitType: varchar("unit_type", { length: 64 }),
+  targetType: varchar("target_type", { length: 32 }).notNull(), // revenue, reservation, sales_contract, collection, units_sold, margin
+  targetAmount: bigint("target_amount", { mode: "number" }).default(0),
+  targetUnits: int("target_units").default(0),
+  targetMarginAmount: bigint("target_margin_amount", { mode: "number" }).default(0),
+  currency: varchar("currency", { length: 8 }).notNull().default("XOF"),
+  status: varchar("status", { length: 16 }).notNull().default("draft"), // draft, active, approved, locked, revised, cancelled
+  budgetId: int("budget_id"),
+  budgetLineId: int("budget_line_id"),
+  createdBy: int("created_by"),
+  approvedBy: int("approved_by"),
+  approvedAt: bigint("approved_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  yearIdx: index("idx_sales_targets_year").on(table.fiscalYear),
+  typeIdx: index("idx_sales_targets_type").on(table.targetType),
+  statusIdx: index("idx_sales_targets_status").on(table.status),
+  programIdx: index("idx_sales_targets_program").on(table.programId),
+  salespersonIdx: index("idx_sales_targets_sp").on(table.salespersonId),
+}));
+export type ErpSalesTarget = typeof erpSalesTargets.$inferSelect;
+
+export const erpSalesTargetResults = mysqlTable("erp_sales_target_results", {
+  id: int("id").autoincrement().primaryKey(),
+  salesTargetId: int("sales_target_id").notNull(),
+  periodStart: bigint("period_start", { mode: "number" }).notNull(),
+  periodEnd: bigint("period_end", { mode: "number" }).notNull(),
+  actualAmount: bigint("actual_amount", { mode: "number" }).default(0),
+  actualUnits: int("actual_units").default(0),
+  actualMarginAmount: bigint("actual_margin_amount", { mode: "number" }).default(0),
+  collectedAmount: bigint("collected_amount", { mode: "number" }).default(0),
+  reservedUnits: int("reserved_units").default(0),
+  soldUnits: int("sold_units").default(0),
+  achievementRate: decimal("achievement_rate", { precision: 7, scale: 2 }).default("0"),
+  varianceAmount: bigint("variance_amount", { mode: "number" }).default(0),
+  varianceUnits: int("variance_units").default(0),
+  variancePercentage: decimal("variance_percentage", { precision: 7, scale: 2 }).default("0"),
+  sourceSyncAt: bigint("source_sync_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  targetIdx: index("idx_st_results_target").on(table.salesTargetId),
+  periodIdx: index("idx_st_results_period").on(table.periodStart, table.periodEnd),
+}));
+export type ErpSalesTargetResult = typeof erpSalesTargetResults.$inferSelect;
+
+export const erpSalesTargetAssignments = mysqlTable("erp_sales_target_assignments", {
+  id: int("id").autoincrement().primaryKey(),
+  salesTargetId: int("sales_target_id").notNull(),
+  salespersonId: int("salesperson_id"),
+  programId: int("program_id"),
+  projectId: int("project_id"),
+  weightPercentage: decimal("weight_percentage", { precision: 5, scale: 2 }).default("100"),
+  assignedTargetAmount: bigint("assigned_target_amount", { mode: "number" }).default(0),
+  assignedTargetUnits: int("assigned_target_units").default(0),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  targetIdx: index("idx_st_assign_target").on(table.salesTargetId),
+  spIdx: index("idx_st_assign_sp").on(table.salespersonId),
+}));
+export type ErpSalesTargetAssignment = typeof erpSalesTargetAssignments.$inferSelect;
+
+// --- Budget ↔ Ventes Immobilières ---
+export const erpBudgetRealEstateLinks = mysqlTable("erp_budget_re_links", {
+  id: int("id").autoincrement().primaryKey(),
+  budgetId: int("budget_id").notNull(),
+  budgetVersionId: int("budget_version_id"),
+  budgetLineId: int("budget_line_id"),
+  programId: int("program_id"),
+  projectId: int("project_id"),
+  unitType: varchar("unit_type", { length: 64 }),
+  revenueRecognitionMethod: varchar("revenue_recognition_method", { length: 32 }).notNull().default("contract_signed"), // contract_signed, payment_received, delivery_completed, custom
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  budgetIdx: index("idx_bre_links_budget").on(table.budgetId),
+  programIdx: index("idx_bre_links_program").on(table.programId),
+}));
+export type ErpBudgetRealEstateLink = typeof erpBudgetRealEstateLinks.$inferSelect;
+
+export const erpRealEstateBudgetActuals = mysqlTable("erp_re_budget_actuals", {
+  id: int("id").autoincrement().primaryKey(),
+  budgetId: int("budget_id").notNull(),
+  budgetLineId: int("budget_line_id"),
+  programId: int("program_id"),
+  projectId: int("project_id"),
+  unitId: int("unit_id"),
+  saleId: int("sale_id"),
+  customerId: int("customer_id"),
+  periodMonth: int("period_month").notNull(), // 1-12
+  periodYear: int("period_year").notNull(),
+  saleAmount: bigint("sale_amount", { mode: "number" }).default(0),
+  contractSignedAmount: bigint("contract_signed_amount", { mode: "number" }).default(0),
+  collectedAmount: bigint("collected_amount", { mode: "number" }).default(0),
+  outstandingAmount: bigint("outstanding_amount", { mode: "number" }).default(0),
+  recognizedRevenueAmount: bigint("recognized_revenue_amount", { mode: "number" }).default(0),
+  costAmount: bigint("cost_amount", { mode: "number" }).default(0),
+  marginAmount: bigint("margin_amount", { mode: "number" }).default(0),
+  marginRate: decimal("margin_rate", { precision: 7, scale: 2 }).default("0"),
+  status: varchar("status", { length: 16 }).notNull().default("active"),
+  sourceSyncAt: bigint("source_sync_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  budgetIdx: index("idx_re_actuals_budget").on(table.budgetId),
+  programIdx: index("idx_re_actuals_program").on(table.programId),
+  saleIdx: index("idx_re_actuals_sale").on(table.saleId),
+  periodIdx: index("idx_re_actuals_period").on(table.periodYear, table.periodMonth),
+}));
+export type ErpRealEstateBudgetActual = typeof erpRealEstateBudgetActuals.$inferSelect;
+
+// --- Centres de coût ---
+export const erpCostCenters = mysqlTable("erp_cost_centers", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 32 }).notNull().unique(),
+  name: varchar("name", { length: 128 }).notNull(),
+  description: text("description"),
+  parentId: int("parent_id"),
+  managerId: int("manager_id"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  parentIdx: index("idx_cost_centers_parent").on(table.parentId),
+  activeIdx: index("idx_cost_centers_active").on(table.isActive),
+}));
+export type ErpCostCenter = typeof erpCostCenters.$inferSelect;
+
+// --- Snapshots analytiques ---
+export const erpAnalyticSnapshots = mysqlTable("erp_analytic_snapshots", {
+  id: int("id").autoincrement().primaryKey(),
+  snapshotDate: bigint("snapshot_date", { mode: "number" }).notNull(),
+  periodMonth: int("period_month").notNull(),
+  periodYear: int("period_year").notNull(),
+  projectId: int("project_id"),
+  programId: int("program_id"),
+  costCenterId: int("cost_center_id"),
+  revenueAmount: bigint("revenue_amount", { mode: "number" }).default(0),
+  expenseAmount: bigint("expense_amount", { mode: "number" }).default(0),
+  capexAmount: bigint("capex_amount", { mode: "number" }).default(0),
+  cashInAmount: bigint("cash_in_amount", { mode: "number" }).default(0),
+  cashOutAmount: bigint("cash_out_amount", { mode: "number" }).default(0),
+  marginAmount: bigint("margin_amount", { mode: "number" }).default(0),
+  marginRate: decimal("margin_rate", { precision: 7, scale: 2 }).default("0"),
+  budgetAmount: bigint("budget_amount", { mode: "number" }).default(0),
+  actualAmount: bigint("actual_amount", { mode: "number" }).default(0),
+  varianceAmount: bigint("variance_amount", { mode: "number" }).default(0),
+  variancePercentage: decimal("variance_percentage", { precision: 7, scale: 2 }).default("0"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  dateIdx: index("idx_analytic_snap_date").on(table.snapshotDate),
+  projectIdx: index("idx_analytic_snap_project").on(table.projectId),
+  programIdx: index("idx_analytic_snap_program").on(table.programId),
+  costCenterIdx: index("idx_analytic_snap_cc").on(table.costCenterId),
+  periodIdx: index("idx_analytic_snap_period").on(table.periodYear, table.periodMonth),
+}));
+export type ErpAnalyticSnapshot = typeof erpAnalyticSnapshots.$inferSelect;
+
+// --- Jobs d'intégration Budget ---
+export const erpBudgetIntegrationJobs = mysqlTable("erp_budget_integ_jobs", {
+  id: int("id").autoincrement().primaryKey(),
+  jobType: varchar("job_type", { length: 32 }).notNull(), // sync_sales_targets, sync_real_estate, sync_analytics, sync_all
+  status: varchar("status", { length: 16 }).notNull().default("pending"), // pending, running, completed, failed
+  startedAt: bigint("started_at", { mode: "number" }),
+  finishedAt: bigint("finished_at", { mode: "number" }),
+  durationMs: int("duration_ms"),
+  recordsProcessed: int("records_processed").default(0),
+  recordsCreated: int("records_created").default(0),
+  recordsUpdated: int("records_updated").default(0),
+  warningsCount: int("warnings_count").default(0),
+  errorsCount: int("errors_count").default(0),
+  errorMessage: text("error_message"),
+  createdBy: int("created_by"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  typeIdx: index("idx_integ_jobs_type").on(table.jobType),
+  statusIdx: index("idx_integ_jobs_status").on(table.status),
+}));
+export type ErpBudgetIntegrationJob = typeof erpBudgetIntegrationJobs.$inferSelect;

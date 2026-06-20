@@ -44,6 +44,9 @@ import {
   Landmark,
   FileSpreadsheet,
   Sparkles,
+  Target,
+  PieChart,
+  Layers,
 } from "lucide-react";
 import { useState } from "react";
 import { NotificationBell } from "@/components/erp/NotificationBell";
@@ -145,6 +148,25 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
       { label: "Écritures", href: "/erp/accounting-entries", icon: <ScrollText size={18} />, module: "erp_full_accounting" },
       { label: "Balance", href: "/erp/accounting-balance", icon: <Scale size={18} />, module: "erp_full_accounting" },
       { label: "Export Comptable", href: "/erp/accounting-export", icon: <FileSpreadsheet size={18} />, module: "erp_accounting_exports" },
+    ],
+  },
+  // Groupe Objectifs Commerciaux
+  {
+    label: "Objectifs Commerciaux",
+    icon: <Target size={18} />,
+    module: "erp_sales_targets",
+    children: [
+      { label: "Liste Objectifs", href: "/erp/sales-targets", icon: <Target size={18} />, module: "erp_sales_targets" },
+    ],
+  },
+  // Groupe Comptabilité Analytique
+  {
+    label: "Comptabilité Analytique",
+    icon: <PieChart size={18} />,
+    module: "erp_analytics",
+    children: [
+      { label: "Dashboard", href: "/erp/analytics", icon: <LayoutDashboard size={18} />, module: "erp_analytics" },
+      { label: "Centres de Coûts", href: "/erp/cost-centers", icon: <Layers size={18} />, module: "erp_analytics" },
     ],
   },
   { label: "Notifications", href: "/erp/notifications", icon: <Bell size={18} />, module: "erp_alerts" },

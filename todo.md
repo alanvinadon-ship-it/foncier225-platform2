@@ -2249,3 +2249,23 @@
 - [x] Notifications (notifyOwner pour import erreurs, alertes budget détectées)
 - [x] Tests Sprint Budget 2.1 (1221 tests PASS, 0 erreurs TS)
 - [x] Checkpoint final
+
+## Sprint Budget-Objectifs-Analytique — Connexion Budget aux Objectifs Commerciaux, Ventes Immobilières et Comptabilité Analytique
+
+- [x] Audit préalable (tables, routeurs, pages existants)
+- [x] Tables DB : erp_sales_targets, erp_sales_target_results, erp_sales_target_assignments
+- [x] Tables DB : erp_budget_real_estate_links, erp_real_estate_budget_actuals
+- [x] Tables DB : erp_cost_centers (+ enrichi erp_analytic_allocations avec 5 colonnes)
+- [x] Table DB : erp_budget_integration_jobs, erp_analytic_snapshots
+- [x] Routeur Objectifs Commerciaux (erpSalesTargetsRouter : targets CRUD, approve, lock, revise, sync, results, dashboard)
+- [x] Routeur Budget-Ventes Immobilières (erpBudgetRealEstateRouter : links CRUD, sync, actuals, performance)
+- [x] Routeur Comptabilité Analytique (erpAnalyticsRouter : costCenters CRUD, axes CRUD, allocations CRUD, snapshots generate/list)
+- [x] Moteur de synchronisation global (runIntegrationJob : sync_real_estate_actuals, sync_sales_targets, generate_analytic_snapshots, full_sync)
+- [x] Pages UI Objectifs Commerciaux (ErpSalesTargets + ErpSalesTargetDetail)
+- [x] Pages UI Analytique (ErpAnalyticsDashboard + ErpCostCenters)
+- [x] Onglet Ventes Immobilières dans Budget Détail (liens, sync, actuals)
+- [x] Onglet Objectifs Commerciaux dans Budget Détail (objectifs liés, progression)
+- [x] RBAC : 3 modules (erp_sales_targets 7 perms, erp_analytics 6 perms, erp_budget_integrations 3 perms)
+- [x] Sidebar + routes App.tsx (2 groupes, 4 routes)
+- [x] Tests complets (1237 tests PASS, 0 erreurs TS, 43 fichiers test)
+- [x] Checkpoint final

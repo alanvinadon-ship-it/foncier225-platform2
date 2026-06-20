@@ -451,6 +451,9 @@ import { accountingExportRouter } from "./erp-accounting-export-router";
 import { erpBudgetV2Router } from "./erp-budget-v2-router";
 import { erpBudgetImportRouter } from "./erp-budget-import-router";
 import { erpBudgetExportRouter } from "./erp-budget-export-router";
+import { erpSalesTargetsRouter } from "./erp-sales-targets-router";
+import { erpBudgetRealEstateRouter } from "./erp-budget-real-estate-router";
+import { erpAnalyticsRouter } from "./erp-analytics-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -495,4 +498,7 @@ export const erpRouter = router({
   budgetV2: erpBudgetV2Router,
   budgetImport: erpBudgetImportRouter,
   budgetExport: erpBudgetExportRouter,
+  salesTargets: erpSalesTargetsRouter,
+  budgetRealEstate: erpBudgetRealEstateRouter,
+  analytics: erpAnalyticsRouter,
 });

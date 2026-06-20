@@ -129,6 +129,10 @@ const ErpAccountingExport = lazy(() => import("./pages/erp/ErpAccountingExport")
 const ErpBudgetV2Dashboard = lazy(() => import("./pages/erp/ErpBudgetV2Dashboard"));
 const ErpBudgetV2Import = lazy(() => import("./pages/erp/ErpBudgetV2Import"));
 const ErpBudgetV2Detail = lazy(() => import("./pages/erp/ErpBudgetV2Detail"));
+const ErpSalesTargets = lazy(() => import("./pages/erp/ErpSalesTargets"));
+const ErpSalesTargetDetail = lazy(() => import("./pages/erp/ErpSalesTargetDetail"));
+const ErpAnalyticsDashboard = lazy(() => import("./pages/erp/ErpAnalyticsDashboard"));
+const ErpCostCenters = lazy(() => import("./pages/erp/ErpCostCenters"));
 
 function RouteFallback() {
   return (
@@ -682,12 +686,31 @@ function Router() {
           <ErpBudgetV2Import />
         </ErpLayout>
       </Route>
-      <Route path="/erp/budget-v2/:id">
+            <Route path="/erp/budget-v2/:id">
         <ErpLayout>
           <ErpBudgetV2Detail />
         </ErpLayout>
       </Route>
-
+      <Route path="/erp/sales-targets">
+        <ErpLayout>
+          <ErpSalesTargets />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/sales-targets/:id">
+        <ErpLayout>
+          <ErpSalesTargetDetail />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/analytics">
+        <ErpLayout>
+          <ErpAnalyticsDashboard />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/cost-centers">
+        <ErpLayout>
+          <ErpCostCenters />
+        </ErpLayout>
+      </Route>
       <Route path="/erp/notifications">
         <ErpLayout>
           <ErpNotifications />

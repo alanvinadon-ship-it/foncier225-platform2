@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { RefreshCw, Download, TrendingUp, TrendingDown, AlertTriangle, Loader2, BarChart3, DollarSign } from "lucide-react";
+import { RefreshCw, Download, TrendingUp, TrendingDown, AlertTriangle, Loader2, BarChart3, DollarSign, Building2, Target } from "lucide-react";
 import { Line, Bar } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from "chart.js";
 
@@ -29,6 +29,19 @@ export default function ErpBudgetV2Detail() {
   const { data: alerts } = trpc.erp.budgetV2.alerts.list.useQuery({ budgetId });
   const { data: plData } = trpc.erp.budgetV2.pl.get.useQuery({ budgetId });
   const { data: cfData } = trpc.erp.budgetV2.cashFlow.get.useQuery({ budgetId });
+
+  // Ventes Immobilières
+  const { data: reLinks } = trpc.erp.budgetRealEstate.links.list.useQuery({ budgetId });
+  const { data: reSummary } = trpc.erp.budgetRealEstate.actuals.summary.useQuery({ budgetId, periodYear: budget?.fiscalYear || new Date().getFullYear() });
+  const { data: rePerformance } = trpc.erp.budgetRealEstate.performance.byProgram.useQuery({ budgetId, periodYear: budget?.fiscalYear || new Date().getFullYear() });
+  const syncReMut = trpc.erp.budgetRealEstate.sync.syncSales.useMutation({
+    onSuccess: (d: any) => toast.success(`${d.synced || 0} ventes synchronisées`),
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  // Objectifs Commerciaux
+  const { data: salesTargetsSummary } = trpc.erp.salesTargets.dashboard.summary.useQuery({ fiscalYear: budget?.fiscalYear || new Date().getFullYear() });
+  const { data: targetsByProgram } = trpc.erp.salesTargets.dashboard.byProgram.useQuery({ fiscalYear: budget?.fiscalYear || new Date().getFullYear() });
 
   const syncMut = trpc.erp.budgetExport.syncActuals.useMutation({
     onSuccess: (data) => toast.success(`${data.linesUpdated} lignes mises à jour`),
@@ -153,6 +166,8 @@ export default function ErpBudgetV2Detail() {
           <TabsTrigger value="cashflow">Cash Flow</TabsTrigger>
           <TabsTrigger value="lines">Lignes ({linesData?.length || 0})</TabsTrigger>
           <TabsTrigger value="alerts">Alertes {alerts && alerts.length > 0 && <Badge className="ml-1 bg-red-500 text-white text-xs">{alerts.length}</Badge>}</TabsTrigger>
+          <TabsTrigger value="real_estate"><Building2 className="w-3 h-3 mr-1" />Ventes Immo</TabsTrigger>
+          <TabsTrigger value="objectives"><Target className="w-3 h-3 mr-1" />Objectifs</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -410,6 +425,124 @@ export default function ErpBudgetV2Detail() {
                 </Card>
               ))}
             </div>
+          )}
+        </TabsContent>
+        {/* Real Estate Tab */}
+        <TabsContent value="real_estate" className="space-y-6 mt-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Performance Ventes Immobilières</h3>
+            <Button variant="outline" size="sm" onClick={() => syncReMut.mutate({ budgetId, periodYear: budget?.fiscalYear || new Date().getFullYear() })} disabled={syncReMut.isPending}>
+              <RefreshCw className={`w-4 h-4 mr-1 ${syncReMut.isPending ? "animate-spin" : ""}`} />Synchroniser
+            </Button>
+          </div>
+          {reSummary && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card><CardContent className="pt-4">
+                <p className="text-xs text-gray-500">CA Total</p>
+                <p className="text-xl font-bold">{formatXOF(reSummary.totalSaleAmount || 0)}</p>
+              </CardContent></Card>
+              <Card><CardContent className="pt-4">
+                <p className="text-xs text-gray-500">Encaissé</p>
+                <p className="text-xl font-bold text-green-600">{formatXOF(reSummary.totalCollected || 0)}</p>
+              </CardContent></Card>
+              <Card><CardContent className="pt-4">
+                <p className="text-xs text-gray-500">Restant Dû</p>
+                <p className="text-xl font-bold text-orange-600">{formatXOF(reSummary.totalOutstanding || 0)}</p>
+              </CardContent></Card>
+              <Card><CardContent className="pt-4">
+                <p className="text-xs text-gray-500">Taux Encaissement</p>
+                <p className="text-xl font-bold text-blue-600">{reSummary.collectionRate || 0}%</p>
+              </CardContent></Card>
+            </div>
+          )}
+          {rePerformance && rePerformance.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle className="text-sm">Performance par Programme</CardTitle></CardHeader>
+              <CardContent className="p-0">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50"><tr>
+                    <th className="text-left p-3">Programme</th>
+                    <th className="text-right p-3">Ventes</th>
+                    <th className="text-right p-3">Encaissé</th>
+                    <th className="text-right p-3">Restant</th>
+                    <th className="text-right p-3">Lots Vendus</th>
+                  </tr></thead>
+                  <tbody className="divide-y">
+                    {rePerformance.map((p: any) => (
+                      <tr key={p.programId} className="hover:bg-muted/30">
+                        <td className="p-3 font-medium">{p.programName || `Programme ${p.programId}`}</td>
+                        <td className="p-3 text-right">{formatXOF(p.totalSaleAmount || 0)}</td>
+                        <td className="p-3 text-right text-green-600">{formatXOF(p.totalCollected || 0)}</td>
+                        <td className="p-3 text-right text-orange-600">{formatXOF(p.totalOutstanding || 0)}</td>
+                        <td className="p-3 text-right">{p.unitsSold || 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          )}
+          {(!reLinks || reLinks.length === 0) && (
+            <Card><CardContent className="py-8 text-center text-gray-500">Aucun programme immobilier lié à ce budget. Configurez les liens dans le module Budget-Immo.</CardContent></Card>
+          )}
+        </TabsContent>
+
+        {/* Objectives Tab */}
+        <TabsContent value="objectives" className="space-y-6 mt-4">
+          <h3 className="text-lg font-semibold">Objectifs Commerciaux — Exercice {budget.fiscalYear}</h3>
+          {salesTargetsSummary && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card><CardContent className="pt-4">
+                <p className="text-xs text-gray-500">Objectifs Actifs</p>
+                <p className="text-xl font-bold">{salesTargetsSummary.totalTargets || 0}</p>
+              </CardContent></Card>
+              <Card><CardContent className="pt-4">
+                <p className="text-xs text-gray-500">Taux Réalisation CA</p>
+                <p className="text-xl font-bold text-green-600">{salesTargetsSummary.overallAchievementRate || 0}%</p>
+              </CardContent></Card>
+              <Card><CardContent className="pt-4">
+                <p className="text-xs text-gray-500">Montant Réalisé</p>
+                <p className="text-xl font-bold">{formatXOF(salesTargetsSummary.totalActualAmount || 0)}</p>
+              </CardContent></Card>
+              <Card><CardContent className="pt-4">
+                <p className="text-xs text-gray-500">Taux Encaissement</p>
+                <p className="text-xl font-bold text-blue-600">{salesTargetsSummary.collectionRate || 0}%</p>
+              </CardContent></Card>
+            </div>
+          )}
+          {targetsByProgram && targetsByProgram.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle className="text-sm">Objectifs par Programme</CardTitle></CardHeader>
+              <CardContent className="p-0">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50"><tr>
+                    <th className="text-left p-3">Programme</th>
+                    <th className="text-right p-3">Objectif</th>
+                    <th className="text-right p-3">Réalisé</th>
+                    <th className="text-right p-3">Taux</th>
+                    <th className="text-center p-3">Statut</th>
+                  </tr></thead>
+                  <tbody className="divide-y">
+                    {targetsByProgram.map((t: any, i: number) => (
+                      <tr key={i} className="hover:bg-muted/30">
+                        <td className="p-3 font-medium">{t.programName || `Programme ${t.programId}`}</td>
+                        <td className="p-3 text-right">{formatXOF(t.targetAmount || 0)}</td>
+                        <td className="p-3 text-right">{formatXOF(t.actualAmount || 0)}</td>
+                        <td className="p-3 text-right font-medium">{t.achievementRate || 0}%</td>
+                        <td className="p-3 text-center">
+                          <Badge variant={(t.achievementRate || 0) >= 100 ? "default" : (t.achievementRate || 0) >= 50 ? "secondary" : "destructive"}>
+                            {(t.achievementRate || 0) >= 100 ? "Atteint" : (t.achievementRate || 0) >= 50 ? "En cours" : "Retard"}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          )}
+          {(!salesTargetsSummary || !salesTargetsSummary.totalTargets) && (
+            <Card><CardContent className="py-8 text-center text-gray-500">Aucun objectif commercial défini pour cet exercice.</CardContent></Card>
           )}
         </TabsContent>
       </Tabs>

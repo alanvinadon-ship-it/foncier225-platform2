@@ -102,7 +102,7 @@ describe("Sprint Budget 2.1 — Seed, Snapshots, Import amélioré, Audit", () =
 
     it("total ERP modules count is 23", async () => {
       const { ERP_MODULES } = await import("./erp/erp-rbac.service");
-      expect(ERP_MODULES.length).toBe(23);
+      expect(ERP_MODULES.length).toBe(26);
     });
   });
 

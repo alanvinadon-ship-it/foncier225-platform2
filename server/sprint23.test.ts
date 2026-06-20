@@ -98,7 +98,7 @@ describe("Sprint 23 — RFQ, Rapprochement Factures/PO, Export Comptable", () =>
   // --- RBAC ---
   describe("RBAC modules", () => {
     it("has 22 modules total", () => {
-      expect(ERP_MODULES.length).toBe(23);
+      expect(ERP_MODULES.length).toBe(26);
     });
 
     it("includes erp_rfqs module", () => {
