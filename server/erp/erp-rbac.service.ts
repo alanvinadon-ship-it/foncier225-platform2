@@ -45,6 +45,9 @@ export const ERP_MODULES = [
   "erp_direction_actions",
   "erp_direction_data_quality",
   "erp_direction_schedules",
+  "erp_system_health",
+  "erp_scheduled_jobs",
+  "erp_data_quality_global",
 ] as const;
 
 export type ErpModule = (typeof ERP_MODULES)[number];
@@ -333,6 +336,14 @@ export const ERP_DEFAULT_PERMISSIONS: Array<{
   { module: "erp_direction_schedules", action: "view", displayName: "Voir les plannings", description: "Consulter les plannings de diffusion" },
   { module: "erp_direction_schedules", action: "create", displayName: "Créer un planning", description: "Créer un planning de diffusion automatique" },
   { module: "erp_direction_schedules", action: "update", displayName: "Modifier un planning", description: "Modifier un planning de diffusion" },
+  // System Health
+  { module: "erp_system_health", action: "view", displayName: "Voir la santé système", description: "Consulter le monitoring système ERP" },
+  // Scheduled Jobs
+  { module: "erp_scheduled_jobs", action: "view", displayName: "Voir les jobs planifiés", description: "Consulter l'historique des jobs" },
+  { module: "erp_scheduled_jobs", action: "create", displayName: "Lancer un job", description: "Déclencher manuellement un job planifié" },
+  // Data Quality Global
+  { module: "erp_data_quality_global", action: "view", displayName: "Voir la qualité globale", description: "Consulter les résultats qualité tous modules" },
+  { module: "erp_data_quality_global", action: "create", displayName: "Lancer contrôle global", description: "Exécuter les contrôles qualité globaux" },
 ];
 
 // ============================================================
@@ -407,6 +418,9 @@ export const ERP_ROLE_DEFAULT_PERMISSIONS: Record<string, Array<{ module: ErpMod
     { module: "erp_direction_actions", action: "view" }, { module: "erp_direction_actions", action: "create" }, { module: "erp_direction_actions", action: "update" },
     { module: "erp_direction_data_quality", action: "view" }, { module: "erp_direction_data_quality", action: "create" },
     { module: "erp_direction_schedules", action: "view" }, { module: "erp_direction_schedules", action: "create" }, { module: "erp_direction_schedules", action: "update" },
+    { module: "erp_system_health", action: "view" },
+    { module: "erp_scheduled_jobs", action: "view" }, { module: "erp_scheduled_jobs", action: "create" },
+    { module: "erp_data_quality_global", action: "view" }, { module: "erp_data_quality_global", action: "create" },
   ],
 
   // Safety Officer : sécurité, conformité, équipements
@@ -459,6 +473,9 @@ export const ERP_ROLE_DEFAULT_PERMISSIONS: Record<string, Array<{ module: ErpMod
     { module: "erp_direction_actions", action: "view" },
     { module: "erp_direction_data_quality", action: "view" },
     { module: "erp_direction_schedules", action: "view" },
+    { module: "erp_system_health", action: "view" },
+    { module: "erp_scheduled_jobs", action: "view" },
+    { module: "erp_data_quality_global", action: "view" },
   ],
 };
 

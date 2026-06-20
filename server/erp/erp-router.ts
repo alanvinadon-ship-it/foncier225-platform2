@@ -461,6 +461,8 @@ import { erpDirectionSchedulesRouter } from "./erp-direction-schedules-router";
 import { erpDirectionReviewsRouter } from "./erp-direction-reviews-router";
 import { erpDirectionActionsRouter } from "./erp-direction-actions-router";
 import { erpDirectionDataQualityRouter } from "./erp-direction-data-quality-router";
+import { erpSystemHealthRouter } from "./erp-system-health-router";
+import { erpAdminDataQualityRouter } from "./erp-admin-data-quality-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -515,4 +517,6 @@ export const erpRouter = router({
   directionReviews: erpDirectionReviewsRouter,
   directionActions: erpDirectionActionsRouter,
   directionDataQuality: erpDirectionDataQualityRouter,
+  systemHealth: erpSystemHealthRouter,
+  adminDataQuality: erpAdminDataQualityRouter,
 });

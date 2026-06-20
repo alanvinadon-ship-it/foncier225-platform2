@@ -2323,4 +2323,26 @@
 - [x] Sidebar ERP enrichie (7 entrées dans groupe Direction) + 5 routes App.tsx
 - [x] Tests Vitest (11 nouveaux tests + non-régression, 1260 tests PASS, 45 fichiers)
 - [x] 0 erreur TypeScript
+- [x] Checkpoint final (186bbf7a)
+
+## Sprint Industrialisation ERP 1.0 — Monitoring, Performance, Sécurité, Qualité, Documentation
+- [x] Audit préalable production (modules, risques, recommandations)
+- [x] Monitoring et observabilité
+  - [x] Routeur tRPC systemHealth (overview, jobs, recentAudit)
+  - [x] Page UI /erp/system-health (KPIs, mémoire, uptime, audit)
+- [x] Jobs planifiés
+  - [x] Page UI /erp/scheduled-jobs (5 jobs, historique, relance manuelle)
+- [x] Qualité données globale
+  - [x] Routeur tRPC adminDataQuality (runAll 11 checks, latest, definitions)
+  - [x] Page UI /erp/admin-data-quality (score, résultats, définitions)
+- [x] RBAC : 3 nouveaux modules (system_health, scheduled_jobs, data_quality_global) — 35 modules total
+- [x] Sidebar admin enrichie (6 entrées)
+- [x] Routes App.tsx (3 nouvelles routes admin)
+- [x] Documentation production
+  - [x] Guide exploitation production (docs/erp/production-ops.md)
+  - [x] Guide utilisateur ERP (docs/erp/guide-utilisateur.md)
+  - [x] Plan de recette (docs/erp/plan-recette.md)
+  - [x] Rapport audit industrialisation (docs/erp/audit-industrialisation.md)
+- [x] Tests Vitest (14 nouveaux + non-régression, 1274 tests PASS, 46 fichiers)
+- [x] 0 erreur TypeScript
 - [ ] Checkpoint final

@@ -197,6 +197,9 @@ const ERP_ADMIN_ITEMS: NavItem[] = [
   { label: "Utilisateurs ERP", href: "/erp/admin/users", icon: <Users size={18} />, module: "erp_audit_logs" },
   { label: "Rôles ERP", href: "/erp/admin/roles", icon: <ShieldCheck size={18} />, module: "erp_audit_logs" },
   { label: "Permissions ERP", href: "/erp/admin/permissions", icon: <Settings size={18} />, module: "erp_audit_logs" },
+  { label: "Santé Système", href: "/erp/system-health", icon: <Activity size={18} />, module: "erp_audit_logs" },
+  { label: "Jobs Planifiés", href: "/erp/scheduled-jobs", icon: <Landmark size={18} />, module: "erp_audit_logs" },
+  { label: "Qualité Globale", href: "/erp/admin-data-quality", icon: <ShieldCheck size={18} />, module: "erp_audit_logs" },
 ];
 
 export function ErpLayout({ children }: { children: React.ReactNode }) {

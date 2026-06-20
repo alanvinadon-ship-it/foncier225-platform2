@@ -140,6 +140,9 @@ const ErpDirectionReviews = lazy(() => import("./pages/erp/ErpDirectionReviews")
 const ErpDirectionActions = lazy(() => import("./pages/erp/ErpDirectionActions"));
 const ErpDirectionDrilldown = lazy(() => import("./pages/erp/ErpDirectionDrilldown"));
 const ErpDirectionDataQuality = lazy(() => import("./pages/erp/ErpDirectionDataQuality"));
+const ErpSystemHealth = lazy(() => import("./pages/erp/ErpSystemHealth"));
+const ErpScheduledJobs = lazy(() => import("./pages/erp/ErpScheduledJobs"));
+const ErpAdminDataQuality = lazy(() => import("./pages/erp/ErpAdminDataQuality"));
 
 function RouteFallback() {
   return (
@@ -751,6 +754,21 @@ function Router() {
       <Route path="/erp/direction-data-quality">
         <ErpLayout>
           <ErpDirectionDataQuality />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/system-health">
+        <ErpLayout>
+          <ErpSystemHealth />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/scheduled-jobs">
+        <ErpLayout>
+          <ErpScheduledJobs />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/admin-data-quality">
+        <ErpLayout>
+          <ErpAdminDataQuality />
         </ErpLayout>
       </Route>
       <Route path="/erp/notifications">
