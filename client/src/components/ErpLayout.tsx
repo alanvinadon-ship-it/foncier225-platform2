@@ -30,6 +30,11 @@ import {
   Wallet,
   BarChart3,
   Banknote,
+  ShoppingCart,
+  CreditCard,
+  BookOpen,
+  ClipboardList,
+  PackageCheck,
 } from "lucide-react";
 import { useState } from "react";
 import { NotificationBell } from "@/components/erp/NotificationBell";
@@ -72,6 +77,19 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
   { label: "Demandes Matériel", href: "/erp/material-requests", icon: <Truck size={18} />, module: "erp_inventory" },
   { label: "Intégration Fournisseurs", href: "/erp/supplier-integration", icon: <Link2 size={18} />, module: "erp_vendors" },
   { label: "Analyse Gaspillages", href: "/erp/wastage", icon: <Trash2 size={18} />, module: "erp_inventory" },
+  // Groupe Achats
+  {
+    label: "Achats",
+    icon: <ShoppingCart size={18} />,
+    module: "erp_purchases",
+    children: [
+      { label: "Demandes d'Achat", href: "/erp/purchase-requests", icon: <ClipboardList size={18} />, module: "erp_purchases" },
+      { label: "Bons de Commande", href: "/erp/purchase-orders", icon: <FileText size={18} />, module: "erp_purchases" },
+      { label: "Réceptions", href: "/erp/goods-receipts", icon: <PackageCheck size={18} />, module: "erp_purchases" },
+    ],
+  },
+  // Groupe Dépenses
+  { label: "Dépenses", href: "/erp/expenses", icon: <CreditCard size={18} />, module: "erp_expenses" },
   // Groupe Finance
   {
     label: "Finance",
@@ -86,6 +104,8 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
       { label: "Alertes Dépassement", href: "/erp/finance/overrun-alerts", icon: <Bell size={18} />, module: "erp_alerts" },
     ],
   },
+  // Paramétrage Comptable
+  { label: "Comptabilité", href: "/erp/accounting", icon: <BookOpen size={18} />, module: "erp_accounting" },
   { label: "Notifications", href: "/erp/notifications", icon: <Bell size={18} />, module: "erp_alerts" },
   { label: "Profil", href: "/erp/profile", icon: <User size={18} />, module: "erp_profile" },
   { label: "Audit Logs", href: "/erp/audit-logs", icon: <ScrollText size={18} />, module: "erp_audit_logs" },

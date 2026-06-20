@@ -27,6 +27,9 @@ export const ERP_MODULES = [
   "erp_alerts",
   "erp_profile",
   "erp_audit_logs",
+  "erp_purchases",
+  "erp_expenses",
+  "erp_accounting",
 ] as const;
 
 export type ErpModule = (typeof ERP_MODULES)[number];
@@ -191,6 +194,29 @@ export const ERP_DEFAULT_PERMISSIONS: Array<{
   // Audit Logs
   { module: "erp_audit_logs", action: "view", displayName: "Voir les logs d'audit", description: "Consulter l'historique des actions" },
   { module: "erp_audit_logs", action: "export", displayName: "Exporter les logs", description: "Exporter les logs d'audit" },
+
+  // Purchases
+  { module: "erp_purchases", action: "view", displayName: "Voir les achats", description: "Consulter les demandes d'achat et bons de commande" },
+  { module: "erp_purchases", action: "create", displayName: "Créer une demande d'achat", description: "Initier une demande d'achat ou un bon de commande" },
+  { module: "erp_purchases", action: "update", displayName: "Modifier un achat", description: "Modifier une demande d'achat ou un bon de commande" },
+  { module: "erp_purchases", action: "approve", displayName: "Approuver un achat", description: "Valider une demande d'achat ou un bon de commande" },
+  { module: "erp_purchases", action: "delete", displayName: "Supprimer un achat", description: "Supprimer une demande d'achat" },
+  { module: "erp_purchases", action: "export", displayName: "Exporter les achats", description: "Exporter les données d'achats" },
+
+  // Expenses
+  { module: "erp_expenses", action: "view", displayName: "Voir les dépenses", description: "Consulter les notes de frais et dépenses" },
+  { module: "erp_expenses", action: "create", displayName: "Créer une dépense", description: "Saisir une note de frais ou dépense" },
+  { module: "erp_expenses", action: "update", displayName: "Modifier une dépense", description: "Modifier une note de frais" },
+  { module: "erp_expenses", action: "approve", displayName: "Approuver une dépense", description: "Valider une note de frais" },
+  { module: "erp_expenses", action: "delete", displayName: "Supprimer une dépense", description: "Supprimer une note de frais" },
+  { module: "erp_expenses", action: "export", displayName: "Exporter les dépenses", description: "Exporter les données de dépenses" },
+
+  // Accounting (Pré-comptabilité)
+  { module: "erp_accounting", action: "view", displayName: "Voir la pré-comptabilité", description: "Consulter le plan comptable et les écritures" },
+  { module: "erp_accounting", action: "create", displayName: "Créer une écriture", description: "Saisir une écriture comptable" },
+  { module: "erp_accounting", action: "update", displayName: "Modifier une écriture", description: "Modifier une écriture non validée" },
+  { module: "erp_accounting", action: "validate", displayName: "Valider une écriture", description: "Valider une écriture comptable" },
+  { module: "erp_accounting", action: "export", displayName: "Exporter la comptabilité", description: "Exporter le journal comptable" },
 ];
 
 // ============================================================
@@ -243,12 +269,15 @@ export const ERP_ROLE_DEFAULT_PERMISSIONS: Record<string, Array<{ module: ErpMod
     { module: "erp_profile", action: "view" }, { module: "erp_profile", action: "update" },
   ],
 
-  // Finance Manager : finances, budgets, paiements
+  // Finance Manager : finances, budgets, paiements, achats, dépenses, comptabilité
   erp_finance_manager: [
     { module: "erp_dashboard", action: "view" },
     { module: "erp_projects", action: "view" },
     { module: "erp_documents", action: "view" }, { module: "erp_documents", action: "download" },
     { module: "erp_finance", action: "view" }, { module: "erp_finance", action: "create" }, { module: "erp_finance", action: "approve" }, { module: "erp_finance", action: "pay" }, { module: "erp_finance", action: "export" },
+    { module: "erp_purchases", action: "view" }, { module: "erp_purchases", action: "create" }, { module: "erp_purchases", action: "approve" }, { module: "erp_purchases", action: "export" },
+    { module: "erp_expenses", action: "view" }, { module: "erp_expenses", action: "create" }, { module: "erp_expenses", action: "approve" }, { module: "erp_expenses", action: "export" },
+    { module: "erp_accounting", action: "view" }, { module: "erp_accounting", action: "create" }, { module: "erp_accounting", action: "validate" }, { module: "erp_accounting", action: "export" },
     { module: "erp_vendors", action: "view" },
     { module: "erp_contractors", action: "view" },
     { module: "erp_alerts", action: "view" },
@@ -268,7 +297,7 @@ export const ERP_ROLE_DEFAULT_PERMISSIONS: Record<string, Array<{ module: ErpMod
     { module: "erp_profile", action: "view" }, { module: "erp_profile", action: "update" },
   ],
 
-  // Inventory Manager : stocks, équipements, commandes
+  // Inventory Manager : stocks, équipements, commandes, achats
   erp_inventory_manager: [
     { module: "erp_dashboard", action: "view" },
     { module: "erp_projects", action: "view" },
@@ -276,6 +305,8 @@ export const ERP_ROLE_DEFAULT_PERMISSIONS: Record<string, Array<{ module: ErpMod
     { module: "erp_equipment", action: "view" }, { module: "erp_equipment", action: "create" }, { module: "erp_equipment", action: "update" }, { module: "erp_equipment", action: "assign" },
     { module: "erp_inventory", action: "view" }, { module: "erp_inventory", action: "create" }, { module: "erp_inventory", action: "update" }, { module: "erp_inventory", action: "delete" }, { module: "erp_inventory", action: "export" },
     { module: "erp_vendors", action: "view" },
+    { module: "erp_purchases", action: "view" }, { module: "erp_purchases", action: "create" },
+    { module: "erp_expenses", action: "view" },
     { module: "erp_alerts", action: "view" },
     { module: "erp_profile", action: "view" }, { module: "erp_profile", action: "update" },
   ],

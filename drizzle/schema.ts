@@ -2278,3 +2278,457 @@ export const erpUserProfiles = mysqlTable("erp_user_profiles", {
 }, (table) => [
   { name: "idx_erp_profile_user", columns: [table.userId] },
 ]);
+
+
+// ============================================================
+// MODULE ACHATS, DÉPENSES & PRÉ-COMPTABILITÉ
+// ============================================================
+
+// --- Paramétrage comptable ---
+
+export const erpAccountingAccounts = mysqlTable("erp_accounting_accounts", {
+  id: int("id").autoincrement().primaryKey(),
+  accountCode: varchar("account_code", { length: 16 }).notNull().unique(),
+  accountName: varchar("account_name", { length: 255 }).notNull(),
+  accountType: varchar("account_type", { length: 32 }).notNull(), // asset, liability, equity, revenue, expense, tax, cash, supplier, customer
+  parentId: int("parent_id"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  codeIdx: index("idx_erp_acct_code").on(table.accountCode),
+  typeIdx: index("idx_erp_acct_type").on(table.accountType),
+}));
+export type ErpAccountingAccount = typeof erpAccountingAccounts.$inferSelect;
+
+export const erpTaxCodes = mysqlTable("erp_tax_codes", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 16 }).notNull().unique(),
+  name: varchar("name", { length: 128 }).notNull(),
+  description: text("description"),
+  taxType: varchar("tax_type", { length: 32 }).notNull(), // vat, withholding, exempt, other
+  rate: int("rate").notNull().default(0), // en centièmes (1800 = 18%)
+  isRecoverable: boolean("is_recoverable").default(false).notNull(),
+  isWithholding: boolean("is_withholding").default(false).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  effectiveFrom: bigint("effective_from", { mode: "number" }),
+  effectiveTo: bigint("effective_to", { mode: "number" }),
+  accountingAccountId: int("accounting_account_id").references(() => erpAccountingAccounts.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  codeIdx: index("idx_erp_tax_code").on(table.code),
+  typeIdx: index("idx_erp_tax_type").on(table.taxType),
+}));
+export type ErpTaxCode = typeof erpTaxCodes.$inferSelect;
+
+export const erpPaymentAccounts = mysqlTable("erp_payment_accounts", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 128 }).notNull(),
+  accountType: varchar("account_type", { length: 32 }).notNull(), // cash, bank, mobile_money, cheque, card, other
+  bankName: varchar("bank_name", { length: 128 }),
+  accountNumberMasked: varchar("account_number_masked", { length: 64 }),
+  currency: varchar("currency", { length: 3 }).notNull().default("XOF"),
+  accountingAccountId: int("accounting_account_id").references(() => erpAccountingAccounts.id, { onDelete: "set null" }),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  typeIdx: index("idx_erp_payacct_type").on(table.accountType),
+}));
+export type ErpPaymentAccount = typeof erpPaymentAccounts.$inferSelect;
+
+export const erpAccountingPreEntries = mysqlTable("erp_accounting_pre_entries", {
+  id: int("id").autoincrement().primaryKey(),
+  sourceType: varchar("source_type", { length: 32 }).notNull(), // purchase_order, expense, invoice, payment
+  sourceId: int("source_id").notNull(),
+  entryDate: bigint("entry_date", { mode: "number" }).notNull(),
+  journalCode: varchar("journal_code", { length: 16 }).notNull(), // HA (achats), OD (opérations diverses), BQ (banque), CA (caisse)
+  description: varchar("description", { length: 500 }),
+  status: varchar("status", { length: 32 }).notNull().default("draft"), // draft, generated, reviewed, validated, posted, cancelled
+  totalDebit: bigint("total_debit", { mode: "number" }).notNull().default(0),
+  totalCredit: bigint("total_credit", { mode: "number" }).notNull().default(0),
+  createdBy: int("created_by").references(() => users.id, { onDelete: "set null" }),
+  validatedBy: int("validated_by").references(() => users.id, { onDelete: "set null" }),
+  validatedAt: bigint("validated_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  sourceIdx: index("idx_erp_preentry_source").on(table.sourceType, table.sourceId),
+  statusIdx: index("idx_erp_preentry_status").on(table.status),
+  dateIdx: index("idx_erp_preentry_date").on(table.entryDate),
+}));
+export type ErpAccountingPreEntry = typeof erpAccountingPreEntries.$inferSelect;
+
+export const erpAccountingPreEntryLines = mysqlTable("erp_accounting_pre_entry_lines", {
+  id: int("id").autoincrement().primaryKey(),
+  preEntryId: int("pre_entry_id").notNull().references(() => erpAccountingPreEntries.id, { onDelete: "cascade" }),
+  accountingAccountId: int("accounting_account_id").notNull().references(() => erpAccountingAccounts.id, { onDelete: "restrict" }),
+  debitAmount: bigint("debit_amount", { mode: "number" }).notNull().default(0),
+  creditAmount: bigint("credit_amount", { mode: "number" }).notNull().default(0),
+  label: varchar("label", { length: 255 }),
+  projectId: int("project_id").references(() => erpProjects.id, { onDelete: "set null" }),
+  vendorId: int("vendor_id").references(() => erpVendors.id, { onDelete: "set null" }),
+  taxCodeId: int("tax_code_id").references(() => erpTaxCodes.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  preEntryIdx: index("idx_erp_preentryline_entry").on(table.preEntryId),
+  accountIdx: index("idx_erp_preentryline_account").on(table.accountingAccountId),
+}));
+export type ErpAccountingPreEntryLine = typeof erpAccountingPreEntryLines.$inferSelect;
+
+// --- Module Achats : Catégories et Types ---
+
+export const erpPurchaseCategories = mysqlTable("erp_purchase_categories", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 16 }).notNull().unique(),
+  name: varchar("name", { length: 128 }).notNull(),
+  description: text("description"),
+  purchaseType: varchar("purchase_type", { length: 32 }).notNull(), // material, equipment, service, subcontracting, general
+  isStockable: boolean("is_stockable").default(false).notNull(),
+  isEquipment: boolean("is_equipment").default(false).notNull(),
+  isService: boolean("is_service").default(false).notNull(),
+  defaultBudgetCategoryId: int("default_budget_category_id"),
+  defaultAccountingAccountId: int("default_accounting_account_id").references(() => erpAccountingAccounts.id, { onDelete: "set null" }),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  codeIdx: index("idx_erp_purchcat_code").on(table.code),
+  typeIdx: index("idx_erp_purchcat_type").on(table.purchaseType),
+}));
+export type ErpPurchaseCategory = typeof erpPurchaseCategories.$inferSelect;
+
+export const erpMaterialTypes = mysqlTable("erp_material_types", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 16 }).notNull().unique(),
+  name: varchar("name", { length: 128 }).notNull(),
+  description: text("description"),
+  unit: varchar("unit", { length: 32 }).notNull(), // kg, m3, m2, unité, litre, tonne
+  isStockable: boolean("is_stockable").default(true).notNull(),
+  defaultSupplierId: int("default_supplier_id").references(() => erpVendors.id, { onDelete: "set null" }),
+  defaultTaxCodeId: int("default_tax_code_id").references(() => erpTaxCodes.id, { onDelete: "set null" }),
+  defaultAccountingAccountId: int("default_accounting_account_id").references(() => erpAccountingAccounts.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  codeIdx: index("idx_erp_mattype_code").on(table.code),
+}));
+export type ErpMaterialType = typeof erpMaterialTypes.$inferSelect;
+
+export const erpEquipmentTypes = mysqlTable("erp_equipment_types", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 16 }).notNull().unique(),
+  name: varchar("name", { length: 128 }).notNull(),
+  description: text("description"),
+  equipmentFamily: varchar("equipment_family", { length: 64 }),
+  isCapitalized: boolean("is_capitalized").default(true).notNull(),
+  depreciationEnabled: boolean("depreciation_enabled").default(false).notNull(),
+  defaultAccountingAccountId: int("default_accounting_account_id").references(() => erpAccountingAccounts.id, { onDelete: "set null" }),
+  defaultTaxCodeId: int("default_tax_code_id").references(() => erpTaxCodes.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  codeIdx: index("idx_erp_eqtype_code").on(table.code),
+}));
+export type ErpEquipmentType = typeof erpEquipmentTypes.$inferSelect;
+
+// --- Module Achats : Demandes d'achat ---
+
+export const erpPurchaseRequests = mysqlTable("erp_purchase_requests", {
+  id: int("id").autoincrement().primaryKey(),
+  requestNumber: varchar("request_number", { length: 32 }).notNull().unique(),
+  projectId: int("project_id").references(() => erpProjects.id, { onDelete: "set null" }),
+  requestedBy: int("requested_by").notNull().references(() => users.id, { onDelete: "restrict" }),
+  department: varchar("department", { length: 64 }),
+  purchaseCategoryId: int("purchase_category_id").references(() => erpPurchaseCategories.id, { onDelete: "set null" }),
+  requestDate: bigint("request_date", { mode: "number" }).notNull(),
+  neededDate: bigint("needed_date", { mode: "number" }),
+  priority: varchar("priority", { length: 16 }).notNull().default("normal"), // low, normal, high, urgent
+  status: varchar("status", { length: 32 }).notNull().default("draft"), // draft, submitted, under_review, approved, rejected, converted_to_rfq, converted_to_po, cancelled
+  justification: text("justification"),
+  estimatedAmount: bigint("estimated_amount", { mode: "number" }).default(0),
+  currency: varchar("currency", { length: 3 }).notNull().default("XOF"),
+  approvedBy: int("approved_by").references(() => users.id, { onDelete: "set null" }),
+  approvedAt: bigint("approved_at", { mode: "number" }),
+  rejectedBy: int("rejected_by").references(() => users.id, { onDelete: "set null" }),
+  rejectedAt: bigint("rejected_at", { mode: "number" }),
+  rejectionReason: text("rejection_reason"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  statusIdx: index("idx_erp_pr_status").on(table.status),
+  projectIdx: index("idx_erp_pr_project").on(table.projectId),
+  requestedByIdx: index("idx_erp_pr_requester").on(table.requestedBy),
+}));
+export type ErpPurchaseRequest = typeof erpPurchaseRequests.$inferSelect;
+
+export const erpPurchaseRequestLines = mysqlTable("erp_purchase_request_lines", {
+  id: int("id").autoincrement().primaryKey(),
+  purchaseRequestId: int("purchase_request_id").notNull().references(() => erpPurchaseRequests.id, { onDelete: "cascade" }),
+  itemType: varchar("item_type", { length: 32 }).notNull(), // material, equipment, service, subcontracting, other
+  inventoryItemId: int("inventory_item_id").references(() => erpInventoryItems.id, { onDelete: "set null" }),
+  equipmentTypeId: int("equipment_type_id").references(() => erpEquipmentTypes.id, { onDelete: "set null" }),
+  materialTypeId: int("material_type_id").references(() => erpMaterialTypes.id, { onDelete: "set null" }),
+  description: varchar("description", { length: 500 }).notNull(),
+  quantity: int("quantity").notNull().default(1),
+  unit: varchar("unit", { length: 32 }),
+  estimatedUnitPrice: bigint("estimated_unit_price", { mode: "number" }).default(0),
+  estimatedTotal: bigint("estimated_total", { mode: "number" }).default(0),
+  budgetLineId: int("budget_line_id").references(() => erpBudgetLines.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  prIdx: index("idx_erp_prline_pr").on(table.purchaseRequestId),
+}));
+export type ErpPurchaseRequestLine = typeof erpPurchaseRequestLines.$inferSelect;
+
+// --- Module Achats : RFQ (Demandes de prix) ---
+
+export const erpRfqs = mysqlTable("erp_rfqs", {
+  id: int("id").autoincrement().primaryKey(),
+  rfqNumber: varchar("rfq_number", { length: 32 }).notNull().unique(),
+  purchaseRequestId: int("purchase_request_id").references(() => erpPurchaseRequests.id, { onDelete: "set null" }),
+  projectId: int("project_id").references(() => erpProjects.id, { onDelete: "set null" }),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  issueDate: bigint("issue_date", { mode: "number" }).notNull(),
+  responseDeadline: bigint("response_deadline", { mode: "number" }),
+  status: varchar("status", { length: 32 }).notNull().default("draft"), // draft, sent, responses_received, under_evaluation, awarded, cancelled
+  createdBy: int("created_by").notNull().references(() => users.id, { onDelete: "restrict" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  statusIdx: index("idx_erp_rfq_status").on(table.status),
+  projectIdx: index("idx_erp_rfq_project").on(table.projectId),
+}));
+export type ErpRfq = typeof erpRfqs.$inferSelect;
+
+export const erpRfqVendors = mysqlTable("erp_rfq_vendors", {
+  id: int("id").autoincrement().primaryKey(),
+  rfqId: int("rfq_id").notNull().references(() => erpRfqs.id, { onDelete: "cascade" }),
+  vendorId: int("vendor_id").notNull().references(() => erpVendors.id, { onDelete: "cascade" }),
+  sentAt: bigint("sent_at", { mode: "number" }),
+  responseReceivedAt: bigint("response_received_at", { mode: "number" }),
+  status: varchar("status", { length: 32 }).notNull().default("pending"), // pending, sent, responded, declined
+  notes: text("notes"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  rfqIdx: index("idx_erp_rfqvendor_rfq").on(table.rfqId),
+  vendorIdx: index("idx_erp_rfqvendor_vendor").on(table.vendorId),
+}));
+export type ErpRfqVendor = typeof erpRfqVendors.$inferSelect;
+
+export const erpVendorQuotes = mysqlTable("erp_vendor_quotes", {
+  id: int("id").autoincrement().primaryKey(),
+  rfqId: int("rfq_id").notNull().references(() => erpRfqs.id, { onDelete: "cascade" }),
+  vendorId: int("vendor_id").notNull().references(() => erpVendors.id, { onDelete: "cascade" }),
+  quoteNumber: varchar("quote_number", { length: 64 }),
+  quoteDate: bigint("quote_date", { mode: "number" }).notNull(),
+  validUntil: bigint("valid_until", { mode: "number" }),
+  subtotalAmount: bigint("subtotal_amount", { mode: "number" }).notNull().default(0),
+  taxAmount: bigint("tax_amount", { mode: "number" }).notNull().default(0),
+  totalAmount: bigint("total_amount", { mode: "number" }).notNull().default(0),
+  currency: varchar("currency", { length: 3 }).notNull().default("XOF"),
+  deliveryDelayDays: int("delivery_delay_days"),
+  paymentTerms: varchar("payment_terms", { length: 128 }),
+  documentUrl: text("document_url"),
+  status: varchar("status", { length: 32 }).notNull().default("received"), // received, under_review, accepted, rejected, expired
+  evaluationScore: int("evaluation_score"), // 0-100
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  rfqIdx: index("idx_erp_vquote_rfq").on(table.rfqId),
+  vendorIdx: index("idx_erp_vquote_vendor").on(table.vendorId),
+  statusIdx: index("idx_erp_vquote_status").on(table.status),
+}));
+export type ErpVendorQuote = typeof erpVendorQuotes.$inferSelect;
+
+// --- Module Achats : Bons de commande ---
+
+export const erpPurchaseOrders = mysqlTable("erp_purchase_orders", {
+  id: int("id").autoincrement().primaryKey(),
+  poNumber: varchar("po_number", { length: 32 }).notNull().unique(),
+  purchaseRequestId: int("purchase_request_id").references(() => erpPurchaseRequests.id, { onDelete: "set null" }),
+  rfqId: int("rfq_id").references(() => erpRfqs.id, { onDelete: "set null" }),
+  vendorQuoteId: int("vendor_quote_id").references(() => erpVendorQuotes.id, { onDelete: "set null" }),
+  vendorId: int("vendor_id").notNull().references(() => erpVendors.id, { onDelete: "restrict" }),
+  projectId: int("project_id").references(() => erpProjects.id, { onDelete: "set null" }),
+  orderDate: bigint("order_date", { mode: "number" }).notNull(),
+  expectedDeliveryDate: bigint("expected_delivery_date", { mode: "number" }),
+  subtotalAmount: bigint("subtotal_amount", { mode: "number" }).notNull().default(0),
+  discountAmount: bigint("discount_amount", { mode: "number" }).default(0),
+  taxAmount: bigint("tax_amount", { mode: "number" }).notNull().default(0),
+  totalAmount: bigint("total_amount", { mode: "number" }).notNull().default(0),
+  currency: varchar("currency", { length: 3 }).notNull().default("XOF"),
+  status: varchar("status", { length: 32 }).notNull().default("draft"), // draft, submitted, approved, sent, partially_received, fully_received, invoiced, partially_paid, paid, cancelled, closed
+  approvedBy: int("approved_by").references(() => users.id, { onDelete: "set null" }),
+  approvedAt: bigint("approved_at", { mode: "number" }),
+  sentToVendorAt: bigint("sent_to_vendor_at", { mode: "number" }),
+  createdBy: int("created_by").notNull().references(() => users.id, { onDelete: "restrict" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  statusIdx: index("idx_erp_po_status").on(table.status),
+  vendorIdx: index("idx_erp_po_vendor").on(table.vendorId),
+  projectIdx: index("idx_erp_po_project").on(table.projectId),
+}));
+export type ErpPurchaseOrder = typeof erpPurchaseOrders.$inferSelect;
+
+export const erpPurchaseOrderLines = mysqlTable("erp_purchase_order_lines", {
+  id: int("id").autoincrement().primaryKey(),
+  purchaseOrderId: int("purchase_order_id").notNull().references(() => erpPurchaseOrders.id, { onDelete: "cascade" }),
+  itemType: varchar("item_type", { length: 32 }).notNull(), // material, equipment, service, subcontracting, other
+  inventoryItemId: int("inventory_item_id").references(() => erpInventoryItems.id, { onDelete: "set null" }),
+  equipmentTypeId: int("equipment_type_id").references(() => erpEquipmentTypes.id, { onDelete: "set null" }),
+  materialTypeId: int("material_type_id").references(() => erpMaterialTypes.id, { onDelete: "set null" }),
+  description: varchar("description", { length: 500 }).notNull(),
+  quantityOrdered: int("quantity_ordered").notNull(),
+  quantityReceived: int("quantity_received").notNull().default(0),
+  unit: varchar("unit", { length: 32 }),
+  unitPrice: bigint("unit_price", { mode: "number" }).notNull(),
+  discountRate: int("discount_rate").default(0), // en centièmes
+  taxCodeId: int("tax_code_id").references(() => erpTaxCodes.id, { onDelete: "set null" }),
+  taxRate: int("tax_rate").default(0), // en centièmes
+  taxAmount: bigint("tax_amount", { mode: "number" }).default(0),
+  lineTotal: bigint("line_total", { mode: "number" }).notNull(),
+  budgetLineId: int("budget_line_id").references(() => erpBudgetLines.id, { onDelete: "set null" }),
+  accountingAccountId: int("accounting_account_id").references(() => erpAccountingAccounts.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  poIdx: index("idx_erp_poline_po").on(table.purchaseOrderId),
+}));
+export type ErpPurchaseOrderLine = typeof erpPurchaseOrderLines.$inferSelect;
+
+// --- Module Achats : Réceptions ---
+
+export const erpGoodsReceipts = mysqlTable("erp_goods_receipts", {
+  id: int("id").autoincrement().primaryKey(),
+  receiptNumber: varchar("receipt_number", { length: 32 }).notNull().unique(),
+  purchaseOrderId: int("purchase_order_id").notNull().references(() => erpPurchaseOrders.id, { onDelete: "restrict" }),
+  vendorId: int("vendor_id").notNull().references(() => erpVendors.id, { onDelete: "restrict" }),
+  projectId: int("project_id").references(() => erpProjects.id, { onDelete: "set null" }),
+  receiptDate: bigint("receipt_date", { mode: "number" }).notNull(),
+  receivedBy: int("received_by").notNull().references(() => users.id, { onDelete: "restrict" }),
+  deliveryNoteNumber: varchar("delivery_note_number", { length: 64 }),
+  status: varchar("status", { length: 32 }).notNull().default("draft"), // draft, received, partially_received, rejected, cancelled
+  notes: text("notes"),
+  documentUrl: text("document_url"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  poIdx: index("idx_erp_gr_po").on(table.purchaseOrderId),
+  vendorIdx: index("idx_erp_gr_vendor").on(table.vendorId),
+  statusIdx: index("idx_erp_gr_status").on(table.status),
+}));
+export type ErpGoodsReceipt = typeof erpGoodsReceipts.$inferSelect;
+
+export const erpGoodsReceiptLines = mysqlTable("erp_goods_receipt_lines", {
+  id: int("id").autoincrement().primaryKey(),
+  goodsReceiptId: int("goods_receipt_id").notNull().references(() => erpGoodsReceipts.id, { onDelete: "cascade" }),
+  purchaseOrderLineId: int("purchase_order_line_id").references(() => erpPurchaseOrderLines.id, { onDelete: "set null" }),
+  inventoryItemId: int("inventory_item_id").references(() => erpInventoryItems.id, { onDelete: "set null" }),
+  equipmentId: int("equipment_id").references(() => erpEquipment.id, { onDelete: "set null" }),
+  description: varchar("description", { length: 500 }),
+  quantityReceived: int("quantity_received").notNull(),
+  quantityRejected: int("quantity_rejected").notNull().default(0),
+  unit: varchar("unit", { length: 32 }),
+  conditionStatus: varchar("condition_status", { length: 32 }).default("good"), // good, damaged, partial
+  stockLocationId: int("stock_location_id").references(() => erpStockLocations.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  grIdx: index("idx_erp_grline_gr").on(table.goodsReceiptId),
+}));
+export type ErpGoodsReceiptLine = typeof erpGoodsReceiptLines.$inferSelect;
+
+// --- Module Dépenses ---
+
+export const erpExpenseCategories = mysqlTable("erp_expense_categories", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 16 }).notNull().unique(),
+  name: varchar("name", { length: 128 }).notNull(),
+  description: text("description"),
+  parentId: int("parent_id"),
+  defaultAccountingAccountId: int("default_accounting_account_id").references(() => erpAccountingAccounts.id, { onDelete: "set null" }),
+  defaultTaxCodeId: int("default_tax_code_id").references(() => erpTaxCodes.id, { onDelete: "set null" }),
+  requiresReceipt: boolean("requires_receipt").default(false).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  codeIdx: index("idx_erp_expcat_code").on(table.code),
+}));
+export type ErpExpenseCategory = typeof erpExpenseCategories.$inferSelect;
+
+export const erpExpenses = mysqlTable("erp_expenses", {
+  id: int("id").autoincrement().primaryKey(),
+  expenseNumber: varchar("expense_number", { length: 32 }).notNull().unique(),
+  projectId: int("project_id").references(() => erpProjects.id, { onDelete: "set null" }),
+  expenseCategoryId: int("expense_category_id").references(() => erpExpenseCategories.id, { onDelete: "set null" }),
+  vendorId: int("vendor_id").references(() => erpVendors.id, { onDelete: "set null" }),
+  employeeId: int("employee_id").references(() => users.id, { onDelete: "set null" }),
+  expenseDate: bigint("expense_date", { mode: "number" }).notNull(),
+  description: text("description"),
+  subtotalAmount: bigint("subtotal_amount", { mode: "number" }).notNull().default(0),
+  taxAmount: bigint("tax_amount", { mode: "number" }).notNull().default(0),
+  totalAmount: bigint("total_amount", { mode: "number" }).notNull().default(0),
+  currency: varchar("currency", { length: 3 }).notNull().default("XOF"),
+  paymentMethod: varchar("payment_method", { length: 32 }), // cash, bank, mobile_money, cheque, card
+  paymentAccountId: int("payment_account_id").references(() => erpPaymentAccounts.id, { onDelete: "set null" }),
+  status: varchar("status", { length: 32 }).notNull().default("draft"), // draft, submitted, approved, rejected, paid, reimbursed, cancelled, posted_to_accounting
+  isReimbursable: boolean("is_reimbursable").default(false).notNull(),
+  reimbursedAt: bigint("reimbursed_at", { mode: "number" }),
+  documentUrl: text("document_url"),
+  documentKey: varchar("document_key", { length: 512 }),
+  budgetLineId: int("budget_line_id").references(() => erpBudgetLines.id, { onDelete: "set null" }),
+  accountingAccountId: int("accounting_account_id").references(() => erpAccountingAccounts.id, { onDelete: "set null" }),
+  taxCodeId: int("tax_code_id").references(() => erpTaxCodes.id, { onDelete: "set null" }),
+  createdBy: int("created_by").notNull().references(() => users.id, { onDelete: "restrict" }),
+  approvedBy: int("approved_by").references(() => users.id, { onDelete: "set null" }),
+  approvedAt: bigint("approved_at", { mode: "number" }),
+  rejectedBy: int("rejected_by").references(() => users.id, { onDelete: "set null" }),
+  rejectedAt: bigint("rejected_at", { mode: "number" }),
+  rejectionReason: text("rejection_reason"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  statusIdx: index("idx_erp_expense_status").on(table.status),
+  projectIdx: index("idx_erp_expense_project").on(table.projectId),
+  categoryIdx: index("idx_erp_expense_category").on(table.expenseCategoryId),
+  dateIdx: index("idx_erp_expense_date").on(table.expenseDate),
+}));
+export type ErpExpense = typeof erpExpenses.$inferSelect;
+
+export const erpExpenseLines = mysqlTable("erp_expense_lines", {
+  id: int("id").autoincrement().primaryKey(),
+  expenseId: int("expense_id").notNull().references(() => erpExpenses.id, { onDelete: "cascade" }),
+  description: varchar("description", { length: 500 }).notNull(),
+  quantity: int("quantity").notNull().default(1),
+  unitPrice: bigint("unit_price", { mode: "number" }).notNull(),
+  taxCodeId: int("tax_code_id").references(() => erpTaxCodes.id, { onDelete: "set null" }),
+  taxRate: int("tax_rate").default(0),
+  taxAmount: bigint("tax_amount", { mode: "number" }).default(0),
+  lineTotal: bigint("line_total", { mode: "number" }).notNull(),
+  projectId: int("project_id").references(() => erpProjects.id, { onDelete: "set null" }),
+  budgetLineId: int("budget_line_id").references(() => erpBudgetLines.id, { onDelete: "set null" }),
+  accountingAccountId: int("accounting_account_id").references(() => erpAccountingAccounts.id, { onDelete: "set null" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  expenseIdx: index("idx_erp_expline_expense").on(table.expenseId),
+}));
+export type ErpExpenseLine = typeof erpExpenseLines.$inferSelect;

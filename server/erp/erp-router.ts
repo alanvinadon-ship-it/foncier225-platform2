@@ -440,6 +440,9 @@ import { erpNotificationsRouter } from "./erp-notifications-router";
 import { erpProfileRouter } from "./erp-profile-router";
 import { erpAuditLogsRouter } from "./erp-audit-logs-router";
 import { erpExportsRouter } from "./erp-exports-router";
+import { erpAccountingRouter } from "./erp-accounting-router";
+import { erpPurchasesRouter } from "./erp-purchases-router";
+import { erpExpensesRouter } from "./erp-expenses-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -473,4 +476,7 @@ export const erpRouter = router({
   profile: erpProfileRouter,
   auditLogs: erpAuditLogsRouter,
   exports: erpExportsRouter,
+  accounting: erpAccountingRouter,
+  purchases: erpPurchasesRouter,
+  expenses: erpExpensesRouter,
 });

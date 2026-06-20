@@ -2137,3 +2137,23 @@
 
 ### 6. Documentation
 - [x] Rapport final Sprint 20 + tests vitest (1103 tests PASS)
+
+
+## Sprint 21 — Modules Achats, Dépenses et Pré-comptabilité
+
+- [x] Audit tables existantes (vendors, invoices, payments, budgets, inventory, equipment)
+- [x] Schéma DB : tables paramétrage comptable (erp_accounting_accounts, erp_tax_codes, erp_payment_accounts, erp_accounting_pre_entries)
+- [x] Schéma DB : tables achats (erp_purchase_categories, erp_purchase_requests, erp_purchase_request_lines, erp_rfqs, erp_rfq_responses, erp_purchase_orders, erp_purchase_order_lines, erp_goods_receipts, erp_goods_receipt_lines, erp_purchase_approvals)
+- [x] Schéma DB : tables dépenses (erp_expense_categories, erp_expenses, erp_expense_lines)
+- [x] Migration DB appliquée (19 nouvelles tables)
+- [x] Routeur tRPC : erp-accounting-router (CRUD comptes, codes taxe, comptes paiement)
+- [x] Routeur tRPC : erp-purchases-router (PR, PO, réceptions, catégories, workflows)
+- [x] Routeur tRPC : erp-expenses-router (CRUD, workflow soumission/approbation, stats, catégories)
+- [x] Page UI : ErpAccounting.tsx (paramétrage comptable — comptes, codes taxe, comptes paiement)
+- [x] Page UI : ErpPurchaseRequests.tsx (demandes d'achat avec workflow)
+- [x] Page UI : ErpPurchaseOrders.tsx (bons de commande avec workflow)
+- [x] Page UI : ErpExpenses.tsx (dépenses avec workflow soumission/approbation)
+- [x] Permissions RBAC : modules erp_purchases, erp_expenses, erp_accounting dans ERP_MODULES
+- [x] Sidebar ERP : menus Achats (sous-menu collapsible), Dépenses, Comptabilité
+- [x] Routes App.tsx : /erp/accounting, /erp/purchase-requests, /erp/purchase-orders, /erp/expenses
+- [x] Tests vitest Sprint 21 — 1120 tests PASS (17 nouveaux), 0 erreurs TypeScript
