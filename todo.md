@@ -2157,3 +2157,11 @@
 - [x] Sidebar ERP : menus Achats (sous-menu collapsible), Dépenses, Comptabilité
 - [x] Routes App.tsx : /erp/accounting, /erp/purchase-requests, /erp/purchase-orders, /erp/expenses
 - [x] Tests vitest Sprint 21 — 1120 tests PASS (17 nouveaux), 0 erreurs TypeScript
+
+## Sprint 21b — Réceptions, Écritures auto, Dashboard Achats
+
+- [x] Page UI ErpGoodsReceipts.tsx (/erp/goods-receipts) — liste, création, validation, impact stock
+- [x] Route App.tsx + sidebar ERP pour Réceptions
+- [x] Écritures pré-comptables automatiques — génération journal HA à la validation facture/paiement
+- [x] Dashboard Achats (/erp/purchases-dashboard) — KPIs, montant PO, taux livraison, top fournisseurs
+- [x] Tests vitest et non-régression — 1120 tests PASS

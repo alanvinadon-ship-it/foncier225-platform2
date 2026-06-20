@@ -5,6 +5,7 @@ import { getDb } from "../db";
 import { createAuditEvent } from "../db";
 import { erpPayments, erpInvoices } from "../../drizzle/schema";
 import { syncBudgetFromInvoice } from "./erp-budget-sync";
+import { generatePaymentPreEntry } from "./erp-accounting-auto";
 
 // ============================================================
 // CONSTANTS
@@ -141,9 +142,19 @@ export const erpPaymentsRouter = router({
         },
       });
 
-      // Auto-sync budget paidAmount
+            // Auto-sync budget paidAmount
       await syncBudgetFromInvoice(input.invoiceId);
-
+      // Générer écriture pré-comptable automatique (Journal BQ/CA)
+      await generatePaymentPreEntry(
+        result.insertId,
+        input.invoiceId,
+        input.amount,
+        input.paymentMethod,
+        ctx.user.id,
+        invoice.invoiceNumber,
+        invoice.vendorId,
+        invoice.projectId,
+      );
       return { id: result.insertId };
     }),
 

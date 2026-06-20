@@ -83,6 +83,7 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
     icon: <ShoppingCart size={18} />,
     module: "erp_purchases",
     children: [
+      { label: "Tableau de bord", href: "/erp/purchases-dashboard", icon: <BarChart3 size={18} />, module: "erp_purchases" },
       { label: "Demandes d'Achat", href: "/erp/purchase-requests", icon: <ClipboardList size={18} />, module: "erp_purchases" },
       { label: "Bons de Commande", href: "/erp/purchase-orders", icon: <FileText size={18} />, module: "erp_purchases" },
       { label: "Réceptions", href: "/erp/goods-receipts", icon: <PackageCheck size={18} />, module: "erp_purchases" },

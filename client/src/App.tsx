@@ -104,6 +104,8 @@ const ErpAccounting = lazy(() => import("./pages/erp/ErpAccounting"));
 const ErpPurchaseRequests = lazy(() => import("./pages/erp/ErpPurchaseRequests"));
 const ErpPurchaseOrders = lazy(() => import("./pages/erp/ErpPurchaseOrders"));
 const ErpExpenses = lazy(() => import("./pages/erp/ErpExpenses"));
+const ErpGoodsReceipts = lazy(() => import("./pages/erp/ErpGoodsReceipts"));
+const ErpPurchasesDashboard = lazy(() => import("./pages/erp/ErpPurchasesDashboard"));
 
 function RouteFallback() {
   return (
@@ -551,6 +553,16 @@ function Router() {
       <Route path="/erp/expenses">
         <ErpLayout>
           <ErpExpenses />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/goods-receipts">
+        <ErpLayout>
+          <ErpGoodsReceipts />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/purchases-dashboard">
+        <ErpLayout>
+          <ErpPurchasesDashboard />
         </ErpLayout>
       </Route>
       <Route path="/erp/notifications">

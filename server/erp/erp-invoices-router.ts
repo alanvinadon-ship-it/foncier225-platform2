@@ -5,6 +5,7 @@ import { getDb } from "../db";
 import { createAuditEvent } from "../db";
 import { erpInvoices, erpInvoiceLines, erpPayments, erpProjects, erpVendors, erpContractors, users } from "../../drizzle/schema";
 import { syncBudgetFromInvoice } from "./erp-budget-sync";
+import { generateInvoicePreEntry } from "./erp-accounting-auto";
 
 // ============================================================
 // CONSTANTS
@@ -428,6 +429,8 @@ export const erpInvoicesRouter = router({
 
       // Auto-sync budget engagedAmount
       await syncBudgetFromInvoice(input.id);
+      // Générer écriture pré-comptable automatique (Journal HA)
+      await generateInvoicePreEntry(input.id, ctx.user.id);
 
       return { success: true };
     }),
