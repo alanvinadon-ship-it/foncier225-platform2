@@ -2350,4 +2350,11 @@
 ## Réorganisation Sidebar ERP — Regroupement par catégorie
 - [x] Regrouper les modules de la sidebar ERP par catégories logiques
 - [x] Catégories : Opérations, Supply Chain, Achats, Finance, Immobilier, Comptabilité, Direction, Administration
+- [x] Checkpoint final (b559a14c)
+
+## Page publique /suivi — Suivi dossier foncier rural
+- [x] Créer la page publique /suivi accessible sans connexion
+- [x] Formulaire de recherche par numéro de dossier
+- [x] Affichage statut, étapes, localisation, timeline
+- [x] Route dans App.tsx (public, sans CitizenLayout)
 - [ ] Checkpoint final

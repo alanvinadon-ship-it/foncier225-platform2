@@ -37,6 +37,7 @@ const CitizenLandTitleList = lazy(() => import("./pages/citizen/CitizenLandTitle
 const CitizenLandTitleDetail = lazy(() => import("./pages/citizen/CitizenLandTitleDetail"));
 const CitizenLandTitleCreate = lazy(() => import("./pages/citizen/CitizenLandTitleCreate"));
 const TrackApplication = lazy(() => import("./pages/TrackApplication"));
+const SuiviPublic = lazy(() => import("./pages/SuiviPublic"));
 const WorkflowPage = lazy(() => import("./pages/WorkflowPage"));
 const NotificationSettings = lazy(() => import("./pages/citizen/NotificationSettings"));
 const AdminNotifications = lazy(() => import("./pages/admin/AdminNotifications"));
@@ -163,6 +164,7 @@ function Router() {
     <Switch>
       {/* Public routes */}
       <Route path="/" component={Home} />
+      <Route path="/suivi" component={SuiviPublic} />
       <Route path="/parcelle/:token" component={ParcelPublic} />
       <Route path="/verify" component={Verify} />
 
