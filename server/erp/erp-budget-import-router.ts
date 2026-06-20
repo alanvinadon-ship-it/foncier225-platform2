@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { eq, and, desc } from "drizzle-orm";
 import { router, erpPermissionProcedure } from "../_core/trpc";
-import { getDb } from "../db";
+import { getDb, createAuditEvent } from "../db";
+import { notifyOwner } from "../_core/notification";
 import { storagePut } from "../storage";
 import ExcelJS from "exceljs";
 import {
@@ -61,37 +62,58 @@ export const erpBudgetImportRouter = router({
           }
         }
 
-        // Detect month columns (look for month names or M1-M12 patterns)
-        const monthColumns: { col: number; label: string }[] = [];
-        const monthPatterns = [
-          /^janv/i, /^f[eé]vr/i, /^mars/i, /^avr/i, /^mai/i, /^juin/i,
-          /^juil/i, /^ao[uû]t/i, /^sept/i, /^oct/i, /^nov/i, /^d[eé]c/i,
-          /^m1$/i, /^m2$/i, /^m3$/i, /^m4$/i, /^m5$/i, /^m6$/i,
-          /^m7$/i, /^m8$/i, /^m9$/i, /^m10$/i, /^m11$/i, /^m12$/i,
+        // Detect month columns (FR, EN, coded patterns + trimestre/semestre)
+        const monthColumns: { col: number; label: string; monthNumber: number }[] = [];
+        const monthPatternsFR: [RegExp, number][] = [
+          [/^janv/i, 1], [/^f[eé]vr/i, 2], [/^mars/i, 3], [/^avr/i, 4], [/^mai/i, 5], [/^juin/i, 6],
+          [/^juil/i, 7], [/^ao[uû]t/i, 8], [/^sept/i, 9], [/^oct/i, 10], [/^nov/i, 11], [/^d[eé]c/i, 12],
         ];
+        const monthPatternsEN: [RegExp, number][] = [
+          [/^jan/i, 1], [/^feb/i, 2], [/^mar/i, 3], [/^apr/i, 4], [/^may/i, 5], [/^jun/i, 6],
+          [/^jul/i, 7], [/^aug/i, 8], [/^sep/i, 9], [/^oct/i, 10], [/^nov/i, 11], [/^dec/i, 12],
+        ];
+        const monthPatternsCode: [RegExp, number][] = [
+          [/^m0?1$/i, 1], [/^m0?2$/i, 2], [/^m0?3$/i, 3], [/^m0?4$/i, 4], [/^m0?5$/i, 5], [/^m0?6$/i, 6],
+          [/^m0?7$/i, 7], [/^m0?8$/i, 8], [/^m0?9$/i, 9], [/^m10$/i, 10], [/^m11$/i, 11], [/^m12$/i, 12],
+        ];
+        const allMonthPatterns = [...monthPatternsFR, ...monthPatternsEN, ...monthPatternsCode];
         const headerRowData = ws.getRow(headerRow);
         for (let c = 1; c <= colCount; c++) {
           const val = String(headerRowData.getCell(c).value || "").trim();
-          if (monthPatterns.some(p => p.test(val))) {
-            monthColumns.push({ col: c, label: val });
+          let matched = false;
+          for (const [pattern, monthNum] of allMonthPatterns) {
+            if (pattern.test(val)) {
+              monthColumns.push({ col: c, label: val, monthNumber: monthNum });
+              matched = true;
+              break;
+            }
           }
         }
+        // Sort month columns by month number for correct ordering
+        monthColumns.sort((a, b) => a.monthNumber - b.monthNumber);
 
-        // Detect category/line column (usually column A or B)
+        // Detect category/line column (extended FR/EN heuristics)
         let categoryColumn = 1;
-        for (let c = 1; c <= Math.min(3, colCount); c++) {
+        const categoryKeywords = [
+          "poste", "libellé", "libelle", "ligne", "catégorie", "categorie",
+          "rubrique", "description", "intitulé", "intitule", "désignation",
+          "designation", "nature", "compte", "article", "item", "label",
+          "dépense", "depense", "recette", "charge", "objet"
+        ];
+        for (let c = 1; c <= Math.min(5, colCount); c++) {
           const val = String(headerRowData.getCell(c).value || "").trim().toLowerCase();
-          if (val.includes("poste") || val.includes("libellé") || val.includes("ligne") || val.includes("catégorie") || val.includes("rubrique") || val.includes("description")) {
+          if (categoryKeywords.some(kw => val.includes(kw))) {
             categoryColumn = c;
             break;
           }
         }
 
-        // Detect total column
+        // Detect total column (extended)
         let totalColumn: number | null = null;
+        const totalKeywords = ["total", "annuel", "budget", "cumul", "montant global", "prévision", "prevision", "annual", "yearly"];
         for (let c = 1; c <= colCount; c++) {
           const val = String(headerRowData.getCell(c).value || "").trim().toLowerCase();
-          if (val.includes("total") || val.includes("annuel") || val.includes("budget")) {
+          if (totalKeywords.some(kw => val.includes(kw))) {
             totalColumn = c;
             break;
           }
@@ -258,8 +280,9 @@ export const erpBudgetImportRouter = router({
           const label = String(row.getCell(mapping.categoryColumn).value || "").trim();
           if (!label) continue;
 
-          // Skip total rows if configured
-          if (mapping.skipTotalRows && (label.toLowerCase().includes("total") || label.toLowerCase().includes("sous-total"))) continue;
+          // Skip total/subtotal rows if configured (extended FR patterns)
+          const totalRowPattern = /^(total|sous[- ]?total|s\/total|résultat|marge|solde|excédent|bénéfice|perte|net|brut)/i;
+          if (mapping.skipTotalRows && totalRowPattern.test(label.trim())) continue;
 
           // Check if it's a numeric data row
           let hasNumericData = false;
@@ -296,7 +319,12 @@ export const erpBudgetImportRouter = router({
               let amount = 0;
               if (typeof cellVal === "number") amount = Math.round(cellVal);
               else if (cellVal) {
-                const parsed = parseFloat(String(cellVal).replace(/[^\d.-]/g, ""));
+                // Handle FR number format: spaces as thousands separator, comma as decimal
+                let strVal = String(cellVal).trim();
+                strVal = strVal.replace(/\s/g, ""); // Remove spaces (FR thousands separator)
+                strVal = strVal.replace(/,/g, "."); // FR decimal comma → dot
+                strVal = strVal.replace(/[^\d.\-]/g, ""); // Remove other non-numeric
+                const parsed = parseFloat(strVal);
                 if (!isNaN(parsed)) amount = Math.round(parsed);
               }
 
@@ -344,6 +372,12 @@ export const erpBudgetImportRouter = router({
       // Update budget status
       await db.update(erpBudgetsV2).set({ status: "imported", sourceFileId: input.importId, updatedAt: now() }).where(eq(erpBudgetsV2.id, input.budgetId));
 
+      // Audit log
+      await createAuditEvent({ actorId: ctx.user.id, action: "erp.budget_v2.import_commit", details: { importId: input.importId, budgetId: input.budgetId, totalLines, errorsCount } });
+      // Notification si erreurs
+      if (errorsCount > 0) {
+        await notifyOwner({ title: "Import Budget — Erreurs détectées", content: `Import #${input.importId} terminé avec ${errorsCount} erreurs sur ${totalLines} lignes.` });
+      }
       return { totalLines, errorsCount, errors: errors.slice(0, 20) };
     }),
 

@@ -637,6 +637,28 @@ const executionRouter = router({
 });
 
 // ============================================================
+// Seed Demo Router
+// ============================================================
+import { seedBudget2026, cleanBudget2026 } from "./erp-budget-seed";
+
+const seedRouter = router({
+  run: erpPermissionProcedure("erp_budget_v2", "seed").mutation(async ({ ctx }) => {
+    const result = await seedBudget2026(ctx.user.id);
+    if (result.created) {
+      await createAuditEvent({ actorId: ctx.user.id, action: "erp.budget_v2.seed_demo", details: { stats: result.stats } });
+    }
+    return result;
+  }),
+  clean: erpPermissionProcedure("erp_budget_v2", "seed").mutation(async ({ ctx }) => {
+    const result = await cleanBudget2026();
+    if (result.deleted) {
+      await createAuditEvent({ actorId: ctx.user.id, action: "erp.budget_v2.clean_demo", details: { deleted: true } });
+    }
+    return result;
+  }),
+});
+
+// ============================================================
 // Export combined router
 // ============================================================
 export const erpBudgetV2Router = router({
@@ -647,4 +669,5 @@ export const erpBudgetV2Router = router({
   cashFlow: cashFlowRouter,
   alerts: alertsRouter,
   execution: executionRouter,
+  seed: seedRouter,
 });

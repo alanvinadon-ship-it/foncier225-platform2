@@ -3754,3 +3754,33 @@ export const erpBudgetAlerts = mysqlTable("erp_budget_alerts", {
 }));
 export type ErpBudgetAlert = typeof erpBudgetAlerts.$inferSelect;
 export type InsertErpBudgetAlert = typeof erpBudgetAlerts.$inferInsert;
+
+
+// ═══════════════════════════════════════════════════════════════
+// Budget V2 — Snapshot Jobs (Sprint Budget 2.1)
+// ═══════════════════════════════════════════════════════════════
+export const erpBudgetSnapshotJobs = mysqlTable("erp_budget_snapshot_jobs", {
+  id: int("id").primaryKey().autoincrement(),
+  jobType: varchar("job_type", { length: 50 }).notNull(), // daily_sync | monthly_snapshot | manual_recalculate | generate_all
+  budgetId: int("budget_id"),
+  periodId: int("period_id"),
+  status: varchar("status", { length: 20 }).notNull().default("running"), // running | success | failed | cancelled
+  startedAt: bigint("started_at", { mode: "number" }).notNull(),
+  finishedAt: bigint("finished_at", { mode: "number" }),
+  durationMs: int("duration_ms"),
+  snapshotsCreated: int("snapshots_created").default(0),
+  snapshotsUpdated: int("snapshots_updated").default(0),
+  alertsCreated: int("alerts_created").default(0),
+  errorsCount: int("errors_count").default(0),
+  errorMessage: text("error_message"),
+  triggeredBy: varchar("triggered_by", { length: 100 }), // user_id or "heartbeat" or "manual"
+  scheduleCronTaskUid: varchar("schedule_cron_task_uid", { length: 65 }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()).$onUpdateFn(() => Date.now()),
+}, (table) => ({
+  budgetIdx: index("idx_snapshotjob_budget").on(table.budgetId),
+  statusIdx: index("idx_snapshotjob_status").on(table.status),
+  typeIdx: index("idx_snapshotjob_type").on(table.jobType),
+}));
+export type ErpBudgetSnapshotJob = typeof erpBudgetSnapshotJobs.$inferSelect;
+export type InsertErpBudgetSnapshotJob = typeof erpBudgetSnapshotJobs.$inferInsert;

@@ -2232,3 +2232,20 @@
 - [x] Sidebar + routes App.tsx (3 routes)
 - [x] Tests Sprint Budget 2.0 (1202 tests PASS, 0 erreurs TS)
 - [x] Checkpoint final
+
+## Sprint Budget 2.1 — Seed, Import Excel réel, Snapshots P&L/Cash Flow
+
+- [x] Audit module Budget 2.0 existant
+- [x] Table erp_budget_snapshot_jobs (logs des jobs)
+- [x] Permissions RBAC étendues (10 permissions : view, create, update, delete, approve, export, import, seed, sync, recalculate)
+- [x] Seed idempotent Budget 2026 (seedBudget2026 / cleanBudget2026)
+- [x] Amélioration moteur import Excel (détection mois FR/EN/code, accents, colonnes catégorie FR, lignes TOTAL, nombres FR)
+- [x] Service génération snapshots (generatePlSnapshots, generateCashFlowSnapshots, generateAlertsFromSnapshots)
+- [x] Routeur Snapshots P&L/Cash Flow intégré dans budgetV2Router (pl.get, pl.recalculate, cashFlow.get, cashFlow.recalculate)
+- [x] Job heartbeat automatique /api/scheduled/budget-snapshots (quotidien 6h UTC)
+- [x] UI onglets P&L/Cash Flow dans page Détail Budget (graphiques Bar/Line, tableaux mensuels, bouton Recalculer)
+- [x] UI Dashboard Budget enrichi (Vue d'ensemble + Catégories + Seed Démo + Sync Réel + Export)
+- [x] Audit logs (createAuditEvent dans routeur v2, import, heartbeat)
+- [x] Notifications (notifyOwner pour import erreurs, alertes budget détectées)
+- [x] Tests Sprint Budget 2.1 (1221 tests PASS, 0 erreurs TS)
+- [x] Checkpoint final

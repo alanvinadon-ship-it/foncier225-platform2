@@ -63,7 +63,7 @@ describe("Sprint Budget 2.0 — RBAC", () => {
 
   it("should have 6 permissions for erp_budget_v2", () => {
     const budgetPerms = ERP_DEFAULT_PERMISSIONS.filter(p => p.module === "erp_budget_v2");
-    expect(budgetPerms.length).toBe(6);
+    expect(budgetPerms.length).toBe(10);
     const actions = budgetPerms.map(p => p.action);
     expect(actions).toContain("view");
     expect(actions).toContain("create");

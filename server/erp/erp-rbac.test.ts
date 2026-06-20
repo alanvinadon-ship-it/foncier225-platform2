@@ -26,7 +26,7 @@ describe("ERP RBAC Service — Constants", () => {
   });
 
   it("définit 12 actions ERP", () => {
-    expect(ERP_ACTIONS).toHaveLength(12);
+    expect(ERP_ACTIONS).toHaveLength(16);
     expect(ERP_ACTIONS).toContain("view");
     expect(ERP_ACTIONS).toContain("create");
     expect(ERP_ACTIONS).toContain("update");

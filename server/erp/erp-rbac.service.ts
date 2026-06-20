@@ -57,6 +57,10 @@ export const ERP_ACTIONS = [
   "validate",
   "pay",
   "rate",
+  "import",
+  "seed",
+  "sync",
+  "recalculate",
 ] as const;
 
 export type ErpAction = (typeof ERP_ACTIONS)[number];
@@ -267,6 +271,10 @@ export const ERP_DEFAULT_PERMISSIONS: Array<{
   { module: "erp_budget_v2", action: "approve", displayName: "Approuver un budget", description: "Approuver ou verrouiller un budget" },
   { module: "erp_budget_v2", action: "delete", displayName: "Supprimer un budget", description: "Supprimer ou archiver un budget" },
   { module: "erp_budget_v2", action: "export", displayName: "Exporter un budget", description: "Exporter un budget en Excel, CSV ou PDF" },
+  { module: "erp_budget_v2", action: "import", displayName: "Importer un budget Excel", description: "Importer un fichier Excel de budget" },
+  { module: "erp_budget_v2", action: "seed", displayName: "Seed données démo", description: "Créer ou supprimer les données de démonstration" },
+  { module: "erp_budget_v2", action: "sync", displayName: "Synchroniser les réalisés", description: "Lancer la synchronisation des données réelles" },
+  { module: "erp_budget_v2", action: "recalculate", displayName: "Recalculer snapshots", description: "Générer ou recalculer les snapshots P&L et Cash Flow" },
 ];
 
 // ============================================================
