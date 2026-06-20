@@ -2,7 +2,23 @@ import { useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Package, Clock, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
+import { ShoppingCart, Package, Clock, TrendingUp, AlertTriangle, CheckCircle, BarChart3 } from "lucide-react";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from "chart.js";
+import { Bar, Line, Doughnut } from "react-chartjs-2";
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, ArcElement, Title, Tooltip, Legend, Filler);
 
 function formatXOF(amount: number): string {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "XOF", maximumFractionDigits: 0 }).format(amount);
@@ -12,20 +28,31 @@ function formatDate(ts: number): string {
   return new Date(ts).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+const MONTH_LABELS: Record<string, string> = {
+  "01": "Jan", "02": "Fév", "03": "Mar", "04": "Avr", "05": "Mai", "06": "Juin",
+  "07": "Juil", "08": "Août", "09": "Sep", "10": "Oct", "11": "Nov", "12": "Déc",
+};
+
 export default function ErpPurchasesDashboard() {
   // KPIs overview
   const { data: stats, isLoading: statsLoading } = trpc.erp.purchases.stats.overview.useQuery();
-  
+
   // Recent purchase orders
   const { data: recentOrders } = trpc.erp.purchases.orders.list.useQuery({ limit: 10, offset: 0 });
-  
+
   // Recent purchase requests pending approval
   const { data: pendingRequests } = trpc.erp.purchases.requests.list.useQuery({ status: "submitted", limit: 5, offset: 0 });
-  
+
   // Vendors list for top vendors
   const { data: vendors } = trpc.erp.vendors.list.useQuery({ limit: 100, offset: 0 });
 
-  // Status distribution for orders — useMemo must always be called
+  // Monthly trend data
+  const { data: monthlyTrend } = trpc.erp.purchases.stats.monthlyTrend.useQuery();
+
+  // Vendor distribution data
+  const { data: vendorDistribution } = trpc.erp.purchases.stats.vendorDistribution.useQuery();
+
+  // Status distribution for orders
   const statusDistribution = useMemo(() => {
     if (!recentOrders?.orders) return [];
     const counts: Record<string, number> = {};
@@ -42,6 +69,61 @@ export default function ErpPurchasesDashboard() {
     const total = recentOrders.orders.length;
     return total > 0 ? Math.round((delivered / total) * 100) : 0;
   }, [recentOrders]);
+
+  // Chart data: Monthly trend
+  const monthlyChartData = useMemo(() => {
+    if (!monthlyTrend || monthlyTrend.length === 0) return null;
+    const labels = monthlyTrend.map((d) => {
+      const parts = d.month.split("-");
+      return MONTH_LABELS[parts[1]] || parts[1];
+    });
+    return {
+      labels,
+      datasets: [
+        {
+          label: "Montant (FCFA)",
+          data: monthlyTrend.map((d) => d.total),
+          borderColor: "#16a34a",
+          backgroundColor: "rgba(22, 163, 106, 0.1)",
+          fill: true,
+          tension: 0.4,
+          pointRadius: 4,
+          pointBackgroundColor: "#16a34a",
+        },
+        {
+          label: "Nombre de commandes",
+          data: monthlyTrend.map((d) => d.count),
+          borderColor: "#2563eb",
+          backgroundColor: "rgba(37, 99, 235, 0.1)",
+          fill: false,
+          tension: 0.4,
+          pointRadius: 4,
+          pointBackgroundColor: "#2563eb",
+          yAxisID: "y1",
+        },
+      ],
+    };
+  }, [monthlyTrend]);
+
+  // Chart data: Vendor distribution (doughnut)
+  const vendorChartData = useMemo(() => {
+    if (!vendorDistribution || vendorDistribution.length === 0) return null;
+    const colors = [
+      "#16a34a", "#2563eb", "#d97706", "#9333ea", "#dc2626",
+      "#0891b2", "#4f46e5", "#ca8a04", "#be185d", "#059669",
+    ];
+    return {
+      labels: vendorDistribution.map((v) => v.vendorName),
+      datasets: [
+        {
+          data: vendorDistribution.map((v) => v.totalAmount),
+          backgroundColor: colors.slice(0, vendorDistribution.length),
+          borderWidth: 2,
+          borderColor: "#fff",
+        },
+      ],
+    };
+  }, [vendorDistribution]);
 
   if (statsLoading) {
     return (
@@ -136,13 +218,111 @@ export default function ErpPurchasesDashboard() {
                 <div>
                   <p className="text-sm text-gray-500">{kpi.title}</p>
                   <p className={`text-2xl font-bold ${kpi.color}`}>
-                    {kpi.isAmount ? kpi.value : kpi.value}
+                    {kpi.value}
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Charts Row: Monthly Trend + Vendor Distribution */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Monthly Trend Chart */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-green-600" />
+              Évolution Mensuelle des Achats
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {monthlyChartData ? (
+              <div style={{ height: "280px" }}>
+                <Line
+                  data={monthlyChartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: "index", intersect: false },
+                    scales: {
+                      y: {
+                        type: "linear",
+                        position: "left",
+                        title: { display: true, text: "Montant (FCFA)" },
+                        ticks: {
+                          callback: (value) => {
+                            const num = Number(value);
+                            if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+                            if (num >= 1000) return `${(num / 1000).toFixed(0)}k`;
+                            return String(num);
+                          },
+                        },
+                      },
+                      y1: {
+                        type: "linear",
+                        position: "right",
+                        title: { display: true, text: "Nb commandes" },
+                        grid: { drawOnChartArea: false },
+                      },
+                    },
+                    plugins: {
+                      legend: { position: "bottom" },
+                      tooltip: {
+                        callbacks: {
+                          label: (ctx) => {
+                            if (ctx.datasetIndex === 0) return `Montant: ${formatXOF(ctx.parsed.y ?? 0)}`;
+                            return `Commandes: ${ctx.parsed.y}`;
+                          },
+                        },
+                      },
+                    },
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-64 text-gray-400">
+                <p>Aucune donnée disponible pour les 12 derniers mois</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Vendor Distribution Doughnut */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Répartition par Fournisseur</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {vendorChartData ? (
+              <div style={{ height: "280px" }}>
+                <Doughnut
+                  data={vendorChartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: "bottom",
+                        labels: { boxWidth: 12, font: { size: 11 } },
+                      },
+                      tooltip: {
+                        callbacks: {
+                          label: (ctx) => `${ctx.label}: ${formatXOF(ctx.parsed)}`,
+                        },
+                      },
+                    },
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-64 text-gray-400">
+                <p>Aucune donnée fournisseur</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Second row: Delivery rate + Status distribution */}
@@ -267,7 +447,7 @@ export default function ErpPurchasesDashboard() {
         </Card>
       </div>
 
-      {/* Top Vendors */}
+      {/* Top Vendors Table */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Top Fournisseurs</CardTitle>

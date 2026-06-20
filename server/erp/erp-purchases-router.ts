@@ -433,6 +433,53 @@ const statsRouter = router({
         totalSpent: totalSpent.total,
       };
     }),
+
+  monthlyTrend: erpPermissionProcedure("erp_purchases", "view")
+    .query(async () => {
+      const db = (await getDb())!;
+      // Get orders from last 12 months grouped by month
+      const twelveMonthsAgo = Date.now() - 365 * 24 * 60 * 60 * 1000;
+      const rows = await db.select({
+        month: sql<string>`DATE_FORMAT(FROM_UNIXTIME(order_date / 1000), '%Y-%m')`,
+        count: sql<number>`COUNT(*)`,
+        total: sql<number>`COALESCE(SUM(total_amount), 0)`,
+      })
+        .from(erpPurchaseOrders)
+        .where(and(
+          isNull(erpPurchaseOrders.deletedAt),
+          gte(erpPurchaseOrders.orderDate, twelveMonthsAgo),
+          sql`status NOT IN ('draft', 'cancelled')`
+        ))
+        .groupBy(sql`DATE_FORMAT(FROM_UNIXTIME(order_date / 1000), '%Y-%m')`)
+        .orderBy(sql`DATE_FORMAT(FROM_UNIXTIME(order_date / 1000), '%Y-%m')`);
+      return rows.map(r => ({ month: r.month, count: Number(r.count), total: Number(r.total) }));
+    }),
+
+  vendorDistribution: erpPermissionProcedure("erp_purchases", "view")
+    .query(async () => {
+      const db = (await getDb())!;
+      const rows = await db.select({
+        vendorId: erpPurchaseOrders.vendorId,
+        vendorName: erpVendors.name,
+        orderCount: sql<number>`COUNT(*)`,
+        totalAmount: sql<number>`COALESCE(SUM(${erpPurchaseOrders.totalAmount}), 0)`,
+      })
+        .from(erpPurchaseOrders)
+        .innerJoin(erpVendors, eq(erpPurchaseOrders.vendorId, erpVendors.id))
+        .where(and(
+          isNull(erpPurchaseOrders.deletedAt),
+          sql`${erpPurchaseOrders.status} NOT IN ('draft', 'cancelled')`
+        ))
+        .groupBy(erpPurchaseOrders.vendorId, erpVendors.name)
+        .orderBy(sql`COALESCE(SUM(${erpPurchaseOrders.totalAmount}), 0) DESC`)
+        .limit(10);
+      return rows.map(r => ({
+        vendorId: r.vendorId,
+        vendorName: r.vendorName,
+        orderCount: Number(r.orderCount),
+        totalAmount: Number(r.totalAmount),
+      }));
+    }),
 });
 
 // ============================================================

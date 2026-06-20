@@ -2207,3 +2207,11 @@
 - [x] Sidebar + routes App.tsx
 - [x] Tests Sprint 23
 - [x] Checkpoint final
+
+## Sprint 24 — Audit Hooks, ESLint, Dashboard Chart.js
+
+- [x] Auditer toutes les pages ERP pour le pattern early return avant hooks (0 vrais problèmes détectés après fix ErpPurchasesDashboard)
+- [x] Ajouter ESLint react-hooks/rules-of-hooks (eslint.config.js + scripts lint/lint:hooks)
+- [x] Enrichir dashboard Achats avec Chart.js (évolution mensuelle Line chart + répartition fournisseurs Doughnut)
+- [x] Procédures backend monthlyTrend + vendorDistribution dans erp-purchases-router.ts
+- [x] Tests et checkpoint (1182 tests PASS, 0 erreurs TS)
