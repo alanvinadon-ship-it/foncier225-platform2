@@ -135,6 +135,11 @@ const ErpAnalyticsDashboard = lazy(() => import("./pages/erp/ErpAnalyticsDashboa
 const ErpCostCenters = lazy(() => import("./pages/erp/ErpCostCenters"));
 const ErpBudgetIntegrationJobs = lazy(() => import("./pages/erp/ErpBudgetIntegrationJobs"));
 const ErpDirectionDashboard = lazy(() => import("./pages/erp/ErpDirectionDashboard"));
+const ErpDirectionSchedules = lazy(() => import("./pages/erp/ErpDirectionSchedules"));
+const ErpDirectionReviews = lazy(() => import("./pages/erp/ErpDirectionReviews"));
+const ErpDirectionActions = lazy(() => import("./pages/erp/ErpDirectionActions"));
+const ErpDirectionDrilldown = lazy(() => import("./pages/erp/ErpDirectionDrilldown"));
+const ErpDirectionDataQuality = lazy(() => import("./pages/erp/ErpDirectionDataQuality"));
 
 function RouteFallback() {
   return (
@@ -721,6 +726,31 @@ function Router() {
       <Route path="/erp/direction-dashboard">
         <ErpLayout>
           <ErpDirectionDashboard />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/direction-schedules">
+        <ErpLayout>
+          <ErpDirectionSchedules />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/direction-reviews">
+        <ErpLayout>
+          <ErpDirectionReviews />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/direction-actions">
+        <ErpLayout>
+          <ErpDirectionActions />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/direction-drilldown">
+        <ErpLayout>
+          <ErpDirectionDrilldown />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/direction-data-quality">
+        <ErpLayout>
+          <ErpDirectionDataQuality />
         </ErpLayout>
       </Route>
       <Route path="/erp/notifications">

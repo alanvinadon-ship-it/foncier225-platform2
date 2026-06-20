@@ -269,4 +269,96 @@ export const erpDirectionDashboardRouter = router({
       const db = (await getDb())!;
       return db.select().from(erpCostCenters).limit(20);
     }),
+
+  /**
+   * Drill-down KPI : retourne les données sources d'un KPI spécifique
+   */
+  drilldown: erpPermissionProcedure("erp_budget_integrations", "view")
+    .input(z.object({
+      kpiKey: z.string(),
+      periodId: z.number().optional(),
+      dateFrom: z.number().optional(),
+      dateTo: z.number().optional(),
+      projectId: z.number().optional(),
+      programId: z.number().optional(),
+      costCenterId: z.number().optional(),
+    }))
+    .query(async ({ input }: any) => {
+      const db = (await getDb())!;
+      const { kpiKey, dateFrom, dateTo, projectId } = input;
+
+      switch (kpiKey) {
+        case "ca_realise":
+        case "ca_encaisse": {
+          const conditions: any[] = [];
+          if (dateFrom) conditions.push(gte(erpRealEstateSales.saleDate, dateFrom));
+          if (dateTo) conditions.push(lte(erpRealEstateSales.saleDate, dateTo));
+          if (projectId) conditions.push(eq(erpRealEstateSales.programId, projectId));
+          const rows = await db.select().from(erpRealEstateSales)
+            .where(conditions.length ? and(...conditions) : undefined)
+            .orderBy(desc(erpRealEstateSales.saleDate))
+            .limit(100);
+          const total = rows.reduce((s: number, r: any) => s + Number(r.totalAmount || r.salePrice || 0), 0);
+          return { kpiKey, summary: `${rows.length} ventes`, rows, total, filters: input };
+        }
+        case "depenses":
+        case "capex": {
+          const conditions: any[] = [];
+          if (dateFrom) conditions.push(gte(erpInvoices.issueDate, dateFrom));
+          if (dateTo) conditions.push(lte(erpInvoices.issueDate, dateTo));
+          const rows = await db.select().from(erpInvoices)
+            .where(conditions.length ? and(...conditions) : undefined)
+            .orderBy(desc(erpInvoices.issueDate))
+            .limit(100);
+          const total = rows.reduce((s: number, r: any) => s + Number(r.totalAmount || 0), 0);
+          return { kpiKey, summary: `${rows.length} factures`, rows, total, filters: input };
+        }
+        case "cash_flow": {
+          const rows = await db.select().from(erpBudgetCashflowSnapshots)
+            .orderBy(desc(erpBudgetCashflowSnapshots.monthNumber))
+            .limit(50);
+          return { kpiKey, summary: `${rows.length} snapshots`, rows, total: rows.length, filters: input };
+        }
+        case "ebitda":
+        case "pl": {
+          const rows = await db.select().from(erpBudgetPlSnapshots)
+            .orderBy(desc(erpBudgetPlSnapshots.monthNumber))
+            .limit(50);
+          return { kpiKey, summary: `${rows.length} snapshots P&L`, rows, total: rows.length, filters: input };
+        }
+        case "objectifs_non_atteints": {
+          const targets = await db.select().from(erpSalesTargets).limit(50);
+          const results = await db.select().from(erpSalesTargetResults).limit(200);
+          const notAchieved = targets.filter((t: any) => {
+            const r = results.filter((r: any) => r.salesTargetId === t.id);
+            const actual = r.reduce((s: number, x: any) => s + Number(x.actualAmount || 0), 0);
+            return actual < Number(t.targetAmount || 0);
+          });
+          return { kpiKey, summary: `${notAchieved.length} objectifs non atteints`, rows: notAchieved, total: notAchieved.length, filters: input };
+        }
+        case "alertes_critiques": {
+          const rows = await db.select().from(erpOverrunAlerts)
+            .where(eq(erpOverrunAlerts.priority, "critical"))
+            .orderBy(desc(erpOverrunAlerts.createdAt))
+            .limit(50);
+          return { kpiKey, summary: `${rows.length} alertes critiques`, rows, total: rows.length, filters: input };
+        }
+        case "centres_depassement": {
+          const rows = await db.select().from(erpCostCenters).limit(50);
+          const overBudget = rows.filter((c: any) => Number(c.currentSpend || 0) > Number(c.allocatedBudget || 0));
+          return { kpiKey, summary: `${overBudget.length} centres en dépassement`, rows: overBudget, total: overBudget.length, filters: input };
+        }
+        case "ventes_immobilieres": {
+          const conditions: any[] = [];
+          if (projectId) conditions.push(eq(erpRealEstateSales.programId, projectId));
+          const rows = await db.select().from(erpRealEstateSales)
+            .where(conditions.length ? and(...conditions) : undefined)
+            .orderBy(desc(erpRealEstateSales.saleDate))
+            .limit(100);
+          return { kpiKey, summary: `${rows.length} ventes immobilières`, rows, total: rows.length, filters: input };
+        }
+        default:
+          return { kpiKey, summary: "KPI non supporté", rows: [], total: 0, filters: input };
+      }
+    }),
 });

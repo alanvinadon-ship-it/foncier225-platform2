@@ -4030,3 +4030,142 @@ export const erpDirectionReportExports = mysqlTable("erp_direction_report_export
 }));
 export type ErpDirectionReportExport = typeof erpDirectionReportExports.$inferSelect;
 export type InsertErpDirectionReportExport = typeof erpDirectionReportExports.$inferInsert;
+
+
+// ============================================================
+// SPRINT GOUVERNANCE DIRECTION — Tables
+// ============================================================
+
+// --- Diffusion Rapports ---
+export const erpDirectionReportSchedules = mysqlTable("erp_direction_report_schedules", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 128 }).notNull(),
+  frequency: varchar("frequency", { length: 16 }).notNull().default("monthly"), // monthly, quarterly, weekly
+  dayOfMonth: int("day_of_month").default(1),
+  sendTime: varchar("send_time", { length: 8 }).default("08:00"), // HH:mm
+  timezone: varchar("timezone", { length: 64 }).default("Africa/Abidjan"),
+  recipientsJson: json("recipients_json").$type<string[]>(),
+  ccJson: json("cc_json").$type<string[]>(),
+  includePdfAttachment: boolean("include_pdf_attachment").default(true),
+  includeDownloadLink: boolean("include_download_link").default(true),
+  isActive: boolean("is_active").default(true),
+  lastRunAt: bigint("last_run_at", { mode: "number" }),
+  nextRunAt: bigint("next_run_at", { mode: "number" }),
+  createdBy: int("created_by"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  activeIdx: index("idx_dir_schedules_active").on(table.isActive),
+}));
+export type ErpDirectionReportSchedule = typeof erpDirectionReportSchedules.$inferSelect;
+export type InsertErpDirectionReportSchedule = typeof erpDirectionReportSchedules.$inferInsert;
+
+export const erpDirectionReportDeliveries = mysqlTable("erp_direction_report_deliveries", {
+  id: int("id").autoincrement().primaryKey(),
+  scheduleId: int("schedule_id"),
+  exportId: int("export_id"),
+  periodId: int("period_id"),
+  status: varchar("status", { length: 16 }).notNull().default("pending"), // pending, sent, failed, cancelled
+  recipientsJson: json("recipients_json").$type<string[]>(),
+  sentAt: bigint("sent_at", { mode: "number" }),
+  errorMessage: text("error_message"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  scheduleIdx: index("idx_dir_deliveries_schedule").on(table.scheduleId),
+  statusIdx: index("idx_dir_deliveries_status").on(table.status),
+}));
+export type ErpDirectionReportDelivery = typeof erpDirectionReportDeliveries.$inferSelect;
+export type InsertErpDirectionReportDelivery = typeof erpDirectionReportDeliveries.$inferInsert;
+
+// --- Revue Mensuelle ---
+export const erpDirectionReviews = mysqlTable("erp_direction_reviews", {
+  id: int("id").autoincrement().primaryKey(),
+  reviewNumber: varchar("review_number", { length: 32 }).notNull(),
+  periodId: int("period_id"),
+  title: varchar("title", { length: 255 }).notNull(),
+  reviewDate: bigint("review_date", { mode: "number" }),
+  status: varchar("status", { length: 16 }).notNull().default("draft"), // draft, in_review, approved, closed, archived, cancelled
+  summary: text("summary"),
+  keyRisks: text("key_risks"),
+  keyDecisions: text("key_decisions"),
+  reportExportId: int("report_export_id"),
+  createdBy: int("created_by"),
+  approvedBy: int("approved_by"),
+  approvedAt: bigint("approved_at", { mode: "number" }),
+  closedBy: int("closed_by"),
+  closedAt: bigint("closed_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  statusIdx: index("idx_dir_reviews_status").on(table.status),
+  periodIdx: index("idx_dir_reviews_period").on(table.periodId),
+}));
+export type ErpDirectionReview = typeof erpDirectionReviews.$inferSelect;
+export type InsertErpDirectionReview = typeof erpDirectionReviews.$inferInsert;
+
+export const erpDirectionReviewComments = mysqlTable("erp_direction_review_comments", {
+  id: int("id").autoincrement().primaryKey(),
+  reviewId: int("review_id").notNull(),
+  section: varchar("section", { length: 64 }),
+  kpiKey: varchar("kpi_key", { length: 64 }),
+  comment: text("comment").notNull(),
+  commentType: varchar("comment_type", { length: 32 }).notNull().default("observation"), // observation, risk, decision, recommendation, justification
+  createdBy: int("created_by"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  reviewIdx: index("idx_dir_review_comments_review").on(table.reviewId),
+}));
+export type ErpDirectionReviewComment = typeof erpDirectionReviewComments.$inferSelect;
+export type InsertErpDirectionReviewComment = typeof erpDirectionReviewComments.$inferInsert;
+
+// --- Plans d'Actions ---
+export const erpDirectionActionPlans = mysqlTable("erp_direction_action_plans", {
+  id: int("id").autoincrement().primaryKey(),
+  actionNumber: varchar("action_number", { length: 32 }).notNull(),
+  reviewId: int("review_id"),
+  alertId: int("alert_id"),
+  sourceModule: varchar("source_module", { length: 64 }),
+  sourceId: int("source_id"),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  priority: varchar("priority", { length: 16 }).notNull().default("medium"), // low, medium, high, critical
+  assignedTo: int("assigned_to"),
+  dueDate: bigint("due_date", { mode: "number" }),
+  status: varchar("status", { length: 16 }).notNull().default("open"), // open, in_progress, blocked, completed, cancelled, overdue
+  progressPercentage: int("progress_percentage").default(0),
+  completedAt: bigint("completed_at", { mode: "number" }),
+  createdBy: int("created_by"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  statusIdx: index("idx_dir_actions_status").on(table.status),
+  assignedIdx: index("idx_dir_actions_assigned").on(table.assignedTo),
+  dueDateIdx: index("idx_dir_actions_due").on(table.dueDate),
+  reviewIdx: index("idx_dir_actions_review").on(table.reviewId),
+}));
+export type ErpDirectionActionPlan = typeof erpDirectionActionPlans.$inferSelect;
+export type InsertErpDirectionActionPlan = typeof erpDirectionActionPlans.$inferInsert;
+
+// --- Contrôle Qualité Données ---
+export const erpDirectionDataQualityChecks = mysqlTable("erp_direction_data_quality_checks", {
+  id: int("id").autoincrement().primaryKey(),
+  checkKey: varchar("check_key", { length: 64 }).notNull(),
+  checkName: varchar("check_name", { length: 128 }).notNull(),
+  module: varchar("module", { length: 64 }).notNull(),
+  severity: varchar("severity", { length: 16 }).notNull().default("medium"), // low, medium, high, critical
+  status: varchar("status", { length: 16 }).notNull().default("passed"), // passed, warning, failed, ignored
+  recordsCount: int("records_count").default(0),
+  detailsJson: json("details_json"),
+  lastCheckedAt: bigint("last_checked_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  checkKeyIdx: index("idx_dir_dq_check_key").on(table.checkKey),
+  statusIdx: index("idx_dir_dq_status").on(table.status),
+}));
+export type ErpDirectionDataQualityCheck = typeof erpDirectionDataQualityChecks.$inferSelect;
+export type InsertErpDirectionDataQualityCheck = typeof erpDirectionDataQualityChecks.$inferInsert;

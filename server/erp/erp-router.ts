@@ -457,6 +457,10 @@ import { erpAnalyticsRouter } from "./erp-analytics-router";
 import { erpBudgetIntegrationsRouter } from "./erp-budget-integrations-router";
 import { erpDirectionDashboardRouter } from "./erp-direction-dashboard-router";
 import { erpDirectionReportsRouter } from "./erp-direction-reports-router";
+import { erpDirectionSchedulesRouter } from "./erp-direction-schedules-router";
+import { erpDirectionReviewsRouter } from "./erp-direction-reviews-router";
+import { erpDirectionActionsRouter } from "./erp-direction-actions-router";
+import { erpDirectionDataQualityRouter } from "./erp-direction-data-quality-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -507,4 +511,8 @@ export const erpRouter = router({
   budgetIntegrations: erpBudgetIntegrationsRouter,
   directionDashboard: erpDirectionDashboardRouter,
   directionReports: erpDirectionReportsRouter,
+  directionSchedules: erpDirectionSchedulesRouter,
+  directionReviews: erpDirectionReviewsRouter,
+  directionActions: erpDirectionActionsRouter,
+  directionDataQuality: erpDirectionDataQualityRouter,
 });

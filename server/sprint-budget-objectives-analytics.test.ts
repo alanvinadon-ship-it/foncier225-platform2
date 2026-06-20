@@ -58,7 +58,7 @@ describe("Sprint Budget-Objectifs-Analytique — Routeurs", () => {
 describe("Sprint Budget-Objectifs-Analytique — RBAC", () => {
   it("devrait avoir 26 modules ERP", async () => {
     const { ERP_MODULES } = await import("./erp/erp-rbac.service");
-    expect(ERP_MODULES.length).toBe(28);
+    expect(ERP_MODULES.length).toBe(32);
   });
 
   it("devrait inclure les 3 nouveaux modules", async () => {

@@ -2293,4 +2293,34 @@
 - [x] Sidebar ERP + routes App.tsx
 - [x] Tests Vitest (heartbeat, dashboard, export PDF, non-régression)
 - [x] 0 erreur TypeScript, tous tests PASS (1249 tests, 44 fichiers)
+- [x] Checkpoint final (e762382e)
+
+## Sprint Gouvernance Direction — Revue Mensuelle, Diffusion Rapports, Plans d'Actions, Drill-down KPI
+- [x] Audit préalable (tables, routes, services existants)
+- [x] Partie A — Diffusion automatique rapports Direction
+  - [x] Tables erp_direction_report_schedules + erp_direction_report_deliveries
+  - [x] Routeur tRPC directionSchedules (create, list, runNow, disable, deliveries)
+  - [x] Page UI /erp/direction-schedules
+- [x] Partie B — Revue mensuelle de direction
+  - [x] Tables erp_direction_reviews + erp_direction_review_comments
+  - [x] Routeur tRPC directionReviews (create, list, getById, submit, approve, close, addComment, listComments)
+  - [x] Page UI /erp/direction-reviews (liste, detail avec workflow + commentaires)
+- [x] Partie C — Plans d'actions de direction
+  - [x] Table erp_direction_action_plans
+  - [x] Routeur tRPC directionActions (create, list, update, complete, cancel, summary, overdue)
+  - [x] Page UI /erp/direction-actions (KPIs, filtres, liste avec progression)
+- [x] Partie D — Drill-down KPI
+  - [x] Endpoint drilldown dans direction-dashboard-router (10 KPI keys)
+  - [x] Page UI /erp/direction-drilldown (filtres + table dynamique)
+- [x] Partie E — Contrôle qualité données
+  - [x] Table erp_direction_data_quality_checks
+  - [x] Service 7 checks qualité (budget_lines, invoices, sales, projects, cost_centers, targets, programs)
+  - [x] Routeur tRPC directionDataQuality (runAll, latest, definitions)
+  - [x] Page UI /erp/direction-data-quality
+- [x] RBAC : 4 nouveaux modules (direction_reviews 4 perms, direction_actions 4 perms, direction_data_quality 2 perms, direction_schedules 3 perms) — 32 modules total
+- [x] Notifications (rapports, revues, actions, qualité) via notifyOwner
+- [x] Audit logs (schedules, revues, actions, drill-down, qualité) via createAuditEvent
+- [x] Sidebar ERP enrichie (7 entrées dans groupe Direction) + 5 routes App.tsx
+- [x] Tests Vitest (11 nouveaux tests + non-régression, 1260 tests PASS, 45 fichiers)
+- [x] 0 erreur TypeScript
 - [ ] Checkpoint final

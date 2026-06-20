@@ -58,7 +58,7 @@ describe("Sprint Budget 2.0 — RBAC", () => {
   });
 
   it("should have 23 ERP modules total", () => {
-    expect(ERP_MODULES.length).toBe(28);
+    expect(ERP_MODULES.length).toBe(32);
   });
 
   it("should have 6 permissions for erp_budget_v2", () => {

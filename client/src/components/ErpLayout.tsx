@@ -49,6 +49,8 @@ import {
   Layers,
   Activity,
   Gauge,
+  TrendingUp,
+  Mail,
 } from "lucide-react";
 import { useState } from "react";
 import { NotificationBell } from "@/components/erp/NotificationBell";
@@ -178,7 +180,12 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
     module: "erp_budget_integrations",
     children: [
       { label: "Dashboard 360", href: "/erp/direction-dashboard", icon: <LayoutDashboard size={18} />, module: "erp_budget_integrations" },
-      { label: "Jobs Int\u00e9gration", href: "/erp/budget-integrations/jobs", icon: <Activity size={18} />, module: "erp_budget_integrations" },
+      { label: "Drill-down KPI", href: "/erp/direction-drilldown", icon: <TrendingUp size={18} />, module: "erp_budget_integrations" },
+      { label: "Revues Mensuelles", href: "/erp/direction-reviews", icon: <FileText size={18} />, module: "erp_budget_integrations" },
+      { label: "Plans d'Actions", href: "/erp/direction-actions", icon: <Target size={18} />, module: "erp_budget_integrations" },
+      { label: "Diffusion Rapports", href: "/erp/direction-schedules", icon: <Mail size={18} />, module: "erp_budget_integrations" },
+      { label: "Qualité Données", href: "/erp/direction-data-quality", icon: <ShieldCheck size={18} />, module: "erp_budget_integrations" },
+      { label: "Jobs Intégration", href: "/erp/budget-integrations/jobs", icon: <Activity size={18} />, module: "erp_budget_integrations" },
     ],
   },
   { label: "Notifications", href: "/erp/notifications", icon: <Bell size={18} />, module: "erp_alerts" },

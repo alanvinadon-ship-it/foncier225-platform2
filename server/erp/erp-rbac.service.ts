@@ -41,6 +41,10 @@ export const ERP_MODULES = [
   "erp_budget_integrations",
   "erp_direction_dashboard",
   "erp_direction_reports",
+  "erp_direction_reviews",
+  "erp_direction_actions",
+  "erp_direction_data_quality",
+  "erp_direction_schedules",
 ] as const;
 
 export type ErpModule = (typeof ERP_MODULES)[number];
@@ -312,6 +316,23 @@ export const ERP_DEFAULT_PERMISSIONS: Array<{
   { module: "erp_direction_reports", action: "view", displayName: "Voir les rapports direction", description: "Consulter les rapports PDF direction" },
   { module: "erp_direction_reports", action: "create", displayName: "Générer un rapport", description: "Générer un nouveau rapport PDF direction" },
   { module: "erp_direction_reports", action: "export", displayName: "Télécharger un rapport", description: "Télécharger un rapport PDF généré" },
+  // Direction Reviews
+  { module: "erp_direction_reviews", action: "view", displayName: "Voir les revues", description: "Consulter les revues mensuelles de direction" },
+  { module: "erp_direction_reviews", action: "create", displayName: "Créer une revue", description: "Créer une nouvelle revue de direction" },
+  { module: "erp_direction_reviews", action: "update", displayName: "Modifier une revue", description: "Modifier le contenu d'une revue" },
+  { module: "erp_direction_reviews", action: "approve", displayName: "Approuver une revue", description: "Approuver ou clôturer une revue" },
+  // Direction Actions
+  { module: "erp_direction_actions", action: "view", displayName: "Voir les actions", description: "Consulter les plans d'actions direction" },
+  { module: "erp_direction_actions", action: "create", displayName: "Créer une action", description: "Créer un nouveau plan d'action" },
+  { module: "erp_direction_actions", action: "update", displayName: "Modifier une action", description: "Modifier un plan d'action existant" },
+  { module: "erp_direction_actions", action: "delete", displayName: "Annuler une action", description: "Annuler un plan d'action" },
+  // Direction Data Quality
+  { module: "erp_direction_data_quality", action: "view", displayName: "Voir les contrôles qualité", description: "Consulter les résultats des contrôles qualité" },
+  { module: "erp_direction_data_quality", action: "create", displayName: "Lancer un contrôle", description: "Exécuter les vérifications qualité données" },
+  // Direction Schedules
+  { module: "erp_direction_schedules", action: "view", displayName: "Voir les plannings", description: "Consulter les plannings de diffusion" },
+  { module: "erp_direction_schedules", action: "create", displayName: "Créer un planning", description: "Créer un planning de diffusion automatique" },
+  { module: "erp_direction_schedules", action: "update", displayName: "Modifier un planning", description: "Modifier un planning de diffusion" },
 ];
 
 // ============================================================
@@ -380,6 +401,12 @@ export const ERP_ROLE_DEFAULT_PERMISSIONS: Record<string, Array<{ module: ErpMod
     { module: "erp_alerts", action: "view" },
     { module: "erp_profile", action: "view" }, { module: "erp_profile", action: "update" },
     { module: "erp_audit_logs", action: "view" },
+    { module: "erp_direction_dashboard", action: "view" }, { module: "erp_direction_dashboard", action: "export" },
+    { module: "erp_direction_reports", action: "view" }, { module: "erp_direction_reports", action: "create" }, { module: "erp_direction_reports", action: "export" },
+    { module: "erp_direction_reviews", action: "view" }, { module: "erp_direction_reviews", action: "create" }, { module: "erp_direction_reviews", action: "update" },
+    { module: "erp_direction_actions", action: "view" }, { module: "erp_direction_actions", action: "create" }, { module: "erp_direction_actions", action: "update" },
+    { module: "erp_direction_data_quality", action: "view" }, { module: "erp_direction_data_quality", action: "create" },
+    { module: "erp_direction_schedules", action: "view" }, { module: "erp_direction_schedules", action: "create" }, { module: "erp_direction_schedules", action: "update" },
   ],
 
   // Safety Officer : sécurité, conformité, équipements
@@ -426,6 +453,12 @@ export const ERP_ROLE_DEFAULT_PERMISSIONS: Record<string, Array<{ module: ErpMod
     { module: "erp_alerts", action: "view" },
     { module: "erp_profile", action: "view" },
     { module: "erp_audit_logs", action: "view" },
+    { module: "erp_direction_dashboard", action: "view" },
+    { module: "erp_direction_reports", action: "view" },
+    { module: "erp_direction_reviews", action: "view" },
+    { module: "erp_direction_actions", action: "view" },
+    { module: "erp_direction_data_quality", action: "view" },
+    { module: "erp_direction_schedules", action: "view" },
   ],
 };
 
