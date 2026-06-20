@@ -439,6 +439,7 @@ import { erpOverrunAlertsRouter } from "./erp-overrun-alerts-router";
 import { erpNotificationsRouter } from "./erp-notifications-router";
 import { erpProfileRouter } from "./erp-profile-router";
 import { erpAuditLogsRouter } from "./erp-audit-logs-router";
+import { erpExportsRouter } from "./erp-exports-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -471,4 +472,5 @@ export const erpRouter = router({
   notifications: erpNotificationsRouter,
   profile: erpProfileRouter,
   auditLogs: erpAuditLogsRouter,
+  exports: erpExportsRouter,
 });

@@ -11,6 +11,9 @@ import { delayAlertsHandler } from "../scheduled-delay-alerts";
 import { appointmentRemindersHandler } from "../scheduled-appointment-reminders";
 import { handleCinetPayWebhook, handleTresorPayWebhook } from "../payment-router";
 import { handleSigfuWebhook, handleSiforWebhook } from "../webhook-interconnexion";
+import { erpAlertsHandler } from "../scheduled-erp-alerts";
+import { globalApiLimiter, authLimiter, webhookLimiter } from "./rateLimiter";
+import { sanitizeInput } from "./sanitize";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -34,9 +37,27 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
+  // Trust proxy (behind reverse proxy in production)
+  app.set("trust proxy", 1);
+
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // Input sanitization — Sprint 20 Security
+  app.use("/api/trpc", (req, _res, nextFn) => {
+    if (req.body && typeof req.body === "object") {
+      req.body = sanitizeInput(req.body);
+    }
+    nextFn();
+  });
+
+  // Rate limiting — Sprint 20 Security
+  app.use("/api/trpc", globalApiLimiter);
+  app.use("/api/oauth", authLimiter);
+  app.use("/api/webhooks", webhookLimiter);
+  app.use("/api/scheduled", webhookLimiter);
   app.get("/healthz", (_req, res) => {
     res.status(200).json({
       ok: true,
@@ -47,6 +68,7 @@ async function startServer() {
   // Scheduled handlers (must be before tRPC)
   app.post("/api/scheduled/delay-alerts", delayAlertsHandler);
   app.post("/api/scheduled/appointment-reminders", appointmentRemindersHandler);
+  app.post("/api/scheduled/erp-alerts", erpAlertsHandler);
   // Payment webhooks
   app.post("/api/webhooks/cinetpay", handleCinetPayWebhook);
   app.post("/api/webhooks/tresorpay", handleTresorPayWebhook);

@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { NotificationBell } from "@/components/erp/NotificationBell";
+import { ErpSearchCommand } from "@/components/ErpSearchCommand";
 
 interface NavItem {
   label: string;
@@ -101,6 +102,7 @@ export function ErpLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const { hasAccess, isLoading, canAccessModule, isErpAdmin } = useErpPermissions();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
     // Auto-expand group if current location matches one of its children
     const expanded = new Set<string>();
@@ -167,9 +169,20 @@ export function ErpLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-background">
+      {/* Mobile overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
       {/* Sidebar */}
       <aside
-        className={`${sidebarOpen ? "w-64" : "w-16"} transition-all duration-200 bg-card border-r border-border flex flex-col`}
+        className={`${
+          sidebarOpen ? "w-64" : "w-16"
+        } transition-all duration-200 bg-card border-r border-border flex flex-col fixed lg:relative inset-y-0 left-0 z-50 ${
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
       >
         {/* Header */}
         <div className="h-14 flex items-center px-4 border-b border-border justify-between">
@@ -317,12 +330,21 @@ export function ErpLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
-        {/* Header bar with notification bell */}
-        <div className="h-14 border-b border-border flex items-center justify-end px-6 gap-3">
+      <main className="flex-1 overflow-y-auto min-w-0">
+        {/* Header bar */}
+        <div className="h-14 border-b border-border flex items-center justify-between px-4 sm:px-6 gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="p-2 rounded-md hover:bg-accent lg:hidden"
+            >
+              <Menu size={20} />
+            </button>
+            <ErpSearchCommand />
+          </div>
           <NotificationBell />
         </div>
-        <div className="p-6">{children}</div>
+        <div className="p-3 sm:p-6">{children}</div>
       </main>
     </div>
   );

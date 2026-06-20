@@ -2112,3 +2112,28 @@
 
 ## Regrouper les modules Finance dans un sous-menu
 - [x] Créer un menu déroulant/collapsible "Finance" dans la sidebar ERP regroupant Factures, Paiements, Budgets, Trésorerie, Rentabilité, Alertes Dépassement
+
+## Sprint 20 — Stabilisation post-audit ERP Construction
+
+### 1. Sécurité critique
+- [x] Rate limiting API global (100 req/min ERP, strict pour auth, spécifique pour upload)
+- [x] Sécurisation uploads (validation MIME, magic bytes, taille max, extension, nom fichier)
+- [x] Sanitization inputs texte (protection XSS côté serveur)
+
+### 2. Performance
+- [x] Cache applicatif ciblé (dashboard, stats, listes de référence — TTL 1-5 min)
+- [x] Heartbeat automatique alertes (budget, factures échues, docs expirés, stock critique)
+
+### 3. Fonctionnalités transversales
+- [x] Exports CSV/Excel (projects, tasks, invoices, payments, inventory, vendors, contractors, audit-logs)
+- [x] Recherche globale ERP (Ctrl+K, CommandDialog, navigation + projets)
+- [x] Notifications via heartbeat (dépassement budget, facture échue, docs expirés, stock critique, projets retard)
+
+### 4. UX
+- [x] Responsive sidebar ERP (mobile overlay, hamburger menu, breakpoints lg)
+
+### 5. Data integrity
+- [x] Soft delete standardisé (tables principales couvertes, relationnelles = hard delete OK)
+
+### 6. Documentation
+- [x] Rapport final Sprint 20 + tests vitest (1103 tests PASS)

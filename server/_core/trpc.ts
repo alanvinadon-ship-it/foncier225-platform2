@@ -5,12 +5,17 @@ import type { TrpcContext } from "./context";
 import { hasPermission } from "../rbac.service";
 import { hasErpPermission, hasAnyErpRole } from "../erp/erp-rbac.service";
 
+
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
 });
 
 export const router = t.router;
 export const publicProcedure = t.procedure;
+
+// Sanitization is applied via Express middleware (see server/_core/index.ts)
+// and the sanitizeInput/sanitizeString helpers are available for manual use.
+export { sanitizeInput, sanitizeString } from "./sanitize";
 
 const requireUser = t.middleware(async opts => {
   const { ctx, next } = opts;
