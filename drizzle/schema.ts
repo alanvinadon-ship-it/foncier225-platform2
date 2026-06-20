@@ -8,6 +8,7 @@ import {
   mysqlEnum,
   mysqlTable,
   text,
+  tinyint,
   timestamp,
   unique,
   varchar,
@@ -3462,3 +3463,294 @@ export const erpAccountingExportLines = mysqlTable("erp_acct_export_lines", {
   exportIdx: index("idx_erp_acctexportlines_export").on(table.exportId),
 }));
 export type ErpAccountingExportLine = typeof erpAccountingExportLines.$inferSelect;
+
+
+// ============================================================
+// Sprint Budget 2.0 — Module Budget Prévisionnel Entreprise
+// ============================================================
+
+export const erpBudgetsV2 = mysqlTable("erp_budgets_v2", {
+  id: int("id").autoincrement().primaryKey(),
+  budgetCode: varchar("budget_code", { length: 50 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  fiscalYear: int("fiscal_year").notNull(),
+  companyId: int("company_id"),
+  currency: varchar("currency", { length: 10 }).default("XOF").notNull(),
+  status: mysqlEnum("status", ["draft", "imported", "under_review", "approved", "locked", "revised", "archived", "cancelled"]).default("draft").notNull(),
+  scenarioType: mysqlEnum("scenario_type", ["initial_budget", "revised_budget", "forecast", "optimistic", "pessimistic", "actualized"]).default("initial_budget").notNull(),
+  sourceFileId: int("source_file_id"),
+  createdBy: int("created_by").notNull(),
+  approvedBy: int("approved_by"),
+  approvedAt: bigint("approved_at", { mode: "number" }),
+  lockedBy: int("locked_by"),
+  lockedAt: bigint("locked_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  yearIdx: index("idx_budgetv2_year").on(table.fiscalYear),
+  statusIdx: index("idx_budgetv2_status").on(table.status),
+}));
+export type ErpBudgetV2 = typeof erpBudgetsV2.$inferSelect;
+export type InsertErpBudgetV2 = typeof erpBudgetsV2.$inferInsert;
+
+export const erpBudgetVersions = mysqlTable("erp_budget_versions", {
+  id: int("id").autoincrement().primaryKey(),
+  budgetId: int("budget_id").notNull(),
+  versionNumber: int("version_number").notNull(),
+  versionName: varchar("version_name", { length: 100 }).notNull(),
+  description: text("description"),
+  status: mysqlEnum("status", ["draft", "active", "archived"]).default("draft").notNull(),
+  createdBy: int("created_by").notNull(),
+  approvedBy: int("approved_by"),
+  approvedAt: bigint("approved_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  budgetIdx: index("idx_budgetver_budget").on(table.budgetId),
+}));
+export type ErpBudgetVersion = typeof erpBudgetVersions.$inferSelect;
+export type InsertErpBudgetVersion = typeof erpBudgetVersions.$inferInsert;
+
+export const erpBudgetPeriods = mysqlTable("erp_budget_periods", {
+  id: int("id").autoincrement().primaryKey(),
+  budgetId: int("budget_id").notNull(),
+  fiscalYear: int("fiscal_year").notNull(),
+  periodNumber: int("period_number").notNull(),
+  periodMonth: int("period_month").notNull(),
+  periodLabel: varchar("period_label", { length: 50 }).notNull(),
+  startDate: bigint("start_date", { mode: "number" }),
+  endDate: bigint("end_date", { mode: "number" }),
+  status: mysqlEnum("status", ["open", "closed", "locked"]).default("open").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  budgetIdx: index("idx_budgetperiod_budget").on(table.budgetId),
+}));
+export type ErpBudgetPeriod = typeof erpBudgetPeriods.$inferSelect;
+export type InsertErpBudgetPeriod = typeof erpBudgetPeriods.$inferInsert;
+
+export const erpBudgetCategories = mysqlTable("erp_budget_categories", {
+  id: int("id").autoincrement().primaryKey(),
+  budgetId: int("budget_id").notNull(),
+  parentId: int("parent_id"),
+  code: varchar("code", { length: 50 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  categoryType: mysqlEnum("category_type", ["REVENUE", "OPEX", "CAPEX", "TAX", "PAYROLL", "DIRECT_COST", "INDIRECT_COST", "FINANCIAL_RESULT", "EXCEPTIONAL_RESULT", "CASHFLOW", "OTHER"]).notNull(),
+  sourceSheet: varchar("source_sheet", { length: 100 }),
+  sortOrder: int("sort_order").default(0).notNull(),
+  isTotalLine: tinyint("is_total_line").default(0).notNull(),
+  accountingAccountId: int("accounting_account_id"),
+  taxCodeId: int("tax_code_id"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  budgetIdx: index("idx_budgetcat_budget").on(table.budgetId),
+  parentIdx: index("idx_budgetcat_parent").on(table.parentId),
+  typeIdx: index("idx_budgetcat_type").on(table.categoryType),
+}));
+export type ErpBudgetCategory = typeof erpBudgetCategories.$inferSelect;
+export type InsertErpBudgetCategory = typeof erpBudgetCategories.$inferInsert;
+
+export const erpBudgetLinesV2 = mysqlTable("erp_budget_lines_v2", {
+  id: int("id").autoincrement().primaryKey(),
+  budgetId: int("budget_id").notNull(),
+  budgetVersionId: int("budget_version_id"),
+  categoryId: int("category_id").notNull(),
+  projectId: int("project_id"),
+  customerId: int("customer_id"),
+  vendorId: int("vendor_id"),
+  employeeId: int("employee_id"),
+  department: varchar("department", { length: 100 }),
+  costCenter: varchar("cost_center", { length: 100 }),
+  lineCode: varchar("line_code", { length: 50 }),
+  lineLabel: varchar("line_label", { length: 500 }).notNull(),
+  lineType: mysqlEnum("line_type", ["REVENUE", "DIRECT_COST", "INDIRECT_COST", "OPEX", "CAPEX", "TAX", "PAYROLL", "SOCIAL_CHARGES", "CASH_IN", "CASH_OUT", "RESULT", "KPI", "TOTAL"]).notNull(),
+  sourceSheet: varchar("source_sheet", { length: 100 }),
+  sourceRowNumber: int("source_row_number"),
+  isInputLine: tinyint("is_input_line").default(1).notNull(),
+  isTotalLine: tinyint("is_total_line").default(0).notNull(),
+  isCalculatedLine: tinyint("is_calculated_line").default(0).notNull(),
+  calculationFormula: varchar("calculation_formula", { length: 500 }),
+  accountingAccountId: int("accounting_account_id"),
+  taxCodeId: int("tax_code_id"),
+  comments: text("comments"),
+  sortOrder: int("sort_order").default(0).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  budgetIdx: index("idx_budgetlinev2_budget").on(table.budgetId),
+  categoryIdx: index("idx_budgetlinev2_cat").on(table.categoryId),
+  typeIdx: index("idx_budgetlinev2_type").on(table.lineType),
+}));
+export type ErpBudgetLineV2 = typeof erpBudgetLinesV2.$inferSelect;
+export type InsertErpBudgetLineV2 = typeof erpBudgetLinesV2.$inferInsert;
+
+export const erpBudgetLineAmounts = mysqlTable("erp_budget_line_amounts", {
+  id: int("id").autoincrement().primaryKey(),
+  budgetLineId: int("budget_line_id").notNull(),
+  budgetPeriodId: int("budget_period_id"),
+  monthNumber: int("month_number").notNull(),
+  plannedAmount: bigint("planned_amount", { mode: "number" }).default(0).notNull(),
+  actualAmount: bigint("actual_amount", { mode: "number" }).default(0).notNull(),
+  committedAmount: bigint("committed_amount", { mode: "number" }).default(0).notNull(),
+  paidAmount: bigint("paid_amount", { mode: "number" }).default(0).notNull(),
+  invoicedAmount: bigint("invoiced_amount", { mode: "number" }).default(0).notNull(),
+  varianceAmount: bigint("variance_amount", { mode: "number" }).default(0).notNull(),
+  variancePercentage: int("variance_percentage").default(0).notNull(),
+  executionRate: int("execution_rate").default(0).notNull(),
+  currency: varchar("currency", { length: 10 }).default("XOF").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  lineIdx: index("idx_budgetamt_line").on(table.budgetLineId),
+  monthIdx: index("idx_budgetamt_month").on(table.monthNumber),
+}));
+export type ErpBudgetLineAmount = typeof erpBudgetLineAmounts.$inferSelect;
+export type InsertErpBudgetLineAmount = typeof erpBudgetLineAmounts.$inferInsert;
+
+export const erpBudgetImports = mysqlTable("erp_budget_imports", {
+  id: int("id").autoincrement().primaryKey(),
+  budgetId: int("budget_id"),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  filePath: varchar("file_path", { length: 500 }).notNull(),
+  fileSize: int("file_size").default(0).notNull(),
+  importStatus: mysqlEnum("import_status", ["uploaded", "analysed", "mapped", "imported", "failed", "cancelled"]).default("uploaded").notNull(),
+  importedBy: int("imported_by").notNull(),
+  importedAt: bigint("imported_at", { mode: "number" }),
+  detectedSheetsJson: json("detected_sheets_json"),
+  mappingSummaryJson: json("mapping_summary_json"),
+  errorsCount: int("errors_count").default(0).notNull(),
+  warningsCount: int("warnings_count").default(0).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  budgetIdx: index("idx_budgetimport_budget").on(table.budgetId),
+  statusIdx: index("idx_budgetimport_status").on(table.importStatus),
+}));
+export type ErpBudgetImport = typeof erpBudgetImports.$inferSelect;
+export type InsertErpBudgetImport = typeof erpBudgetImports.$inferInsert;
+
+export const erpBudgetImportErrors = mysqlTable("erp_budget_import_errors", {
+  id: int("id").autoincrement().primaryKey(),
+  budgetImportId: int("budget_import_id").notNull(),
+  sheetName: varchar("sheet_name", { length: 100 }),
+  rowNumber: int("row_number"),
+  columnName: varchar("column_name", { length: 50 }),
+  errorType: varchar("error_type", { length: 100 }).notNull(),
+  errorMessage: text("error_message").notNull(),
+  rawValue: varchar("raw_value", { length: 500 }),
+  severity: mysqlEnum("severity", ["info", "warning", "error", "critical"]).default("error").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  importIdx: index("idx_budgetimperr_import").on(table.budgetImportId),
+}));
+export type ErpBudgetImportError = typeof erpBudgetImportErrors.$inferSelect;
+export type InsertErpBudgetImportError = typeof erpBudgetImportErrors.$inferInsert;
+
+export const erpBudgetTemplateMappings = mysqlTable("erp_budget_tmpl_mappings", {
+  id: int("id").autoincrement().primaryKey(),
+  templateName: varchar("template_name", { length: 255 }).notNull(),
+  sheetName: varchar("sheet_name", { length: 100 }).notNull(),
+  mappingType: mysqlEnum("mapping_type", ["revenue", "charges", "investment", "pl", "cashflow", "summary"]).notNull(),
+  headerRow: int("header_row").default(1).notNull(),
+  categoryColumn: varchar("category_column", { length: 10 }),
+  lineColumn: varchar("line_column", { length: 10 }),
+  monthStartColumn: varchar("month_start_column", { length: 10 }),
+  monthEndColumn: varchar("month_end_column", { length: 10 }),
+  totalColumn: varchar("total_column", { length: 10 }),
+  commentsColumn: varchar("comments_column", { length: 10 }),
+  rulesJson: json("rules_json"),
+  isActive: tinyint("is_active").default(1).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  templateIdx: index("idx_budgettmpl_name").on(table.templateName),
+}));
+export type ErpBudgetTemplateMapping = typeof erpBudgetTemplateMappings.$inferSelect;
+export type InsertErpBudgetTemplateMapping = typeof erpBudgetTemplateMappings.$inferInsert;
+
+export const erpBudgetPlSnapshots = mysqlTable("erp_budget_pl_snapshots", {
+  id: int("id").autoincrement().primaryKey(),
+  budgetId: int("budget_id").notNull(),
+  budgetVersionId: int("budget_version_id"),
+  budgetPeriodId: int("budget_period_id"),
+  monthNumber: int("month_number").notNull(),
+  revenuePlanned: bigint("revenue_planned", { mode: "number" }).default(0).notNull(),
+  revenueActual: bigint("revenue_actual", { mode: "number" }).default(0).notNull(),
+  directCostsPlanned: bigint("direct_costs_planned", { mode: "number" }).default(0).notNull(),
+  directCostsActual: bigint("direct_costs_actual", { mode: "number" }).default(0).notNull(),
+  directMarginPlanned: bigint("direct_margin_planned", { mode: "number" }).default(0).notNull(),
+  directMarginActual: bigint("direct_margin_actual", { mode: "number" }).default(0).notNull(),
+  indirectCostsPlanned: bigint("indirect_costs_planned", { mode: "number" }).default(0).notNull(),
+  indirectCostsActual: bigint("indirect_costs_actual", { mode: "number" }).default(0).notNull(),
+  ebitdaPlanned: bigint("ebitda_planned", { mode: "number" }).default(0).notNull(),
+  ebitdaActual: bigint("ebitda_actual", { mode: "number" }).default(0).notNull(),
+  capexPlanned: bigint("capex_planned", { mode: "number" }).default(0).notNull(),
+  capexActual: bigint("capex_actual", { mode: "number" }).default(0).notNull(),
+  operatingCashFlowPlanned: bigint("op_cashflow_planned", { mode: "number" }).default(0).notNull(),
+  operatingCashFlowActual: bigint("op_cashflow_actual", { mode: "number" }).default(0).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  budgetIdx: index("idx_budgetpl_budget").on(table.budgetId),
+  monthIdx: index("idx_budgetpl_month").on(table.monthNumber),
+}));
+export type ErpBudgetPlSnapshot = typeof erpBudgetPlSnapshots.$inferSelect;
+export type InsertErpBudgetPlSnapshot = typeof erpBudgetPlSnapshots.$inferInsert;
+
+export const erpBudgetCashflowSnapshots = mysqlTable("erp_budget_cf_snapshots", {
+  id: int("id").autoincrement().primaryKey(),
+  budgetId: int("budget_id").notNull(),
+  budgetVersionId: int("budget_version_id"),
+  budgetPeriodId: int("budget_period_id"),
+  monthNumber: int("month_number").notNull(),
+  cashInPlanned: bigint("cash_in_planned", { mode: "number" }).default(0).notNull(),
+  cashInActual: bigint("cash_in_actual", { mode: "number" }).default(0).notNull(),
+  cashOutPlanned: bigint("cash_out_planned", { mode: "number" }).default(0).notNull(),
+  cashOutActual: bigint("cash_out_actual", { mode: "number" }).default(0).notNull(),
+  opexPlanned: bigint("opex_planned", { mode: "number" }).default(0).notNull(),
+  opexActual: bigint("opex_actual", { mode: "number" }).default(0).notNull(),
+  capexPlanned: bigint("capex_planned", { mode: "number" }).default(0).notNull(),
+  capexActual: bigint("capex_actual", { mode: "number" }).default(0).notNull(),
+  taxesPlanned: bigint("taxes_planned", { mode: "number" }).default(0).notNull(),
+  taxesActual: bigint("taxes_actual", { mode: "number" }).default(0).notNull(),
+  netCashFlowPlanned: bigint("net_cf_planned", { mode: "number" }).default(0).notNull(),
+  netCashFlowActual: bigint("net_cf_actual", { mode: "number" }).default(0).notNull(),
+  openingCashBalance: bigint("opening_cash_balance", { mode: "number" }).default(0).notNull(),
+  closingCashBalance: bigint("closing_cash_balance", { mode: "number" }).default(0).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  budgetIdx: index("idx_budgetcf_budget").on(table.budgetId),
+  monthIdx: index("idx_budgetcf_month").on(table.monthNumber),
+}));
+export type ErpBudgetCashflowSnapshot = typeof erpBudgetCashflowSnapshots.$inferSelect;
+export type InsertErpBudgetCashflowSnapshot = typeof erpBudgetCashflowSnapshots.$inferInsert;
+
+export const erpBudgetAlerts = mysqlTable("erp_budget_alerts", {
+  id: int("id").autoincrement().primaryKey(),
+  budgetId: int("budget_id").notNull(),
+  budgetLineId: int("budget_line_id"),
+  budgetPeriodId: int("budget_period_id"),
+  monthNumber: int("month_number"),
+  alertType: mysqlEnum("alert_type", ["overrun", "underperformance_revenue", "missing_actual", "budget_not_executed", "cashflow_negative", "capex_overrun", "tax_variance", "payroll_variance"]).notNull(),
+  thresholdPercentage: int("threshold_percentage"),
+  plannedAmount: bigint("planned_amount", { mode: "number" }).default(0).notNull(),
+  actualAmount: bigint("actual_amount", { mode: "number" }).default(0).notNull(),
+  varianceAmount: bigint("variance_amount", { mode: "number" }).default(0).notNull(),
+  variancePercentage: int("variance_percentage").default(0).notNull(),
+  message: text("message"),
+  status: mysqlEnum("status", ["active", "acknowledged", "resolved"]).default("active").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  budgetIdx: index("idx_budgetalert_budget").on(table.budgetId),
+  statusIdx: index("idx_budgetalert_status").on(table.status),
+  typeIdx: index("idx_budgetalert_type").on(table.alertType),
+}));
+export type ErpBudgetAlert = typeof erpBudgetAlerts.$inferSelect;
+export type InsertErpBudgetAlert = typeof erpBudgetAlerts.$inferInsert;

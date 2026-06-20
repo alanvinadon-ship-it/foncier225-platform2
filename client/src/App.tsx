@@ -126,6 +126,9 @@ const ErpRfqDetail = lazy(() => import("./pages/erp/ErpRfqDetail"));
 const ErpRfqCompare = lazy(() => import("./pages/erp/ErpRfqCompare"));
 const ErpInvoiceMatching = lazy(() => import("./pages/erp/ErpInvoiceMatching"));
 const ErpAccountingExport = lazy(() => import("./pages/erp/ErpAccountingExport"));
+const ErpBudgetV2Dashboard = lazy(() => import("./pages/erp/ErpBudgetV2Dashboard"));
+const ErpBudgetV2Import = lazy(() => import("./pages/erp/ErpBudgetV2Import"));
+const ErpBudgetV2Detail = lazy(() => import("./pages/erp/ErpBudgetV2Detail"));
 
 function RouteFallback() {
   return (
@@ -667,6 +670,21 @@ function Router() {
       <Route path="/erp/accounting-export">
         <ErpLayout>
           <ErpAccountingExport />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/budget-v2">
+        <ErpLayout>
+          <ErpBudgetV2Dashboard />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/budget-v2/import">
+        <ErpLayout>
+          <ErpBudgetV2Import />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/budget-v2/:id">
+        <ErpLayout>
+          <ErpBudgetV2Detail />
         </ErpLayout>
       </Route>
 

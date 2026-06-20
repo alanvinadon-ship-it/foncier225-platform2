@@ -448,6 +448,9 @@ import { fullAccountingRouter } from "./erp-full-accounting-router";
 import { rfqRouter } from "./erp-rfq-router";
 import { invoiceMatchingRouter } from "./erp-invoice-matching-router";
 import { accountingExportRouter } from "./erp-accounting-export-router";
+import { erpBudgetV2Router } from "./erp-budget-v2-router";
+import { erpBudgetImportRouter } from "./erp-budget-import-router";
+import { erpBudgetExportRouter } from "./erp-budget-export-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -489,4 +492,7 @@ export const erpRouter = router({
   rfq: rfqRouter,
   invoiceMatching: invoiceMatchingRouter,
   accountingExport: accountingExportRouter,
+  budgetV2: erpBudgetV2Router,
+  budgetImport: erpBudgetImportRouter,
+  budgetExport: erpBudgetExportRouter,
 });

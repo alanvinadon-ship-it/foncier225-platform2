@@ -114,6 +114,7 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
       { label: "Trésorerie", href: "/erp/finance/cash-flow", icon: <DollarSign size={18} />, module: "erp_finance" },
       { label: "Rentabilité", href: "/erp/finance/profitability", icon: <BarChart3 size={18} />, module: "erp_finance" },
       { label: "Alertes Dépassement", href: "/erp/finance/overrun-alerts", icon: <Bell size={18} />, module: "erp_alerts" },
+      { label: "Budget Prévisionnel", href: "/erp/budget-v2", icon: <FileSpreadsheet size={18} />, module: "erp_budget_v2" },
     ],
   },
   // Paramétrage Comptable (Pré-comptabilité)

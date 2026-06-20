@@ -2215,3 +2215,20 @@
 - [x] Enrichir dashboard Achats avec Chart.js (évolution mensuelle Line chart + répartition fournisseurs Doughnut)
 - [x] Procédures backend monthlyTrend + vendorDistribution dans erp-purchases-router.ts
 - [x] Tests et checkpoint (1182 tests PASS, 0 erreurs TS)
+
+## Sprint Budget 2.0 — Réécriture complète module Budget
+
+- [x] Audit module Budget existant (tables, routeurs, pages, liens)
+- [x] Schéma DB : 12 tables Budget 2.0 (erp_budgets_v2, erp_budget_versions, erp_budget_periods, erp_budget_categories, erp_budget_lines_v2, erp_budget_line_amounts, erp_budget_imports, erp_budget_import_errors, erp_budget_template_mappings, erp_budget_pl_snapshots, erp_budget_cashflow_snapshots, erp_budget_alerts)
+- [x] Routeur tRPC Budget V2 : CRUD budgets, versions, catégories, lignes, montants, alertes
+- [x] Moteur import Excel : upload base64, analyse sheets, mapping colonnes, preview, commit
+- [x] Moteur exécution budgétaire : sync actuals depuis modules ERP, calculs écarts
+- [x] Alertes budgétaires (seuils configurables, types multiples, acquittement)
+- [x] Exports (Excel via ExcelJS, CSV, PDF via html-pdf)
+- [x] Page Dashboard Budget V2 (/erp/budget-v2)
+- [x] Page Import Budget Excel (/erp/budget-v2/import)
+- [x] Page Détail Budget avec onglets (Vue d'ensemble Chart.js, Lignes, Alertes)
+- [x] Permissions RBAC (erp_budget_v2 module avec 6 permissions)
+- [x] Sidebar + routes App.tsx (3 routes)
+- [x] Tests Sprint Budget 2.0 (1202 tests PASS, 0 erreurs TS)
+- [x] Checkpoint final

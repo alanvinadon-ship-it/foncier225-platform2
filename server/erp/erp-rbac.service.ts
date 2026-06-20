@@ -35,6 +35,7 @@ export const ERP_MODULES = [
   "erp_rfqs",
   "erp_invoice_matching",
   "erp_accounting_exports",
+  "erp_budget_v2",
 ] as const;
 
 export type ErpModule = (typeof ERP_MODULES)[number];
@@ -258,6 +259,14 @@ export const ERP_DEFAULT_PERMISSIONS: Array<{
   { module: "erp_accounting_exports", action: "create", displayName: "Générer un export", description: "Générer un fichier d'export comptable" },
   { module: "erp_accounting_exports", action: "delete", displayName: "Annuler un export", description: "Annuler un export comptable" },
   { module: "erp_accounting_exports", action: "export", displayName: "Télécharger un export", description: "Télécharger le fichier CSV généré" },
+
+  // Budget V2 (Budget Prévisionnel)
+  { module: "erp_budget_v2", action: "view", displayName: "Voir les budgets prévisionnels", description: "Consulter les budgets, P&L et Cash Flow" },
+  { module: "erp_budget_v2", action: "create", displayName: "Créer un budget", description: "Créer un budget prévisionnel ou importer un fichier Excel" },
+  { module: "erp_budget_v2", action: "update", displayName: "Modifier un budget", description: "Modifier les lignes et montants budgétaires" },
+  { module: "erp_budget_v2", action: "approve", displayName: "Approuver un budget", description: "Approuver ou verrouiller un budget" },
+  { module: "erp_budget_v2", action: "delete", displayName: "Supprimer un budget", description: "Supprimer ou archiver un budget" },
+  { module: "erp_budget_v2", action: "export", displayName: "Exporter un budget", description: "Exporter un budget en Excel, CSV ou PDF" },
 ];
 
 // ============================================================
