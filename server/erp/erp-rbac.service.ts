@@ -39,6 +39,8 @@ export const ERP_MODULES = [
   "erp_sales_targets",
   "erp_analytics",
   "erp_budget_integrations",
+  "erp_direction_dashboard",
+  "erp_direction_reports",
 ] as const;
 
 export type ErpModule = (typeof ERP_MODULES)[number];
@@ -300,6 +302,16 @@ export const ERP_DEFAULT_PERMISSIONS: Array<{
   { module: "erp_budget_integrations", action: "view", displayName: "Voir les intégrations", description: "Consulter les jobs d'intégration budget" },
   { module: "erp_budget_integrations", action: "sync", displayName: "Lancer une synchronisation", description: "Déclencher un job d'intégration" },
   { module: "erp_budget_integrations", action: "export", displayName: "Exporter les jobs", description: "Exporter l'historique des jobs" },
+  // Direction Dashboard
+  { module: "erp_direction_dashboard", action: "view", displayName: "Voir le dashboard direction", description: "Consulter le tableau de bord direction 360" },
+  { module: "erp_direction_dashboard", action: "export", displayName: "Exporter le dashboard", description: "Exporter les données du dashboard direction" },
+  { module: "erp_direction_dashboard", action: "create", displayName: "Configurer le dashboard", description: "Configurer les widgets et KPIs du dashboard" },
+  { module: "erp_direction_dashboard", action: "update", displayName: "Modifier la configuration", description: "Modifier la configuration du dashboard" },
+  { module: "erp_direction_dashboard", action: "recalculate", displayName: "Recalculer les KPIs", description: "Forcer le recalcul des indicateurs" },
+  // Direction Reports
+  { module: "erp_direction_reports", action: "view", displayName: "Voir les rapports direction", description: "Consulter les rapports PDF direction" },
+  { module: "erp_direction_reports", action: "create", displayName: "Générer un rapport", description: "Générer un nouveau rapport PDF direction" },
+  { module: "erp_direction_reports", action: "export", displayName: "Télécharger un rapport", description: "Télécharger un rapport PDF généré" },
 ];
 
 // ============================================================

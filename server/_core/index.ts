@@ -13,6 +13,7 @@ import { handleCinetPayWebhook, handleTresorPayWebhook } from "../payment-router
 import { handleSigfuWebhook, handleSiforWebhook } from "../webhook-interconnexion";
 import { erpAlertsHandler } from "../scheduled-erp-alerts";
 import { budgetSnapshotsHandler } from "../scheduled-budget-snapshots";
+import { budgetIntegrationsHandler } from "../scheduled-budget-integrations";
 import { globalApiLimiter, authLimiter, webhookLimiter } from "./rateLimiter";
 import { sanitizeInput } from "./sanitize";
 
@@ -71,6 +72,7 @@ async function startServer() {
   app.post("/api/scheduled/appointment-reminders", appointmentRemindersHandler);
   app.post("/api/scheduled/erp-alerts", erpAlertsHandler);
   app.post("/api/scheduled/budget-snapshots", budgetSnapshotsHandler);
+  app.post("/api/scheduled/budget-integrations", budgetIntegrationsHandler);
   // Payment webhooks
   app.post("/api/webhooks/cinetpay", handleCinetPayWebhook);
   app.post("/api/webhooks/tresorpay", handleTresorPayWebhook);

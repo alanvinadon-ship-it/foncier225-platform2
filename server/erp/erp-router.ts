@@ -454,6 +454,9 @@ import { erpBudgetExportRouter } from "./erp-budget-export-router";
 import { erpSalesTargetsRouter } from "./erp-sales-targets-router";
 import { erpBudgetRealEstateRouter } from "./erp-budget-real-estate-router";
 import { erpAnalyticsRouter } from "./erp-analytics-router";
+import { erpBudgetIntegrationsRouter } from "./erp-budget-integrations-router";
+import { erpDirectionDashboardRouter } from "./erp-direction-dashboard-router";
+import { erpDirectionReportsRouter } from "./erp-direction-reports-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -501,4 +504,7 @@ export const erpRouter = router({
   salesTargets: erpSalesTargetsRouter,
   budgetRealEstate: erpBudgetRealEstateRouter,
   analytics: erpAnalyticsRouter,
+  budgetIntegrations: erpBudgetIntegrationsRouter,
+  directionDashboard: erpDirectionDashboardRouter,
+  directionReports: erpDirectionReportsRouter,
 });

@@ -3978,8 +3978,11 @@ export type ErpAnalyticSnapshot = typeof erpAnalyticSnapshots.$inferSelect;
 // --- Jobs d'intégration Budget ---
 export const erpBudgetIntegrationJobs = mysqlTable("erp_budget_integ_jobs", {
   id: int("id").autoincrement().primaryKey(),
-  jobType: varchar("job_type", { length: 32 }).notNull(), // sync_sales_targets, sync_real_estate, sync_analytics, sync_all
-  status: varchar("status", { length: 16 }).notNull().default("pending"), // pending, running, completed, failed
+  jobType: varchar("job_type", { length: 32 }).notNull(), // full_sync, sales_targets_sync, real_estate_sync, analytics_sync, alerts_sync
+  syncScope: varchar("sync_scope", { length: 32 }).default("all"), // all, active_budgets, current_period, specific_budget
+  budgetId: int("budget_id"),
+  periodId: int("period_id"),
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, running, success, failed, cancelled, partial_success
   startedAt: bigint("started_at", { mode: "number" }),
   finishedAt: bigint("finished_at", { mode: "number" }),
   durationMs: int("duration_ms"),
@@ -3989,10 +3992,41 @@ export const erpBudgetIntegrationJobs = mysqlTable("erp_budget_integ_jobs", {
   warningsCount: int("warnings_count").default(0),
   errorsCount: int("errors_count").default(0),
   errorMessage: text("error_message"),
+  triggeredBy: varchar("triggered_by", { length: 64 }),
+  triggerSource: varchar("trigger_source", { length: 16 }).default("system"), // scheduled, manual, system, user
   createdBy: int("created_by"),
   createdAt: bigint("created_at", { mode: "number" }).notNull(),
 }, (table) => ({
   typeIdx: index("idx_integ_jobs_type").on(table.jobType),
   statusIdx: index("idx_integ_jobs_status").on(table.status),
+  sourceIdx: index("idx_integ_jobs_source").on(table.triggerSource),
 }));
 export type ErpBudgetIntegrationJob = typeof erpBudgetIntegrationJobs.$inferSelect;
+export type InsertErpBudgetIntegrationJob = typeof erpBudgetIntegrationJobs.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════
+// Direction Report Exports (Sprint Direction 360)
+// ═══════════════════════════════════════════════════════════════
+export const erpDirectionReportExports = mysqlTable("erp_direction_report_exports", {
+  id: int("id").autoincrement().primaryKey(),
+  exportNumber: varchar("export_number", { length: 32 }).notNull(),
+  reportType: varchar("report_type", { length: 32 }).notNull().default("direction_monthly"), // direction_monthly, direction_quarterly, pl_by_cost_center, pl_by_program
+  periodId: int("period_id"),
+  dateFrom: bigint("date_from", { mode: "number" }),
+  dateTo: bigint("date_to", { mode: "number" }),
+  filtersJson: json("filters_json"),
+  filePath: varchar("file_path", { length: 512 }),
+  fileName: varchar("file_name", { length: 255 }),
+  fileSize: int("file_size"),
+  status: varchar("status", { length: 16 }).notNull().default("pending"), // pending, generated, downloaded, failed, cancelled
+  generatedBy: int("generated_by"),
+  generatedAt: bigint("generated_at", { mode: "number" }),
+  downloadedAt: bigint("downloaded_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  statusIdx: index("idx_dir_exports_status").on(table.status),
+  dateIdx: index("idx_dir_exports_date").on(table.createdAt),
+}));
+export type ErpDirectionReportExport = typeof erpDirectionReportExports.$inferSelect;
+export type InsertErpDirectionReportExport = typeof erpDirectionReportExports.$inferInsert;

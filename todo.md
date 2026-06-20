@@ -2269,3 +2269,28 @@
 - [x] Sidebar + routes App.tsx (2 groupes, 4 routes)
 - [x] Tests complets (1237 tests PASS, 0 erreurs TS, 43 fichiers test)
 - [x] Checkpoint final
+
+## Sprint Direction 360 — Heartbeat Budget, Dashboard Direction et Export PDF Analytique
+- [x] Audit préalable (tables, routes, services, jobs existants)
+- [x] Partie A — Job heartbeat d'intégration budget-integrations
+  - [x] Endpoint scheduled /api/scheduled/budget-integrations avec sécurité header
+  - [x] Enrichir table erp_budget_integ_jobs (sync_scope, budget_id, period_id, trigger_source)
+  - [x] API admin jobs (list, get, run, retry) via tRPC
+  - [x] Page UI /erp/budget-integrations/jobs (suivi des jobs)
+- [x] Partie B — Dashboard Direction consolidé
+  - [x] Routeur tRPC direction-dashboard (summary, sales-targets, budget, real-estate, analytics, pl, cash-flow, alerts)
+  - [x] Page UI /erp/direction-dashboard avec KPIs cross-modules
+  - [x] Charts Chart.js (P&L, Cash Flow, Budget vs Réalisé)
+  - [x] Filtres globaux (période, année, programme, centre de coût)
+- [x] Partie C — Export PDF rapport analytique
+  - [x] Table erp_direction_report_exports
+  - [x] Service PDF (pdfkit) avec template rapport direction
+  - [x] API export PDF (generate, list, download)
+  - [x] Bouton export PDF dans Dashboard Direction
+- [x] RBAC : modules erp_direction_dashboard (5 perms), erp_direction_reports (3 perms)
+- [x] Notifications (jobs, alertes direction, exports)
+- [x] Audit logs (jobs, dashboard, exports)
+- [x] Sidebar ERP + routes App.tsx
+- [x] Tests Vitest (heartbeat, dashboard, export PDF, non-régression)
+- [x] 0 erreur TypeScript, tous tests PASS (1249 tests, 44 fichiers)
+- [ ] Checkpoint final

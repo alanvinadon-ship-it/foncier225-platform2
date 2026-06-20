@@ -47,6 +47,8 @@ import {
   Target,
   PieChart,
   Layers,
+  Activity,
+  Gauge,
 } from "lucide-react";
 import { useState } from "react";
 import { NotificationBell } from "@/components/erp/NotificationBell";
@@ -167,6 +169,16 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
     children: [
       { label: "Dashboard", href: "/erp/analytics", icon: <LayoutDashboard size={18} />, module: "erp_analytics" },
       { label: "Centres de Coûts", href: "/erp/cost-centers", icon: <Layers size={18} />, module: "erp_analytics" },
+    ],
+  },
+  // Groupe Direction
+  {
+    label: "Direction",
+    icon: <Gauge size={18} />,
+    module: "erp_budget_integrations",
+    children: [
+      { label: "Dashboard 360", href: "/erp/direction-dashboard", icon: <LayoutDashboard size={18} />, module: "erp_budget_integrations" },
+      { label: "Jobs Int\u00e9gration", href: "/erp/budget-integrations/jobs", icon: <Activity size={18} />, module: "erp_budget_integrations" },
     ],
   },
   { label: "Notifications", href: "/erp/notifications", icon: <Bell size={18} />, module: "erp_alerts" },
