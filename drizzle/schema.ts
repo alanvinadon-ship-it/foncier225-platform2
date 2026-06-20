@@ -798,6 +798,8 @@ export const urbanAcdApplications = mysqlTable(
     acdSignedAt: bigint("acdSignedAt", { mode: "number" }),
     journalOfficielRef: varchar("journalOfficielRef", { length: 100 }),
     journalOfficielDate: bigint("journalOfficielDate", { mode: "number" }),
+    // Suivi public (mot de passe remis sur l'Ordre de Recettes)
+    trackingPassword: varchar("trackingPassword", { length: 20 }),
     // Meta
     notes: text("notes"),
     createdAt: bigint("createdAt", { mode: "number" }).notNull(),

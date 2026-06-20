@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, FileText, MapPin, Calendar, CheckCircle2, Clock, AlertCircle, Download, Building2, Landmark, ArrowLeft } from "lucide-react";
+import { Search, FileText, MapPin, Calendar, CheckCircle2, Clock, AlertCircle, Building2, Landmark, ArrowLeft, Lock, Eye, EyeOff, Info } from "lucide-react";
 import { Link } from "wouter";
 import WorkflowGantt from "@/components/WorkflowGantt";
 import AcdWorkflowGantt from "@/components/AcdWorkflowGantt";
@@ -76,37 +76,54 @@ const STEP_STATUS_ICON: Record<string, React.ReactNode> = {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 export default function SuiviPublic() {
-  const [reference, setReference] = useState("");
-  const [searchRef, setSearchRef] = useState("");
-  const [activeTab, setActiveTab] = useState<"all" | "rural" | "urban">("all");
+  const [activeTab, setActiveTab] = useState<"rural" | "urban">("urban");
+
+  // Rural state
+  const [ruralRef, setRuralRef] = useState("");
+  const [ruralSearchRef, setRuralSearchRef] = useState("");
+
+  // Urban state
+  const [urbanRef, setUrbanRef] = useState("");
+  const [urbanPassword, setUrbanPassword] = useState("");
+  const [urbanSearchRef, setUrbanSearchRef] = useState("");
+  const [urbanSearchPwd, setUrbanSearchPwd] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Query rural (land title)
   const { data: ruralData, isLoading: ruralLoading } = trpc.landTitle.public.track.useQuery(
-    { reference: searchRef },
-    { enabled: searchRef.length >= 3 }
+    { reference: ruralSearchRef },
+    { enabled: ruralSearchRef.length >= 3 }
   );
 
-  // Query urban (ACD)
+  // Query urban (ACD) with password
   const { data: urbanData, isLoading: urbanLoading } = trpc.urbanAcd.public.track.useQuery(
-    { reference: searchRef },
-    { enabled: searchRef.length >= 3 }
+    { reference: urbanSearchRef, password: urbanSearchPwd || undefined },
+    { enabled: urbanSearchRef.length >= 3 }
   );
 
-  const isLoading = ruralLoading || urbanLoading;
-  const hasRuralResult = ruralData?.found;
-  const hasUrbanResult = urbanData?.found;
-  const hasAnyResult = hasRuralResult || hasUrbanResult;
-  const noResult = searchRef.length >= 3 && !isLoading && !hasAnyResult;
-
-  function handleSearch(e: React.FormEvent) {
+  function handleRuralSearch(e: React.FormEvent) {
     e.preventDefault();
-    if (reference.trim().length >= 3) {
-      setSearchRef(reference.trim());
+    if (ruralRef.trim().length >= 3) {
+      setRuralSearchRef(ruralRef.trim());
     }
   }
 
+  function handleUrbanSearch(e: React.FormEvent) {
+    e.preventDefault();
+    if (urbanRef.trim().length >= 3) {
+      setUrbanSearchRef(urbanRef.trim());
+      setUrbanSearchPwd(urbanPassword);
+    }
+  }
+
+  const hasRuralResult = ruralData?.found;
+  const hasUrbanResult = urbanData?.found;
+  const urbanError = urbanData && !urbanData.found ? (urbanData as any).error : null;
+  const ruralNoResult = ruralSearchRef.length >= 3 && !ruralLoading && !hasRuralResult;
+  const urbanNoResult = urbanSearchRef.length >= 3 && !urbanLoading && !hasUrbanResult && !urbanError;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-ci-green-light/20 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* Header */}
       <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="container max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -128,118 +145,212 @@ export default function SuiviPublic() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-ci-green/10 mb-4">
             <Search className="h-8 w-8 text-ci-green" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Suivi de dossier foncier</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Suivre une demande</h1>
           <p className="text-muted-foreground mt-2 text-base max-w-lg mx-auto">
-            Consultez l'avancement de votre dossier foncier rural ou urbain en saisissant votre numéro de référence.
+            Consultez l'avancement de votre dossier foncier rural ou urbain.
           </p>
         </div>
 
-        {/* Search form */}
-        <Card className="shadow-sm">
-          <CardContent className="pt-6">
-            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1">
-                <Input
-                  placeholder="Ex: CF-2025-A1B2C3, TF-2025-X9Y8Z7 ou ACD-2025-XXXXXX"
-                  value={reference}
-                  onChange={(e) => setReference(e.target.value)}
-                  className="h-12 text-base"
-                />
-              </div>
-              <Button type="submit" disabled={reference.trim().length < 3 || isLoading} className="h-12 px-8 bg-ci-green hover:bg-ci-green/90 text-base">
-                {isLoading ? (
-                  <Clock className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Search className="h-4 w-4" />
-                )}
-                <span className="ml-2">Rechercher</span>
-              </Button>
-            </form>
-            <p className="text-xs text-muted-foreground mt-3">
-              Formats acceptés : <strong>CF-AAAA-XXXXXX</strong> (certificat foncier rural), <strong>TF-AAAA-XXXXXX</strong> (titre foncier), <strong>ACD-AAAA-XXXXXX</strong> (arrêté de concession définitive urbain).
-            </p>
-          </CardContent>
-        </Card>
+        {/* Tabs for Rural / Urban */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "rural" | "urban")}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="urban" className="gap-1.5">
+              <Building2 className="h-4 w-4" /> Foncier Urbain
+            </TabsTrigger>
+            <TabsTrigger value="rural" className="gap-1.5">
+              <Landmark className="h-4 w-4" /> Foncier Rural
+            </TabsTrigger>
+          </TabsList>
 
-        {/* No result */}
-        {noResult && (
-          <Card className="border-amber-200 bg-amber-50">
-            <CardContent className="pt-6 flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-amber-800">Aucun dossier trouvé</p>
-                <p className="text-sm text-amber-700 mt-1">
-                  Aucun dossier ne correspond à la référence « {searchRef} ». Vérifiez l'orthographe et réessayez.
+          {/* ─── URBAN TAB ─── */}
+          <TabsContent value="urban" className="space-y-6 mt-4">
+            <Card className="shadow-sm border-blue-100">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-blue-600" />
+                  Suivi d'une demande urbaine (ACD)
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Pour consulter l'évolution de votre dossier, merci d'indiquer :
                 </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Form */}
+                  <form onSubmit={handleUrbanSearch} className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">N° du dossier</label>
+                      <Input
+                        placeholder="Ex: ACD-2025-A1B2C3"
+                        value={urbanRef}
+                        onChange={(e) => setUrbanRef(e.target.value)}
+                        className="h-11"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">Mot de passe</label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Mot de passe du dossier"
+                          value={urbanPassword}
+                          onChange={(e) => setUrbanPassword(e.target.value)}
+                          className="h-11 pl-9 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={urbanRef.trim().length < 3 || urbanLoading}
+                      className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-semibold uppercase tracking-wide"
+                    >
+                      {urbanLoading ? (
+                        <Clock className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Search className="h-4 w-4 mr-2" />
+                      )}
+                      Suivre ce dossier
+                    </Button>
+                  </form>
 
-        {/* Results with tabs */}
-        {hasAnyResult && (
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="all" className="gap-1.5">
-                <FileText className="h-3.5 w-3.5" /> Tous
-              </TabsTrigger>
-              <TabsTrigger value="rural" disabled={!hasRuralResult} className="gap-1.5">
-                <Landmark className="h-3.5 w-3.5" /> Rural
-              </TabsTrigger>
-              <TabsTrigger value="urban" disabled={!hasUrbanResult} className="gap-1.5">
-                <Building2 className="h-3.5 w-3.5" /> Urbain
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="all" className="space-y-6 mt-4">
-              {hasRuralResult && <RuralResult data={ruralData} />}
-              {hasUrbanResult && <UrbanResult data={urbanData} />}
-            </TabsContent>
-            <TabsContent value="rural" className="space-y-6 mt-4">
-              {hasRuralResult && <RuralResult data={ruralData} />}
-            </TabsContent>
-            <TabsContent value="urban" className="space-y-6 mt-4">
-              {hasUrbanResult && <UrbanResult data={urbanData} />}
-            </TabsContent>
-          </Tabs>
-        )}
+                  {/* Info box */}
+                  <div className="border-2 border-amber-300 rounded-lg p-4 bg-amber-50/50">
+                    <div className="flex items-start gap-2">
+                      <Info className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="font-semibold text-sm text-amber-800 uppercase">
+                          Où trouver les informations demandées ?
+                        </p>
+                        <p className="text-sm text-amber-700 mt-2">
+                          Le numéro de dossier et le mot de passe de ce dossier se trouvent sur l'<strong>« Ordre de Recettes des droits domaniaux »</strong>, remis après avoir déposé le dossier au Guichet Unique du Foncier.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Info notice */}
-        {hasAnyResult && (
+            {/* Urban error messages */}
+            {urbanError === "password_required" && (
+              <Card className="border-amber-200 bg-amber-50">
+                <CardContent className="pt-6 flex items-start gap-3">
+                  <Lock className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-800">Mot de passe requis</p>
+                    <p className="text-sm text-amber-700 mt-1">
+                      Ce dossier nécessite un mot de passe pour consulter son avancement. Veuillez saisir le mot de passe figurant sur votre Ordre de Recettes.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {urbanError === "invalid_password" && (
+              <Card className="border-red-200 bg-red-50">
+                <CardContent className="pt-6 flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-red-800">Mot de passe incorrect</p>
+                    <p className="text-sm text-red-700 mt-1">
+                      Le mot de passe saisi ne correspond pas au dossier « {urbanSearchRef} ». Vérifiez votre Ordre de Recettes et réessayez.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {urbanNoResult && (
+              <Card className="border-amber-200 bg-amber-50">
+                <CardContent className="pt-6 flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-800">Aucun dossier trouvé</p>
+                    <p className="text-sm text-amber-700 mt-1">
+                      Aucun dossier urbain ne correspond à la référence « {urbanSearchRef} ». Vérifiez l'orthographe et réessayez.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Urban result */}
+            {hasUrbanResult && <UrbanResult data={urbanData} />}
+          </TabsContent>
+
+          {/* ─── RURAL TAB ─── */}
+          <TabsContent value="rural" className="space-y-6 mt-4">
+            <Card className="shadow-sm border-emerald-100">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Landmark className="h-5 w-5 text-emerald-600" />
+                  Suivi d'une demande rurale (CF / TF)
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Saisissez votre numéro de référence pour consulter l'avancement de votre dossier.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleRuralSearch} className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="Ex: CF-2025-A1B2C3 ou TF-2025-X9Y8Z7"
+                      value={ruralRef}
+                      onChange={(e) => setRuralRef(e.target.value)}
+                      className="h-11"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={ruralRef.trim().length < 3 || ruralLoading}
+                    className="h-11 px-8 bg-ci-green hover:bg-ci-green/90"
+                  >
+                    {ruralLoading ? (
+                      <Clock className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Search className="h-4 w-4 mr-2" />
+                    )}
+                    Rechercher
+                  </Button>
+                </form>
+                <p className="text-xs text-muted-foreground mt-3">
+                  Formats : <strong>CF-AAAA-XXXXXX</strong> (certificat foncier) ou <strong>TF-AAAA-XXXXXX</strong> (titre foncier).
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Rural no result */}
+            {ruralNoResult && (
+              <Card className="border-amber-200 bg-amber-50">
+                <CardContent className="pt-6 flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-800">Aucun dossier trouvé</p>
+                    <p className="text-sm text-amber-700 mt-1">
+                      Aucun dossier rural ne correspond à la référence « {ruralSearchRef} ». Vérifiez l'orthographe et réessayez.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Rural result */}
+            {hasRuralResult && <RuralResult data={ruralData} />}
+          </TabsContent>
+        </Tabs>
+
+        {/* Footer info */}
+        {(hasRuralResult || hasUrbanResult) && (
           <div className="text-xs text-muted-foreground text-center px-4">
             Les informations affichées sont mises à jour en temps réel par l'administration foncière.
-          </div>
-        )}
-
-        {/* Help section when no search yet */}
-        {!searchRef && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-            <Card className="text-center p-6">
-              <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-emerald-100 mb-3">
-                <Landmark className="h-5 w-5 text-emerald-600" />
-              </div>
-              <h3 className="font-semibold text-sm">Foncier Rural</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Certificat foncier, titre foncier, délimitation, enquête publique
-              </p>
-            </Card>
-            <Card className="text-center p-6">
-              <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 mb-3">
-                <Building2 className="h-5 w-5 text-blue-600" />
-              </div>
-              <h3 className="font-semibold text-sm">Foncier Urbain</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                ACD (Arrêté de Concession Définitive), lotissements, permis de construire
-              </p>
-            </Card>
-            <Card className="text-center p-6">
-              <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-amber-100 mb-3">
-                <FileText className="h-5 w-5 text-amber-600" />
-              </div>
-              <h3 className="font-semibold text-sm">Suivi en temps réel</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Suivez chaque étape de votre dossier, de la soumission à la délivrance
-              </p>
-            </Card>
           </div>
         )}
       </main>
@@ -341,9 +452,7 @@ function RuralResult({ data }: { data: any }) {
           <CardTitle className="text-sm">Position dans le workflow</CardTitle>
         </CardHeader>
         <CardContent>
-          <WorkflowGantt
-            currentStatus={app.status}
-          />
+          <WorkflowGantt currentStatus={app.status} />
         </CardContent>
       </Card>
     </div>

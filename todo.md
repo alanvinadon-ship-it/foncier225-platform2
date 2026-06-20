@@ -2357,4 +2357,13 @@
 - [x] Formulaire de recherche par numéro de dossier
 - [x] Affichage statut, étapes, localisation, timeline
 - [x] Route dans App.tsx (public, sans CitizenLayout)
+- [x] Checkpoint final (3ec6fc2f)
+
+## Suivi dossier foncier urbain — Mot de passe (style SIGFU)
+- [x] Ajouter colonne trackingPassword à urban_acd_applications
+- [x] Modifier routeur public urbanAcd.track pour exiger le mot de passe
+- [x] Modifier la page /suivi : formulaire séparé urbain avec N° dossier + mot de passe
+- [x] Générer automatiquement le mot de passe à la création du dossier ACD
+- [x] Afficher le mot de passe dans le retour de création (trackingPassword)
+- [x] Info-bulle explicative (comme SIGFU : "Le numéro et le mot de passe se trouvent sur l'Ordre de Recettes")
 - [ ] Checkpoint final

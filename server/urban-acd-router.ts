@@ -40,6 +40,16 @@ function generateAcdApplicationNumber(): string {
   return `ACD-${year}-${rand}`;
 }
 
+function generateTrackingPassword(): string {
+  // Génère un mot de passe de 6 caractères alphanumériques (comme SIGFU)
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sans 0/O/1/I pour éviter confusion
+  let pwd = "";
+  for (let i = 0; i < 6; i++) {
+    pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return pwd;
+}
+
 // ─── Citizen Sub-Router ──────────────────────────────────────────────────────
 
 const citizenAcdRouter = router({
@@ -69,8 +79,11 @@ const citizenAcdRouter = router({
       const now = Date.now();
       const applicationNumber = generateAcdApplicationNumber();
 
+      const trackingPassword = generateTrackingPassword();
+
       const appId = await createUrbanAcdApplication({
         applicationNumber,
+        trackingPassword,
         userId: ctx.user.id,
         parcelId: input.parcelId ?? null,
         phase: "provisional",
@@ -112,7 +125,7 @@ const citizenAcdRouter = router({
         details: { applicationNumber },
       });
 
-      return { id: appId, applicationNumber };
+      return { id: appId, applicationNumber, trackingPassword };
     }),
 
   /** Lister mes dossiers ACD */
@@ -484,21 +497,34 @@ const adminAcdRouter = router({
 // ─── Public Router (no auth) ─────────────────────────────────────────────────
 
 const publicAcdRouter = router({
-  /** Track an ACD application by its reference number (no auth required) */
+  /** Track an ACD application by reference + password (no auth required, like SIGFU) */
   track: publicProcedure
-    .input(z.object({ reference: z.string().min(3).max(30) }))
+    .input(z.object({
+      reference: z.string().min(3).max(30),
+      password: z.string().max(20).optional(),
+    }))
     .query(async ({ input }) => {
-      const { reference } = input;
+      const { reference, password } = input;
       const allApps = await getAllUrbanAcdApplications();
       const matchedApp = allApps.find(
         (a) => a.applicationNumber === reference || a.applicationNumber === reference.toUpperCase()
       );
       if (!matchedApp) {
-        return { found: false as const };
+        return { found: false as const, error: null };
+      }
+      // Si le dossier a un mot de passe de suivi, le vérifier
+      if (matchedApp.trackingPassword) {
+        if (!password) {
+          return { found: false as const, error: "password_required" as const };
+        }
+        if (password !== matchedApp.trackingPassword) {
+          return { found: false as const, error: "invalid_password" as const };
+        }
       }
       const steps = await listUrbanAcdSteps(matchedApp.id);
       return {
         found: true as const,
+        error: null,
         application: {
           applicationNumber: matchedApp.applicationNumber,
           status: matchedApp.status,
