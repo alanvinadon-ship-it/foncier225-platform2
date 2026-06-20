@@ -97,8 +97,8 @@ export default function SuiviPublic() {
 
   // Query urban (ACD) with password
   const { data: urbanData, isLoading: urbanLoading } = trpc.urbanAcd.public.track.useQuery(
-    { reference: urbanSearchRef, password: urbanSearchPwd || undefined },
-    { enabled: urbanSearchRef.length >= 3 }
+    { reference: urbanSearchRef, password: urbanSearchPwd },
+    { enabled: urbanSearchRef.length >= 3 && urbanSearchPwd.length >= 1 }
   );
 
   function handleRuralSearch(e: React.FormEvent) {
@@ -120,7 +120,7 @@ export default function SuiviPublic() {
   const hasUrbanResult = urbanData?.found;
   const urbanError = urbanData && !urbanData.found ? (urbanData as any).error : null;
   const ruralNoResult = ruralSearchRef.length >= 3 && !ruralLoading && !hasRuralResult;
-  const urbanNoResult = urbanSearchRef.length >= 3 && !urbanLoading && !hasUrbanResult && !urbanError;
+  const urbanNoResult = urbanSearchRef.length >= 3 && urbanSearchPwd.length >= 1 && !urbanLoading && !hasUrbanResult && !urbanError;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
@@ -240,42 +240,32 @@ export default function SuiviPublic() {
             </Card>
 
             {/* Urban error messages */}
-            {urbanError === "password_required" && (
-              <Card className="border-amber-200 bg-amber-50">
+            {urbanError === "interconnexion_indisponible" && (
+              <Card className="border-blue-200 bg-blue-50">
                 <CardContent className="pt-6 flex items-start gap-3">
-                  <Lock className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                  <Info className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-amber-800">Mot de passe requis</p>
-                    <p className="text-sm text-amber-700 mt-1">
-                      Ce dossier nécessite un mot de passe pour consulter son avancement. Veuillez saisir le mot de passe figurant sur votre Ordre de Recettes.
+                    <p className="text-sm font-medium text-blue-800">Service d'interconnexion en cours de mise en place</p>
+                    <p className="text-sm text-blue-700 mt-1">
+                      L'interconnexion avec le système SIGFU de l'État de Côte d'Ivoire est en cours de configuration. 
+                      Ce service sera bientôt disponible pour vous permettre de suivre votre dossier foncier urbain directement depuis Foncier225.
+                    </p>
+                    <p className="text-xs text-blue-600 mt-2">
+                      En attendant, vous pouvez consulter votre dossier sur le portail officiel du SIGFU.
                     </p>
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {urbanError === "invalid_password" && (
-              <Card className="border-red-200 bg-red-50">
-                <CardContent className="pt-6 flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-red-800">Mot de passe incorrect</p>
-                    <p className="text-sm text-red-700 mt-1">
-                      Le mot de passe saisi ne correspond pas au dossier « {urbanSearchRef} ». Vérifiez votre Ordre de Recettes et réessayez.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {urbanNoResult && (
+            {urbanNoResult && !urbanError && (
               <Card className="border-amber-200 bg-amber-50">
                 <CardContent className="pt-6 flex items-start gap-3">
                   <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-amber-800">Aucun dossier trouvé</p>
                     <p className="text-sm text-amber-700 mt-1">
-                      Aucun dossier urbain ne correspond à la référence « {urbanSearchRef} ». Vérifiez l'orthographe et réessayez.
+                      Aucun dossier ne correspond à la référence « {urbanSearchRef} ». Vérifiez les informations figurant sur votre Ordre de Recettes et réessayez.
                     </p>
                   </div>
                 </CardContent>

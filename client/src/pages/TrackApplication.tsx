@@ -213,9 +213,9 @@ export default function TrackApplication() {
     { enabled: searchRef.length >= 3 }
   );
 
-  // Query urban (ACD)
+  // Query urban (ACD) — password requis pour l'interconnexion SIGFU
   const { data: urbanData, isLoading: urbanLoading } = trpc.urbanAcd.public.track.useQuery(
-    { reference: searchRef },
+    { reference: searchRef, password: "_" },
     { enabled: searchRef.length >= 3 }
   );
 

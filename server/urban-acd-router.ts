@@ -40,15 +40,9 @@ function generateAcdApplicationNumber(): string {
   return `ACD-${year}-${rand}`;
 }
 
-function generateTrackingPassword(): string {
-  // Génère un mot de passe de 6 caractères alphanumériques (comme SIGFU)
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sans 0/O/1/I pour éviter confusion
-  let pwd = "";
-  for (let i = 0; i < 6; i++) {
-    pwd += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return pwd;
-}
+// NOTE: Foncier225 ne génère PAS de numéro/mot de passe de dossier.
+// Ces informations sont délivrées par l'État de Côte d'Ivoire (SIGFU/Guichet Unique du Foncier).
+// La page /suivi permet aux citoyens d'interroger le système via les interconnexions.
 
 // ─── Citizen Sub-Router ──────────────────────────────────────────────────────
 
@@ -79,11 +73,8 @@ const citizenAcdRouter = router({
       const now = Date.now();
       const applicationNumber = generateAcdApplicationNumber();
 
-      const trackingPassword = generateTrackingPassword();
-
       const appId = await createUrbanAcdApplication({
         applicationNumber,
-        trackingPassword,
         userId: ctx.user.id,
         parcelId: input.parcelId ?? null,
         phase: "provisional",
@@ -125,7 +116,7 @@ const citizenAcdRouter = router({
         details: { applicationNumber },
       });
 
-      return { id: appId, applicationNumber, trackingPassword };
+      return { id: appId, applicationNumber };
     }),
 
   /** Lister mes dossiers ACD */
@@ -497,51 +488,67 @@ const adminAcdRouter = router({
 // ─── Public Router (no auth) ─────────────────────────────────────────────────
 
 const publicAcdRouter = router({
-  /** Track an ACD application by reference + password (no auth required, like SIGFU) */
+  /**
+   * Suivi de dossier foncier urbain via interconnexion SIGFU.
+   * Le citoyen saisit le N° de dossier et le mot de passe reçus de l'État
+   * (sur l'Ordre de Recettes des droits domaniaux, remis au Guichet Unique du Foncier).
+   * 
+   * TODO: Remplacer le stub par l'appel réel à l'API SIGFU quand l'interconnexion sera disponible.
+   */
   track: publicProcedure
     .input(z.object({
       reference: z.string().min(3).max(30),
-      password: z.string().max(20).optional(),
+      password: z.string().min(1, "Le mot de passe est requis"),
     }))
     .query(async ({ input }) => {
       const { reference, password } = input;
+
+      // ──────────────────────────────────────────────────────────────────────
+      // STUB D'INTERCONNEXION SIGFU
+      // En attendant l'API de l'État, on retourne un statut "service indisponible"
+      // Quand l'API sera disponible, remplacer ce bloc par :
+      //   const response = await callSigfuApi(reference, password);
+      //   return { found: true, interconnexion: true, ...response };
+      // ──────────────────────────────────────────────────────────────────────
+
+      // Vérifier d'abord si le dossier existe localement (dossiers créés sur Foncier225)
       const allApps = await getAllUrbanAcdApplications();
       const matchedApp = allApps.find(
         (a) => a.applicationNumber === reference || a.applicationNumber === reference.toUpperCase()
       );
-      if (!matchedApp) {
-        return { found: false as const, error: null };
+
+      if (matchedApp) {
+        // Dossier local trouvé — retourner les infos disponibles
+        const steps = await listUrbanAcdSteps(matchedApp.id);
+        return {
+          found: true as const,
+          source: "local" as const,
+          error: null,
+          application: {
+            applicationNumber: matchedApp.applicationNumber,
+            status: matchedApp.status,
+            phase: matchedApp.phase,
+            commune: matchedApp.commune,
+            lotNumber: matchedApp.lotNumber,
+            lotissementName: matchedApp.lotissementName,
+            surfaceM2: matchedApp.surfaceM2,
+            createdAt: matchedApp.createdAt,
+            updatedAt: matchedApp.updatedAt,
+          },
+          steps: steps.map((s) => ({
+            stepType: s.stepType,
+            status: s.status,
+            startedAt: s.startedAt,
+            completedAt: s.completedAt,
+          })),
+        };
       }
-      // Si le dossier a un mot de passe de suivi, le vérifier
-      if (matchedApp.trackingPassword) {
-        if (!password) {
-          return { found: false as const, error: "password_required" as const };
-        }
-        if (password !== matchedApp.trackingPassword) {
-          return { found: false as const, error: "invalid_password" as const };
-        }
-      }
-      const steps = await listUrbanAcdSteps(matchedApp.id);
+
+      // Dossier non trouvé localement — interconnexion SIGFU pas encore disponible
       return {
-        found: true as const,
-        error: null,
-        application: {
-          applicationNumber: matchedApp.applicationNumber,
-          status: matchedApp.status,
-          phase: matchedApp.phase,
-          commune: matchedApp.commune,
-          lotNumber: matchedApp.lotNumber,
-          lotissementName: matchedApp.lotissementName,
-          surfaceM2: matchedApp.surfaceM2,
-          createdAt: matchedApp.createdAt,
-          updatedAt: matchedApp.updatedAt,
-        },
-        steps: steps.map((s) => ({
-          stepType: s.stepType,
-          status: s.status,
-          startedAt: s.startedAt,
-          completedAt: s.completedAt,
-        })),
+        found: false as const,
+        source: "sigfu" as const,
+        error: "interconnexion_indisponible" as const,
       };
     }),
 });

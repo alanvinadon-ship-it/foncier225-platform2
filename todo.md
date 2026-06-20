@@ -2366,4 +2366,10 @@
 - [x] Générer automatiquement le mot de passe à la création du dossier ACD
 - [x] Afficher le mot de passe dans le retour de création (trackingPassword)
 - [x] Info-bulle explicative (comme SIGFU : "Le numéro et le mot de passe se trouvent sur l'Ordre de Recettes")
+- [x] Checkpoint final (46d930cc)
+
+## Correction suivi urbain — Interconnexion SIGFU (pas de génération interne)
+- [x] Supprimer la génération automatique de trackingPassword à la création ACD
+- [x] Remplacer le routeur public track par un stub d'interconnexion SIGFU (prêt à brancher l'API)
+- [x] Adapter la page /suivi : message informatif "service en cours de mise en place" si pas d'API
 - [ ] Checkpoint final
