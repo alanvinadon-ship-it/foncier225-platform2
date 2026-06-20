@@ -2345,4 +2345,9 @@
   - [x] Rapport audit industrialisation (docs/erp/audit-industrialisation.md)
 - [x] Tests Vitest (14 nouveaux + non-régression, 1274 tests PASS, 46 fichiers)
 - [x] 0 erreur TypeScript
+- [x] Checkpoint final (3ed4b5d8)
+
+## Réorganisation Sidebar ERP — Regroupement par catégorie
+- [x] Regrouper les modules de la sidebar ERP par catégories logiques
+- [x] Catégories : Opérations, Supply Chain, Achats, Finance, Immobilier, Comptabilité, Direction, Administration
 - [ ] Checkpoint final

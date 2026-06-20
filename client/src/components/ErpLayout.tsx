@@ -77,23 +77,43 @@ function isNavGroup(entry: NavEntry): entry is NavGroup {
 }
 
 const ERP_NAV_ENTRIES: NavEntry[] = [
+  // ===== TABLEAU DE BORD =====
   { label: "Dashboard", href: "/erp", icon: <LayoutDashboard size={18} />, module: "erp_dashboard" },
-  { label: "Projets", href: "/erp/projects", icon: <FolderKanban size={18} />, module: "erp_projects" },
-  { label: "Gantt", href: "/erp/gantt", icon: <GanttChart size={18} />, module: "erp_gantt" },
-  { label: "Documents", href: "/erp/documents", icon: <FileText size={18} />, module: "erp_documents" },
-  { label: "Permis", href: "/erp/permits", icon: <Shield size={18} />, module: "erp_compliance" },
-  { label: "Conformité", href: "/erp/compliance", icon: <ShieldCheck size={18} />, module: "erp_compliance" },
-  { label: "Équipements", href: "/erp/equipment", icon: <Wrench size={18} />, module: "erp_equipment" },
-  { label: "Sécurité", href: "/erp/safety", icon: <HardHat size={18} />, module: "erp_safety" },
-  { label: "Fournisseurs", href: "/erp/vendors", icon: <Truck size={18} />, module: "erp_vendors" },
-  { label: "Entrepreneurs", href: "/erp/contractors", icon: <Users size={18} />, module: "erp_contractors" },
-  { label: "Certifications", href: "/erp/certifications", icon: <Award size={18} />, module: "erp_vendors" },
-  { label: "Performance", href: "/erp/performance-ratings", icon: <Star size={18} />, module: "erp_vendors" },
-  { label: "Inventaire", href: "/erp/inventory", icon: <Package size={18} />, module: "erp_inventory" },
-  { label: "Demandes Matériel", href: "/erp/material-requests", icon: <Truck size={18} />, module: "erp_inventory" },
-  { label: "Intégration Fournisseurs", href: "/erp/supplier-integration", icon: <Link2 size={18} />, module: "erp_vendors" },
-  { label: "Analyse Gaspillages", href: "/erp/wastage", icon: <Trash2 size={18} />, module: "erp_inventory" },
-  // Groupe Achats
+
+  // ===== OPÉRATIONS =====
+  {
+    label: "Opérations",
+    icon: <FolderKanban size={18} />,
+    module: "erp_projects",
+    children: [
+      { label: "Projets", href: "/erp/projects", icon: <FolderKanban size={18} />, module: "erp_projects" },
+      { label: "Gantt", href: "/erp/gantt", icon: <GanttChart size={18} />, module: "erp_gantt" },
+      { label: "Documents", href: "/erp/documents", icon: <FileText size={18} />, module: "erp_documents" },
+      { label: "Permis", href: "/erp/permits", icon: <Shield size={18} />, module: "erp_compliance" },
+      { label: "Conformité", href: "/erp/compliance", icon: <ShieldCheck size={18} />, module: "erp_compliance" },
+      { label: "Équipements", href: "/erp/equipment", icon: <Wrench size={18} />, module: "erp_equipment" },
+      { label: "Sécurité", href: "/erp/safety", icon: <HardHat size={18} />, module: "erp_safety" },
+    ],
+  },
+
+  // ===== SUPPLY CHAIN =====
+  {
+    label: "Supply Chain",
+    icon: <Truck size={18} />,
+    module: "erp_vendors",
+    children: [
+      { label: "Fournisseurs", href: "/erp/vendors", icon: <Truck size={18} />, module: "erp_vendors" },
+      { label: "Entrepreneurs", href: "/erp/contractors", icon: <Users size={18} />, module: "erp_contractors" },
+      { label: "Certifications", href: "/erp/certifications", icon: <Award size={18} />, module: "erp_vendors" },
+      { label: "Performance", href: "/erp/performance-ratings", icon: <Star size={18} />, module: "erp_vendors" },
+      { label: "Intégration", href: "/erp/supplier-integration", icon: <Link2 size={18} />, module: "erp_vendors" },
+      { label: "Inventaire", href: "/erp/inventory", icon: <Package size={18} />, module: "erp_inventory" },
+      { label: "Demandes Matériel", href: "/erp/material-requests", icon: <ClipboardList size={18} />, module: "erp_inventory" },
+      { label: "Gaspillages", href: "/erp/wastage", icon: <Trash2 size={18} />, module: "erp_inventory" },
+    ],
+  },
+
+  // ===== ACHATS =====
   {
     label: "Achats",
     icon: <ShoppingCart size={18} />,
@@ -105,11 +125,11 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
       { label: "Réceptions", href: "/erp/goods-receipts", icon: <PackageCheck size={18} />, module: "erp_purchases" },
       { label: "Demandes de Prix", href: "/erp/rfqs", icon: <Sparkles size={18} />, module: "erp_rfqs" },
       { label: "Rapprochement", href: "/erp/invoice-matching", icon: <Link2 size={18} />, module: "erp_invoice_matching" },
+      { label: "Dépenses", href: "/erp/expenses", icon: <CreditCard size={18} />, module: "erp_expenses" },
     ],
   },
-  // Groupe Dépenses
-  { label: "Dépenses", href: "/erp/expenses", icon: <CreditCard size={18} />, module: "erp_expenses" },
-  // Groupe Finance
+
+  // ===== FINANCE =====
   {
     label: "Finance",
     icon: <Banknote size={18} />,
@@ -122,11 +142,11 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
       { label: "Rentabilité", href: "/erp/finance/profitability", icon: <BarChart3 size={18} />, module: "erp_finance" },
       { label: "Alertes Dépassement", href: "/erp/finance/overrun-alerts", icon: <Bell size={18} />, module: "erp_alerts" },
       { label: "Budget Prévisionnel", href: "/erp/budget-v2", icon: <FileSpreadsheet size={18} />, module: "erp_budget_v2" },
+      { label: "Objectifs Commerciaux", href: "/erp/sales-targets", icon: <Target size={18} />, module: "erp_sales_targets" },
     ],
   },
-  // Paramétrage Comptable (Pré-comptabilité)
-  { label: "Pré-Comptabilité", href: "/erp/accounting", icon: <BookOpen size={18} />, module: "erp_accounting" },
-  // Groupe Vente Immobilière
+
+  // ===== IMMOBILIER =====
   {
     label: "Vente Immobilière",
     icon: <Building2 size={18} />,
@@ -141,9 +161,10 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
       { label: "Encaissements", href: "/erp/real-estate-payments", icon: <Banknote size={18} />, module: "erp_real_estate" },
     ],
   },
-  // Groupe Comptabilité Générale
+
+  // ===== COMPTABILITÉ =====
   {
-    label: "Comptabilité Générale",
+    label: "Comptabilité",
     icon: <Calculator size={18} />,
     module: "erp_full_accounting",
     children: [
@@ -152,28 +173,13 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
       { label: "Écritures", href: "/erp/accounting-entries", icon: <ScrollText size={18} />, module: "erp_full_accounting" },
       { label: "Balance", href: "/erp/accounting-balance", icon: <Scale size={18} />, module: "erp_full_accounting" },
       { label: "Export Comptable", href: "/erp/accounting-export", icon: <FileSpreadsheet size={18} />, module: "erp_accounting_exports" },
-    ],
-  },
-  // Groupe Objectifs Commerciaux
-  {
-    label: "Objectifs Commerciaux",
-    icon: <Target size={18} />,
-    module: "erp_sales_targets",
-    children: [
-      { label: "Liste Objectifs", href: "/erp/sales-targets", icon: <Target size={18} />, module: "erp_sales_targets" },
-    ],
-  },
-  // Groupe Comptabilité Analytique
-  {
-    label: "Comptabilité Analytique",
-    icon: <PieChart size={18} />,
-    module: "erp_analytics",
-    children: [
-      { label: "Dashboard", href: "/erp/analytics", icon: <LayoutDashboard size={18} />, module: "erp_analytics" },
+      { label: "Pré-Comptabilité", href: "/erp/accounting", icon: <BookOpen size={18} />, module: "erp_accounting" },
+      { label: "Analytique", href: "/erp/analytics", icon: <PieChart size={18} />, module: "erp_analytics" },
       { label: "Centres de Coûts", href: "/erp/cost-centers", icon: <Layers size={18} />, module: "erp_analytics" },
     ],
   },
-  // Groupe Direction
+
+  // ===== DIRECTION =====
   {
     label: "Direction",
     icon: <Gauge size={18} />,
@@ -188,6 +194,8 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
       { label: "Jobs Intégration", href: "/erp/budget-integrations/jobs", icon: <Activity size={18} />, module: "erp_budget_integrations" },
     ],
   },
+
+  // ===== PERSONNEL =====
   { label: "Notifications", href: "/erp/notifications", icon: <Bell size={18} />, module: "erp_alerts" },
   { label: "Profil", href: "/erp/profile", icon: <User size={18} />, module: "erp_profile" },
   { label: "Audit Logs", href: "/erp/audit-logs", icon: <ScrollText size={18} />, module: "erp_audit_logs" },
