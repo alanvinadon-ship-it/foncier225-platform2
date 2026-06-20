@@ -1,6 +1,7 @@
 import {
   bigint,
   boolean,
+  decimal,
   index,
   int,
   json,
@@ -2732,3 +2733,550 @@ export const erpExpenseLines = mysqlTable("erp_expense_lines", {
   expenseIdx: index("idx_erp_expline_expense").on(table.expenseId),
 }));
 export type ErpExpenseLine = typeof erpExpenseLines.$inferSelect;
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// MODULE VENTE IMMOBILIÈRE
+// ═══════════════════════════════════════════════════════════════════════
+
+// --- Programmes immobiliers ---
+export const erpRealEstatePrograms = mysqlTable("erp_real_estate_programs", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 32 }).notNull().unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  projectId: int("project_id"),
+  location: varchar("location", { length: 255 }),
+  developerName: varchar("developer_name", { length: 255 }),
+  startDate: bigint("start_date", { mode: "number" }),
+  plannedDeliveryDate: bigint("planned_delivery_date", { mode: "number" }),
+  actualDeliveryDate: bigint("actual_delivery_date", { mode: "number" }),
+  status: varchar("status", { length: 32 }).notNull().default("draft"), // draft, active, completed, suspended, cancelled
+  totalUnits: int("total_units").default(0).notNull(),
+  availableUnits: int("available_units").default(0).notNull(),
+  reservedUnits: int("reserved_units").default(0).notNull(),
+  soldUnits: int("sold_units").default(0).notNull(),
+  createdBy: int("created_by"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  statusIdx: index("idx_re_prog_status").on(table.status),
+  projectIdx: index("idx_re_prog_project").on(table.projectId),
+}));
+export type ErpRealEstateProgram = typeof erpRealEstatePrograms.$inferSelect;
+
+// --- Bâtiments / blocs / immeubles ---
+export const erpRealEstateBuildings = mysqlTable("erp_real_estate_buildings", {
+  id: int("id").autoincrement().primaryKey(),
+  programId: int("program_id").notNull(),
+  code: varchar("code", { length: 32 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  buildingType: varchar("building_type", { length: 32 }).notNull(), // immeuble, bloc, villa_groupee, residence, maison_individuelle, autre
+  numberOfFloors: int("number_of_floors").default(0),
+  numberOfUnits: int("number_of_units").default(0),
+  description: text("description"),
+  status: varchar("status", { length: 32 }).notNull().default("active"), // active, completed, suspended
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  programIdx: index("idx_re_bldg_program").on(table.programId),
+}));
+export type ErpRealEstateBuilding = typeof erpRealEstateBuildings.$inferSelect;
+
+// --- Unités immobilières vendables ---
+export const erpRealEstateUnits = mysqlTable("erp_real_estate_units", {
+  id: int("id").autoincrement().primaryKey(),
+  programId: int("program_id").notNull(),
+  buildingId: int("building_id"),
+  projectId: int("project_id"),
+  unitCode: varchar("unit_code", { length: 32 }).notNull().unique(),
+  unitType: varchar("unit_type", { length: 32 }).notNull(), // maison, villa, appartement, duplex, studio, local_commercial, parking, autre
+  floorNumber: int("floor_number"),
+  doorNumber: varchar("door_number", { length: 16 }),
+  lotNumber: varchar("lot_number", { length: 32 }),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  surfaceArea: decimal("surface_area", { precision: 10, scale: 2 }),
+  landArea: decimal("land_area", { precision: 10, scale: 2 }),
+  numberOfRooms: int("number_of_rooms"),
+  numberOfBedrooms: int("number_of_bedrooms"),
+  numberOfBathrooms: int("number_of_bathrooms"),
+  hasParking: boolean("has_parking").default(false),
+  parkingNumber: varchar("parking_number", { length: 16 }),
+  basePrice: bigint("base_price", { mode: "number" }),
+  currentPrice: bigint("current_price", { mode: "number" }),
+  currency: varchar("currency", { length: 8 }).default("XOF").notNull(),
+  status: varchar("status", { length: 32 }).notNull().default("draft"), // draft, available, reserved, sold, under_contract, delivered, cancelled, blocked, maintenance, not_available
+  availabilityDate: bigint("availability_date", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  programIdx: index("idx_re_unit_program").on(table.programId),
+  buildingIdx: index("idx_re_unit_building").on(table.buildingId),
+  statusIdx: index("idx_re_unit_status").on(table.status),
+  typeIdx: index("idx_re_unit_type").on(table.unitType),
+}));
+export type ErpRealEstateUnit = typeof erpRealEstateUnits.$inferSelect;
+
+// --- Clients et prospects acheteurs ---
+export const erpRealEstateCustomers = mysqlTable("erp_real_estate_customers", {
+  id: int("id").autoincrement().primaryKey(),
+  customerNumber: varchar("customer_number", { length: 32 }).notNull().unique(),
+  customerType: varchar("customer_type", { length: 16 }).notNull(), // individual, company
+  firstName: varchar("first_name", { length: 128 }),
+  lastName: varchar("last_name", { length: 128 }),
+  companyName: varchar("company_name", { length: 255 }),
+  email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 32 }),
+  address: text("address"),
+  nationality: varchar("nationality", { length: 64 }),
+  idDocumentType: varchar("id_document_type", { length: 32 }), // cni, passport, carte_sejour, rccm, autre
+  idDocumentNumber: varchar("id_document_number", { length: 64 }),
+  taxIdentificationNumber: varchar("tax_identification_number", { length: 32 }),
+  source: varchar("source", { length: 64 }), // direct, referral, website, agency, salon, autre
+  status: varchar("status", { length: 32 }).notNull().default("prospect"), // prospect, qualified, buyer, inactive, blacklisted
+  assignedSalespersonId: int("assigned_salesperson_id"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  statusIdx: index("idx_re_cust_status").on(table.status),
+  typeIdx: index("idx_re_cust_type").on(table.customerType),
+  salespersonIdx: index("idx_re_cust_sales").on(table.assignedSalespersonId),
+}));
+export type ErpRealEstateCustomer = typeof erpRealEstateCustomers.$inferSelect;
+
+// --- Réservations immobilières ---
+export const erpRealEstateReservations = mysqlTable("erp_real_estate_reservations", {
+  id: int("id").autoincrement().primaryKey(),
+  reservationNumber: varchar("reservation_number", { length: 32 }).notNull().unique(),
+  unitId: int("unit_id").notNull(),
+  customerId: int("customer_id").notNull(),
+  reservationDate: bigint("reservation_date", { mode: "number" }).notNull(),
+  expiryDate: bigint("expiry_date", { mode: "number" }),
+  reservationAmount: bigint("reservation_amount", { mode: "number" }).default(0),
+  currency: varchar("currency", { length: 8 }).default("XOF").notNull(),
+  status: varchar("status", { length: 32 }).notNull().default("draft"), // draft, pending_payment, active, expired, converted_to_sale, cancelled, refunded
+  paymentId: int("payment_id"),
+  documentId: int("document_id"),
+  createdBy: int("created_by"),
+  approvedBy: int("approved_by"),
+  approvedAt: bigint("approved_at", { mode: "number" }),
+  cancelledBy: int("cancelled_by"),
+  cancelledAt: bigint("cancelled_at", { mode: "number" }),
+  cancellationReason: text("cancellation_reason"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  unitIdx: index("idx_re_resv_unit").on(table.unitId),
+  customerIdx: index("idx_re_resv_customer").on(table.customerId),
+  statusIdx: index("idx_re_resv_status").on(table.status),
+}));
+export type ErpRealEstateReservation = typeof erpRealEstateReservations.$inferSelect;
+
+// --- Contrats de vente immobilière ---
+export const erpRealEstateSales = mysqlTable("erp_real_estate_sales", {
+  id: int("id").autoincrement().primaryKey(),
+  saleNumber: varchar("sale_number", { length: 32 }).notNull().unique(),
+  programId: int("program_id"),
+  unitId: int("unit_id").notNull(),
+  customerId: int("customer_id").notNull(),
+  reservationId: int("reservation_id"),
+  saleDate: bigint("sale_date", { mode: "number" }),
+  contractDate: bigint("contract_date", { mode: "number" }),
+  basePrice: bigint("base_price", { mode: "number" }).notNull(),
+  discountAmount: bigint("discount_amount", { mode: "number" }).default(0),
+  extraFeesAmount: bigint("extra_fees_amount", { mode: "number" }).default(0),
+  taxAmount: bigint("tax_amount", { mode: "number" }).default(0),
+  totalSaleAmount: bigint("total_sale_amount", { mode: "number" }).notNull(),
+  currency: varchar("currency", { length: 8 }).default("XOF").notNull(),
+  status: varchar("status", { length: 32 }).notNull().default("draft"), // draft, pending_approval, approved, contract_signed, in_payment, fully_paid, delivered, cancelled, refunded, closed
+  contractDocumentId: int("contract_document_id"),
+  notaryName: varchar("notary_name", { length: 255 }),
+  notaryContact: varchar("notary_contact", { length: 128 }),
+  salespersonId: int("salesperson_id"),
+  approvedBy: int("approved_by"),
+  approvedAt: bigint("approved_at", { mode: "number" }),
+  createdBy: int("created_by"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  unitIdx: index("idx_re_sale_unit").on(table.unitId),
+  customerIdx: index("idx_re_sale_customer").on(table.customerId),
+  statusIdx: index("idx_re_sale_status").on(table.status),
+  programIdx: index("idx_re_sale_program").on(table.programId),
+}));
+export type ErpRealEstateSale = typeof erpRealEstateSales.$inferSelect;
+
+// --- Échéanciers de paiement ---
+export const erpRealEstatePaymentPlans = mysqlTable("erp_real_estate_payment_plans", {
+  id: int("id").autoincrement().primaryKey(),
+  saleId: int("sale_id").notNull(),
+  planName: varchar("plan_name", { length: 128 }).notNull(),
+  totalAmount: bigint("total_amount", { mode: "number" }).notNull(),
+  initialDepositAmount: bigint("initial_deposit_amount", { mode: "number" }).default(0),
+  numberOfInstallments: int("number_of_installments").notNull(),
+  frequency: varchar("frequency", { length: 32 }).notNull(), // one_time, monthly, quarterly, semi_annual, annual, custom
+  status: varchar("status", { length: 32 }).notNull().default("active"), // active, completed, cancelled
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  saleIdx: index("idx_re_plan_sale").on(table.saleId),
+}));
+export type ErpRealEstatePaymentPlan = typeof erpRealEstatePaymentPlans.$inferSelect;
+
+// --- Échéances (installments) ---
+export const erpRealEstateInstallments = mysqlTable("erp_real_estate_installments", {
+  id: int("id").autoincrement().primaryKey(),
+  paymentPlanId: int("payment_plan_id").notNull(),
+  saleId: int("sale_id").notNull(),
+  installmentNumber: int("installment_number").notNull(),
+  dueDate: bigint("due_date", { mode: "number" }).notNull(),
+  amountDue: bigint("amount_due", { mode: "number" }).notNull(),
+  amountPaid: bigint("amount_paid", { mode: "number" }).default(0),
+  balanceDue: bigint("balance_due", { mode: "number" }).notNull(),
+  status: varchar("status", { length: 32 }).notNull().default("pending"), // pending, partially_paid, paid, overdue, cancelled
+  invoiceId: int("invoice_id"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  planIdx: index("idx_re_inst_plan").on(table.paymentPlanId),
+  saleIdx: index("idx_re_inst_sale").on(table.saleId),
+  statusIdx: index("idx_re_inst_status").on(table.status),
+  dueDateIdx: index("idx_re_inst_due").on(table.dueDate),
+}));
+export type ErpRealEstateInstallment = typeof erpRealEstateInstallments.$inferSelect;
+
+// --- Encaissements clients ---
+export const erpCustomerPayments = mysqlTable("erp_customer_payments", {
+  id: int("id").autoincrement().primaryKey(),
+  paymentNumber: varchar("payment_number", { length: 32 }).notNull().unique(),
+  saleId: int("sale_id").notNull(),
+  customerId: int("customer_id").notNull(),
+  installmentId: int("installment_id"),
+  paymentDate: bigint("payment_date", { mode: "number" }).notNull(),
+  amount: bigint("amount", { mode: "number" }).notNull(),
+  currency: varchar("currency", { length: 8 }).default("XOF").notNull(),
+  paymentMethod: varchar("payment_method", { length: 32 }).notNull(), // cash, bank_transfer, cheque, mobile_money, card, other
+  paymentAccountId: int("payment_account_id"),
+  reference: varchar("reference", { length: 128 }),
+  status: varchar("status", { length: 32 }).notNull().default("draft"), // draft, received, validated, rejected, reversed, refunded
+  receiptDocumentId: int("receipt_document_id"),
+  createdBy: int("created_by"),
+  validatedBy: int("validated_by"),
+  validatedAt: bigint("validated_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  saleIdx: index("idx_re_cpay_sale").on(table.saleId),
+  customerIdx: index("idx_re_cpay_customer").on(table.customerId),
+  statusIdx: index("idx_re_cpay_status").on(table.status),
+}));
+export type ErpCustomerPayment = typeof erpCustomerPayments.$inferSelect;
+
+// --- Livraisons et remise des clés ---
+export const erpRealEstateDeliveries = mysqlTable("erp_real_estate_deliveries", {
+  id: int("id").autoincrement().primaryKey(),
+  deliveryNumber: varchar("delivery_number", { length: 32 }).notNull().unique(),
+  saleId: int("sale_id").notNull(),
+  unitId: int("unit_id").notNull(),
+  customerId: int("customer_id").notNull(),
+  deliveryDate: bigint("delivery_date", { mode: "number" }),
+  deliveredBy: int("delivered_by"),
+  receivedByName: varchar("received_by_name", { length: 255 }),
+  status: varchar("status", { length: 32 }).notNull().default("planned"), // planned, ready, delivered, with_reservations, cancelled
+  handoverDocumentId: int("handover_document_id"),
+  remarks: text("remarks"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  saleIdx: index("idx_re_deliv_sale").on(table.saleId),
+  unitIdx: index("idx_re_deliv_unit").on(table.unitId),
+  statusIdx: index("idx_re_deliv_status").on(table.status),
+}));
+export type ErpRealEstateDelivery = typeof erpRealEstateDeliveries.$inferSelect;
+
+// --- Réserves de livraison ---
+export const erpRealEstateDeliveryReserves = mysqlTable("erp_real_estate_delivery_reserves", {
+  id: int("id").autoincrement().primaryKey(),
+  deliveryId: int("delivery_id").notNull(),
+  description: text("description").notNull(),
+  severity: varchar("severity", { length: 16 }).notNull(), // minor, major, critical
+  responsibleUserId: int("responsible_user_id"),
+  dueDate: bigint("due_date", { mode: "number" }),
+  status: varchar("status", { length: 32 }).notNull().default("open"), // open, in_progress, resolved, cancelled
+  resolvedAt: bigint("resolved_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  deliveryIdx: index("idx_re_dreserve_deliv").on(table.deliveryId),
+}));
+export type ErpRealEstateDeliveryReserve = typeof erpRealEstateDeliveryReserves.$inferSelect;
+
+// --- Commissions commerciales ---
+export const erpSalesCommissions = mysqlTable("erp_sales_commissions", {
+  id: int("id").autoincrement().primaryKey(),
+  saleId: int("sale_id").notNull(),
+  salespersonId: int("salesperson_id").notNull(),
+  commissionType: varchar("commission_type", { length: 32 }).notNull(), // percentage, fixed
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }),
+  commissionAmount: bigint("commission_amount", { mode: "number" }).notNull(),
+  status: varchar("status", { length: 32 }).notNull().default("pending"), // pending, approved, paid, cancelled
+  approvedBy: int("approved_by"),
+  approvedAt: bigint("approved_at", { mode: "number" }),
+  paidAt: bigint("paid_at", { mode: "number" }),
+  expenseId: int("expense_id"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  saleIdx: index("idx_re_comm_sale").on(table.saleId),
+  salespersonIdx: index("idx_re_comm_sales").on(table.salespersonId),
+  statusIdx: index("idx_re_comm_status").on(table.status),
+}));
+export type ErpSalesCommission = typeof erpSalesCommissions.$inferSelect;
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// MODULE COMPTABILITÉ FINALE
+// ═══════════════════════════════════════════════════════════════════════
+
+// --- Exercices comptables ---
+export const erpAccountingFiscalYears = mysqlTable("erp_accounting_fiscal_years", {
+  id: int("id").autoincrement().primaryKey(),
+  yearCode: varchar("year_code", { length: 16 }).notNull().unique(),
+  startDate: bigint("start_date", { mode: "number" }).notNull(),
+  endDate: bigint("end_date", { mode: "number" }).notNull(),
+  status: varchar("status", { length: 16 }).notNull().default("open"), // open, closing, closed, archived
+  closedBy: int("closed_by"),
+  closedAt: bigint("closed_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  statusIdx: index("idx_acct_fy_status").on(table.status),
+}));
+export type ErpAccountingFiscalYear = typeof erpAccountingFiscalYears.$inferSelect;
+
+// --- Périodes comptables ---
+export const erpAccountingPeriods = mysqlTable("erp_accounting_periods", {
+  id: int("id").autoincrement().primaryKey(),
+  fiscalYearId: int("fiscal_year_id").notNull(),
+  periodCode: varchar("period_code", { length: 16 }).notNull(),
+  startDate: bigint("start_date", { mode: "number" }).notNull(),
+  endDate: bigint("end_date", { mode: "number" }).notNull(),
+  status: varchar("status", { length: 16 }).notNull().default("open"), // open, locked, closed
+  closedBy: int("closed_by"),
+  closedAt: bigint("closed_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  fyIdx: index("idx_acct_period_fy").on(table.fiscalYearId),
+  statusIdx: index("idx_acct_period_status").on(table.status),
+}));
+export type ErpAccountingPeriod = typeof erpAccountingPeriods.$inferSelect;
+
+// --- Journaux comptables ---
+export const erpAccountingJournals = mysqlTable("erp_accounting_journals", {
+  id: int("id").autoincrement().primaryKey(),
+  journalCode: varchar("journal_code", { length: 16 }).notNull().unique(),
+  journalName: varchar("journal_name", { length: 128 }).notNull(),
+  journalType: varchar("journal_type", { length: 32 }).notNull(), // sales, purchases, cash, bank, operations, payroll, tax, adjustment, opening, closing
+  description: text("description"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  typeIdx: index("idx_acct_jnl_type").on(table.journalType),
+}));
+export type ErpAccountingJournal = typeof erpAccountingJournals.$inferSelect;
+
+// --- Écritures comptables définitives ---
+export const erpAccountingEntries = mysqlTable("erp_accounting_entries", {
+  id: int("id").autoincrement().primaryKey(),
+  entryNumber: varchar("entry_number", { length: 32 }).notNull().unique(),
+  journalId: int("journal_id").notNull(),
+  fiscalYearId: int("fiscal_year_id").notNull(),
+  periodId: int("period_id").notNull(),
+  entryDate: bigint("entry_date", { mode: "number" }).notNull(),
+  postingDate: bigint("posting_date", { mode: "number" }),
+  sourceType: varchar("source_type", { length: 32 }), // invoice, payment, expense, sale, purchase, manual, adjustment
+  sourceId: int("source_id"),
+  description: text("description"),
+  reference: varchar("reference", { length: 128 }),
+  status: varchar("status", { length: 16 }).notNull().default("draft"), // draft, posted, reversed, cancelled
+  totalDebit: bigint("total_debit", { mode: "number" }).default(0),
+  totalCredit: bigint("total_credit", { mode: "number" }).default(0),
+  createdBy: int("created_by"),
+  postedBy: int("posted_by"),
+  postedAt: bigint("posted_at", { mode: "number" }),
+  reversedBy: int("reversed_by"),
+  reversedAt: bigint("reversed_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  journalIdx: index("idx_acct_entry_jnl").on(table.journalId),
+  periodIdx: index("idx_acct_entry_period").on(table.periodId),
+  statusIdx: index("idx_acct_entry_status").on(table.status),
+  dateIdx: index("idx_acct_entry_date").on(table.entryDate),
+  sourceIdx: index("idx_acct_entry_source").on(table.sourceType, table.sourceId),
+}));
+export type ErpAccountingEntry = typeof erpAccountingEntries.$inferSelect;
+
+// --- Lignes d'écritures comptables ---
+export const erpAccountingEntryLines = mysqlTable("erp_accounting_entry_lines", {
+  id: int("id").autoincrement().primaryKey(),
+  entryId: int("entry_id").notNull(),
+  lineNumber: int("line_number").notNull(),
+  accountingAccountId: int("accounting_account_id").notNull(),
+  debitAmount: bigint("debit_amount", { mode: "number" }).default(0),
+  creditAmount: bigint("credit_amount", { mode: "number" }).default(0),
+  label: varchar("label", { length: 255 }),
+  projectId: int("project_id"),
+  customerId: int("customer_id"),
+  vendorId: int("vendor_id"),
+  taxCodeId: int("tax_code_id"),
+  analyticAxisId: int("analytic_axis_id"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  entryIdx: index("idx_acct_eline_entry").on(table.entryId),
+  accountIdx: index("idx_acct_eline_acct").on(table.accountingAccountId),
+}));
+export type ErpAccountingEntryLine = typeof erpAccountingEntryLines.$inferSelect;
+
+// --- Comptes auxiliaires clients/fournisseurs ---
+export const erpAccountingThirdParties = mysqlTable("erp_accounting_third_parties", {
+  id: int("id").autoincrement().primaryKey(),
+  thirdPartyType: varchar("third_party_type", { length: 16 }).notNull(), // customer, vendor, contractor, employee, other
+  customerId: int("customer_id"),
+  vendorId: int("vendor_id"),
+  contractorId: int("contractor_id"),
+  accountingAccountId: int("accounting_account_id"),
+  thirdPartyCode: varchar("third_party_code", { length: 32 }).notNull().unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  taxIdentificationNumber: varchar("tax_identification_number", { length: 32 }),
+  status: varchar("status", { length: 16 }).notNull().default("active"), // active, inactive
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  typeIdx: index("idx_acct_tp_type").on(table.thirdPartyType),
+  accountIdx: index("idx_acct_tp_acct").on(table.accountingAccountId),
+}));
+export type ErpAccountingThirdParty = typeof erpAccountingThirdParties.$inferSelect;
+
+// --- Axes analytiques ---
+export const erpAnalyticAxes = mysqlTable("erp_analytic_axes", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 16 }).notNull().unique(),
+  name: varchar("name", { length: 128 }).notNull(),
+  description: text("description"),
+  axisType: varchar("axis_type", { length: 32 }).notNull(), // projet, programme, chantier, departement, activite, type_bien, commercial
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  typeIdx: index("idx_analytic_type").on(table.axisType),
+}));
+export type ErpAnalyticAxis = typeof erpAnalyticAxes.$inferSelect;
+
+// --- Allocations analytiques ---
+export const erpAnalyticAllocations = mysqlTable("erp_analytic_allocations", {
+  id: int("id").autoincrement().primaryKey(),
+  sourceType: varchar("source_type", { length: 32 }).notNull(), // entry, invoice, expense, sale
+  sourceId: int("source_id").notNull(),
+  projectId: int("project_id"),
+  analyticAxisId: int("analytic_axis_id").notNull(),
+  percentage: decimal("percentage", { precision: 5, scale: 2 }),
+  amount: bigint("amount", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  sourceIdx: index("idx_analytic_alloc_src").on(table.sourceType, table.sourceId),
+  axisIdx: index("idx_analytic_alloc_axis").on(table.analyticAxisId),
+}));
+export type ErpAnalyticAllocation = typeof erpAnalyticAllocations.$inferSelect;
+
+// --- Rapprochement bancaire ---
+export const erpBankReconciliations = mysqlTable("erp_bank_reconciliations", {
+  id: int("id").autoincrement().primaryKey(),
+  paymentAccountId: int("payment_account_id").notNull(),
+  periodId: int("period_id"),
+  statementDate: bigint("statement_date", { mode: "number" }).notNull(),
+  openingBalance: bigint("opening_balance", { mode: "number" }).notNull(),
+  closingBalance: bigint("closing_balance", { mode: "number" }).notNull(),
+  status: varchar("status", { length: 16 }).notNull().default("draft"), // draft, in_progress, validated
+  createdBy: int("created_by"),
+  validatedBy: int("validated_by"),
+  validatedAt: bigint("validated_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  accountIdx: index("idx_bank_recon_acct").on(table.paymentAccountId),
+  statusIdx: index("idx_bank_recon_status").on(table.status),
+}));
+export type ErpBankReconciliation = typeof erpBankReconciliations.$inferSelect;
+
+// --- Lignes de rapprochement bancaire ---
+export const erpBankReconciliationLines = mysqlTable("erp_bank_reconciliation_lines", {
+  id: int("id").autoincrement().primaryKey(),
+  reconciliationId: int("reconciliation_id").notNull(),
+  paymentId: int("payment_id"),
+  accountingEntryId: int("accounting_entry_id"),
+  transactionDate: bigint("transaction_date", { mode: "number" }).notNull(),
+  description: varchar("description", { length: 255 }),
+  amount: bigint("amount", { mode: "number" }).notNull(),
+  matched: boolean("matched").default(false).notNull(),
+  matchReference: varchar("match_reference", { length: 64 }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  reconIdx: index("idx_bank_rline_recon").on(table.reconciliationId),
+}));
+export type ErpBankReconciliationLine = typeof erpBankReconciliationLines.$inferSelect;
+
+// --- Périodes fiscales ---
+export const erpTaxPeriods = mysqlTable("erp_tax_periods", {
+  id: int("id").autoincrement().primaryKey(),
+  periodCode: varchar("period_code", { length: 32 }).notNull().unique(),
+  taxType: varchar("tax_type", { length: 32 }).notNull(), // tva, is, patente, tpp, autre
+  startDate: bigint("start_date", { mode: "number" }).notNull(),
+  endDate: bigint("end_date", { mode: "number" }).notNull(),
+  status: varchar("status", { length: 16 }).notNull().default("open"), // open, declared, paid, closed
+  declaredAt: bigint("declared_at", { mode: "number" }),
+  paidAt: bigint("paid_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  typeIdx: index("idx_tax_period_type").on(table.taxType),
+  statusIdx: index("idx_tax_period_status").on(table.status),
+}));
+export type ErpTaxPeriod = typeof erpTaxPeriods.$inferSelect;
+
+// --- Déclarations fiscales ---
+export const erpTaxDeclarations = mysqlTable("erp_tax_declarations", {
+  id: int("id").autoincrement().primaryKey(),
+  taxPeriodId: int("tax_period_id").notNull(),
+  taxCodeId: int("tax_code_id").notNull(),
+  taxBaseAmount: bigint("tax_base_amount", { mode: "number" }).default(0),
+  taxAmount: bigint("tax_amount", { mode: "number" }).default(0),
+  recoverableAmount: bigint("recoverable_amount", { mode: "number" }).default(0),
+  payableAmount: bigint("payable_amount", { mode: "number" }).default(0),
+  status: varchar("status", { length: 16 }).notNull().default("draft"), // draft, reviewed, validated, declared, paid, cancelled
+  documentId: int("document_id"),
+  createdBy: int("created_by"),
+  validatedBy: int("validated_by"),
+  validatedAt: bigint("validated_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  periodIdx: index("idx_tax_decl_period").on(table.taxPeriodId),
+  statusIdx: index("idx_tax_decl_status").on(table.status),
+}));
+export type ErpTaxDeclaration = typeof erpTaxDeclarations.$inferSelect;

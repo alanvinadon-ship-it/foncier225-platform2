@@ -35,6 +35,13 @@ import {
   BookOpen,
   ClipboardList,
   PackageCheck,
+  Building2,
+  Home,
+  KeyRound,
+  Receipt,
+  Calculator,
+  Scale,
+  Landmark,
 } from "lucide-react";
 import { useState } from "react";
 import { NotificationBell } from "@/components/erp/NotificationBell";
@@ -105,8 +112,35 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
       { label: "Alertes Dépassement", href: "/erp/finance/overrun-alerts", icon: <Bell size={18} />, module: "erp_alerts" },
     ],
   },
-  // Paramétrage Comptable
-  { label: "Comptabilité", href: "/erp/accounting", icon: <BookOpen size={18} />, module: "erp_accounting" },
+  // Paramétrage Comptable (Pré-comptabilité)
+  { label: "Pré-Comptabilité", href: "/erp/accounting", icon: <BookOpen size={18} />, module: "erp_accounting" },
+  // Groupe Vente Immobilière
+  {
+    label: "Vente Immobilière",
+    icon: <Building2 size={18} />,
+    module: "erp_real_estate",
+    children: [
+      { label: "Dashboard", href: "/erp/real-estate", icon: <LayoutDashboard size={18} />, module: "erp_real_estate" },
+      { label: "Programmes", href: "/erp/real-estate-programs", icon: <Home size={18} />, module: "erp_real_estate" },
+      { label: "Unités", href: "/erp/real-estate-units", icon: <KeyRound size={18} />, module: "erp_real_estate" },
+      { label: "Clients", href: "/erp/real-estate-customers", icon: <Users size={18} />, module: "erp_real_estate" },
+      { label: "Réservations", href: "/erp/real-estate-reservations", icon: <ClipboardList size={18} />, module: "erp_real_estate" },
+      { label: "Ventes", href: "/erp/real-estate-sales", icon: <Receipt size={18} />, module: "erp_real_estate" },
+      { label: "Encaissements", href: "/erp/real-estate-payments", icon: <Banknote size={18} />, module: "erp_real_estate" },
+    ],
+  },
+  // Groupe Comptabilité Générale
+  {
+    label: "Comptabilité Générale",
+    icon: <Calculator size={18} />,
+    module: "erp_full_accounting",
+    children: [
+      { label: "Dashboard", href: "/erp/accounting-dashboard", icon: <LayoutDashboard size={18} />, module: "erp_full_accounting" },
+      { label: "Journaux", href: "/erp/accounting-journals", icon: <BookOpen size={18} />, module: "erp_full_accounting" },
+      { label: "Écritures", href: "/erp/accounting-entries", icon: <ScrollText size={18} />, module: "erp_full_accounting" },
+      { label: "Balance", href: "/erp/accounting-balance", icon: <Scale size={18} />, module: "erp_full_accounting" },
+    ],
+  },
   { label: "Notifications", href: "/erp/notifications", icon: <Bell size={18} />, module: "erp_alerts" },
   { label: "Profil", href: "/erp/profile", icon: <User size={18} />, module: "erp_profile" },
   { label: "Audit Logs", href: "/erp/audit-logs", icon: <ScrollText size={18} />, module: "erp_audit_logs" },

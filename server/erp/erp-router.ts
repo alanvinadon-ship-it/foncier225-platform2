@@ -443,6 +443,8 @@ import { erpExportsRouter } from "./erp-exports-router";
 import { erpAccountingRouter } from "./erp-accounting-router";
 import { erpPurchasesRouter } from "./erp-purchases-router";
 import { erpExpensesRouter } from "./erp-expenses-router";
+import { realEstateRouter } from "./erp-real-estate-router";
+import { fullAccountingRouter } from "./erp-full-accounting-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -479,4 +481,6 @@ export const erpRouter = router({
   accounting: erpAccountingRouter,
   purchases: erpPurchasesRouter,
   expenses: erpExpensesRouter,
+  realEstate: realEstateRouter,
+  fullAccounting: fullAccountingRouter,
 });

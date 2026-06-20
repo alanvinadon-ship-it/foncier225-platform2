@@ -107,6 +107,21 @@ const ErpExpenses = lazy(() => import("./pages/erp/ErpExpenses"));
 const ErpGoodsReceipts = lazy(() => import("./pages/erp/ErpGoodsReceipts"));
 const ErpPurchasesDashboard = lazy(() => import("./pages/erp/ErpPurchasesDashboard"));
 
+// Vente Immobilière
+const ErpRealEstateDashboard = lazy(() => import("./pages/erp/ErpRealEstateDashboard"));
+const ErpRealEstatePrograms = lazy(() => import("./pages/erp/ErpRealEstatePrograms"));
+const ErpRealEstateUnits = lazy(() => import("./pages/erp/ErpRealEstateUnits"));
+const ErpRealEstateCustomers = lazy(() => import("./pages/erp/ErpRealEstateCustomers"));
+const ErpRealEstateReservations = lazy(() => import("./pages/erp/ErpRealEstateReservations"));
+const ErpRealEstateSales = lazy(() => import("./pages/erp/ErpRealEstateSales"));
+const ErpRealEstatePayments = lazy(() => import("./pages/erp/ErpRealEstatePayments"));
+
+// Comptabilité Générale
+const ErpAccountingDashboard = lazy(() => import("./pages/erp/ErpAccountingDashboard"));
+const ErpAccountingJournals = lazy(() => import("./pages/erp/ErpAccountingJournals"));
+const ErpAccountingEntries = lazy(() => import("./pages/erp/ErpAccountingEntries"));
+const ErpAccountingBalance = lazy(() => import("./pages/erp/ErpAccountingBalance"));
+
 function RouteFallback() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-6">
@@ -565,6 +580,66 @@ function Router() {
           <ErpPurchasesDashboard />
         </ErpLayout>
       </Route>
+
+      {/* Vente Immobilière */}
+      <Route path="/erp/real-estate">
+        <ErpLayout>
+          <ErpRealEstateDashboard />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/real-estate-programs">
+        <ErpLayout>
+          <ErpRealEstatePrograms />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/real-estate-units">
+        <ErpLayout>
+          <ErpRealEstateUnits />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/real-estate-customers">
+        <ErpLayout>
+          <ErpRealEstateCustomers />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/real-estate-reservations">
+        <ErpLayout>
+          <ErpRealEstateReservations />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/real-estate-sales">
+        <ErpLayout>
+          <ErpRealEstateSales />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/real-estate-payments">
+        <ErpLayout>
+          <ErpRealEstatePayments />
+        </ErpLayout>
+      </Route>
+
+      {/* Comptabilité Générale */}
+      <Route path="/erp/accounting-dashboard">
+        <ErpLayout>
+          <ErpAccountingDashboard />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/accounting-journals">
+        <ErpLayout>
+          <ErpAccountingJournals />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/accounting-entries">
+        <ErpLayout>
+          <ErpAccountingEntries />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/accounting-balance">
+        <ErpLayout>
+          <ErpAccountingBalance />
+        </ErpLayout>
+      </Route>
+
       <Route path="/erp/notifications">
         <ErpLayout>
           <ErpNotifications />

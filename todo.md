@@ -2165,3 +2165,28 @@
 - [x] Écritures pré-comptables automatiques — génération journal HA à la validation facture/paiement
 - [x] Dashboard Achats (/erp/purchases-dashboard) — KPIs, montant PO, taux livraison, top fournisseurs
 - [x] Tests vitest et non-régression — 1120 tests PASS
+
+## Sprint 22 — Vente Immobilière + Comptabilité Générale
+- [x] Schéma DB Vente Immobilière (11 tables : programs, buildings, units, customers, reservations, sales, payment_plans, installments, deliveries, delivery_reserves)
+- [x] Schéma DB Comptabilité Générale (10 tables : fiscal_years, periods, journals, entries, entry_lines, third_parties, analytic_axes, analytic_allocations, bank_reconciliations, bank_reconciliation_lines, tax_periods, tax_declarations)
+- [x] Migrations DB appliquées
+- [x] Routeur tRPC Vente Immobilière (erp-real-estate-router.ts) — programmes, bâtiments, unités, clients, réservations, ventes, plans paiement, encaissements, livraisons, commissions
+- [x] Routeur tRPC Comptabilité Générale (erp-full-accounting-router.ts) — journaux, écritures, rapports (balance, grand livre), rapprochement bancaire, analytique, tiers
+- [x] Page ErpRealEstateDashboard.tsx — Dashboard KPIs Vente Immobilière
+- [x] Page ErpRealEstatePrograms.tsx — Gestion programmes immobiliers
+- [x] Page ErpRealEstateUnits.tsx — Gestion unités (lots, appartements)
+- [x] Page ErpRealEstateCustomers.tsx — Gestion clients immobiliers
+- [x] Page ErpRealEstateReservations.tsx — Réservations
+- [x] Page ErpRealEstateSales.tsx — Ventes immobilières
+- [x] Page ErpRealEstatePayments.tsx — Encaissements clients
+- [x] Page ErpAccountingDashboard.tsx — Dashboard Comptabilité Générale
+- [x] Page ErpAccountingJournals.tsx — Journaux comptables
+- [x] Page ErpAccountingEntries.tsx — Écritures comptables
+- [x] Page ErpAccountingBalance.tsx — Balance générale
+- [x] Modules RBAC erp_real_estate et erp_full_accounting ajoutés (19 modules total)
+- [x] Permissions par défaut définies pour les nouveaux modules (6 actions chacun)
+- [x] Rôles mis à jour (finance_manager, viewer, super_admin)
+- [x] Sidebar ErpLayout.tsx — Menus collapsibles Vente Immobilière (7 items) et Comptabilité Générale (4 items)
+- [x] Routes App.tsx — 11 nouvelles routes + lazy imports
+- [x] Tests Sprint 22 (sprint22.test.ts) — 48 tests PASS
+- [x] 1166 tests PASS total, 0 erreur TypeScript

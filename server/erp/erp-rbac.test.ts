@@ -8,7 +8,7 @@ import {
 
 describe("ERP RBAC Service — Constants", () => {
   it("définit 14 modules ERP", () => {
-    expect(ERP_MODULES).toHaveLength(17);
+    expect(ERP_MODULES).toHaveLength(19);
     expect(ERP_MODULES).toContain("erp_dashboard");
     expect(ERP_MODULES).toContain("erp_projects");
     expect(ERP_MODULES).toContain("erp_gantt");

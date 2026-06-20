@@ -30,6 +30,8 @@ export const ERP_MODULES = [
   "erp_purchases",
   "erp_expenses",
   "erp_accounting",
+  "erp_real_estate",
+  "erp_full_accounting",
 ] as const;
 
 export type ErpModule = (typeof ERP_MODULES)[number];
@@ -217,6 +219,22 @@ export const ERP_DEFAULT_PERMISSIONS: Array<{
   { module: "erp_accounting", action: "update", displayName: "Modifier une écriture", description: "Modifier une écriture non validée" },
   { module: "erp_accounting", action: "validate", displayName: "Valider une écriture", description: "Valider une écriture comptable" },
   { module: "erp_accounting", action: "export", displayName: "Exporter la comptabilité", description: "Exporter le journal comptable" },
+
+  // Real Estate (Vente Immobilière)
+  { module: "erp_real_estate", action: "view", displayName: "Voir la vente immobilière", description: "Consulter les programmes, unités et ventes" },
+  { module: "erp_real_estate", action: "create", displayName: "Créer un programme/vente", description: "Créer un programme immobilier ou une vente" },
+  { module: "erp_real_estate", action: "update", displayName: "Modifier une vente", description: "Modifier un programme, une unité ou une vente" },
+  { module: "erp_real_estate", action: "delete", displayName: "Supprimer une vente", description: "Supprimer un élément immobilier" },
+  { module: "erp_real_estate", action: "approve", displayName: "Approuver une vente", description: "Valider une réservation ou une vente" },
+  { module: "erp_real_estate", action: "export", displayName: "Exporter l'immobilier", description: "Exporter les données immobilières" },
+
+  // Full Accounting (Comptabilité Générale)
+  { module: "erp_full_accounting", action: "view", displayName: "Voir la comptabilité générale", description: "Consulter les journaux, écritures et rapports" },
+  { module: "erp_full_accounting", action: "create", displayName: "Créer une écriture comptable", description: "Saisir une écriture dans un journal" },
+  { module: "erp_full_accounting", action: "update", displayName: "Modifier une écriture comptable", description: "Modifier une écriture non validée" },
+  { module: "erp_full_accounting", action: "delete", displayName: "Supprimer une écriture", description: "Supprimer une écriture brouillon" },
+  { module: "erp_full_accounting", action: "approve", displayName: "Valider une écriture", description: "Valider et verrouiller une écriture comptable" },
+  { module: "erp_full_accounting", action: "export", displayName: "Exporter la comptabilité", description: "Exporter les rapports comptables" },
 ];
 
 // ============================================================
@@ -278,6 +296,8 @@ export const ERP_ROLE_DEFAULT_PERMISSIONS: Record<string, Array<{ module: ErpMod
     { module: "erp_purchases", action: "view" }, { module: "erp_purchases", action: "create" }, { module: "erp_purchases", action: "approve" }, { module: "erp_purchases", action: "export" },
     { module: "erp_expenses", action: "view" }, { module: "erp_expenses", action: "create" }, { module: "erp_expenses", action: "approve" }, { module: "erp_expenses", action: "export" },
     { module: "erp_accounting", action: "view" }, { module: "erp_accounting", action: "create" }, { module: "erp_accounting", action: "validate" }, { module: "erp_accounting", action: "export" },
+    { module: "erp_real_estate", action: "view" }, { module: "erp_real_estate", action: "create" }, { module: "erp_real_estate", action: "update" }, { module: "erp_real_estate", action: "approve" }, { module: "erp_real_estate", action: "export" },
+    { module: "erp_full_accounting", action: "view" }, { module: "erp_full_accounting", action: "create" }, { module: "erp_full_accounting", action: "update" }, { module: "erp_full_accounting", action: "approve" }, { module: "erp_full_accounting", action: "export" },
     { module: "erp_vendors", action: "view" },
     { module: "erp_contractors", action: "view" },
     { module: "erp_alerts", action: "view" },
@@ -324,6 +344,8 @@ export const ERP_ROLE_DEFAULT_PERMISSIONS: Record<string, Array<{ module: ErpMod
     { module: "erp_contractors", action: "view" },
     { module: "erp_inventory", action: "view" },
     { module: "erp_finance", action: "view" },
+    { module: "erp_real_estate", action: "view" },
+    { module: "erp_full_accounting", action: "view" },
     { module: "erp_alerts", action: "view" },
     { module: "erp_profile", action: "view" },
     { module: "erp_audit_logs", action: "view" },
