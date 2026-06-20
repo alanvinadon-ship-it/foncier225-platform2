@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,24 @@ export default function ErpPurchasesDashboard() {
   
   // Vendors list for top vendors
   const { data: vendors } = trpc.erp.vendors.list.useQuery({ limit: 100, offset: 0 });
+
+  // Status distribution for orders — useMemo must always be called
+  const statusDistribution = useMemo(() => {
+    if (!recentOrders?.orders) return [];
+    const counts: Record<string, number> = {};
+    recentOrders.orders.forEach((o: any) => {
+      counts[o.status] = (counts[o.status] || 0) + 1;
+    });
+    return Object.entries(counts).map(([status, count]) => ({ status, count }));
+  }, [recentOrders]);
+
+  // Calculate delivery rate from orders
+  const deliveryRate = useMemo(() => {
+    if (!recentOrders?.orders) return 0;
+    const delivered = recentOrders.orders.filter((o: any) => o.status === "fully_received" || o.status === "closed").length;
+    const total = recentOrders.orders.length;
+    return total > 0 ? Math.round((delivered / total) * 100) : 0;
+  }, [recentOrders]);
 
   if (statsLoading) {
     return (
@@ -71,25 +89,6 @@ export default function ErpPurchasesDashboard() {
       isAmount: true,
     },
   ];
-
-  // Calculate delivery rate from orders
-  const deliveryRate = recentOrders?.orders
-    ? (() => {
-        const delivered = recentOrders.orders.filter((o: any) => o.status === "fully_received" || o.status === "closed").length;
-        const total = recentOrders.orders.length;
-        return total > 0 ? Math.round((delivered / total) * 100) : 0;
-      })()
-    : 0;
-
-  // Status distribution for orders
-  const statusDistribution = useMemo(() => {
-    if (!recentOrders?.orders) return [];
-    const counts: Record<string, number> = {};
-    recentOrders.orders.forEach((o: any) => {
-      counts[o.status] = (counts[o.status] || 0) + 1;
-    });
-    return Object.entries(counts).map(([status, count]) => ({ status, count }));
-  }, [recentOrders]);
 
   const statusLabels: Record<string, string> = {
     draft: "Brouillon",
