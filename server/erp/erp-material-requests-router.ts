@@ -22,7 +22,7 @@ const PRIORITIES = ["low", "medium", "high", "urgent"] as const;
 // ============================================================
 
 export const erpMaterialRequestsRouter = router({
-  list: erpPermissionProcedure("inventory", "view").input(
+  list: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({
       projectId: z.number().optional(),
       status: z.string().optional(),
@@ -55,7 +55,7 @@ export const erpMaterialRequestsRouter = router({
     return { requests, total: countResult.count };
   }),
 
-  getById: erpPermissionProcedure("inventory", "view").input(
+  getById: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({ id: z.number() })
   ).query(async ({ input }) => {
     const db = (await getDb())!;
@@ -82,7 +82,7 @@ export const erpMaterialRequestsRouter = router({
     return { ...request, lines: enrichedLines };
   }),
 
-  create: erpPermissionProcedure("inventory", "create").input(
+  create: erpPermissionProcedure("erp_inventory", "create").input(
     z.object({
       projectId: z.number().optional(),
       title: z.string().min(2).max(255),
@@ -138,7 +138,7 @@ export const erpMaterialRequestsRouter = router({
     return { id: result.insertId, requestNumber };
   }),
 
-  update: erpPermissionProcedure("inventory", "edit").input(
+  update: erpPermissionProcedure("erp_inventory", "update").input(
     z.object({
       id: z.number(),
       title: z.string().min(2).max(255).optional(),
@@ -160,7 +160,7 @@ export const erpMaterialRequestsRouter = router({
     return { success: true };
   }),
 
-  delete: erpPermissionProcedure("inventory", "delete").input(
+  delete: erpPermissionProcedure("erp_inventory", "delete").input(
     z.object({ id: z.number() })
   ).mutation(async ({ input, ctx }) => {
     const db = (await getDb())!;
@@ -186,7 +186,7 @@ export const erpMaterialRequestsRouter = router({
     return { success: true };
   }),
 
-  submit: erpPermissionProcedure("inventory", "edit").input(
+  submit: erpPermissionProcedure("erp_inventory", "update").input(
     z.object({ id: z.number() })
   ).mutation(async ({ input, ctx }) => {
     const db = (await getDb())!;
@@ -216,7 +216,7 @@ export const erpMaterialRequestsRouter = router({
     return { success: true };
   }),
 
-  approve: erpPermissionProcedure("inventory", "approve").input(
+  approve: erpPermissionProcedure("erp_inventory", "approve").input(
     z.object({ id: z.number() })
   ).mutation(async ({ input, ctx }) => {
     const db = (await getDb())!;
@@ -244,7 +244,7 @@ export const erpMaterialRequestsRouter = router({
     return { success: true };
   }),
 
-  reject: erpPermissionProcedure("inventory", "approve").input(
+  reject: erpPermissionProcedure("erp_inventory", "approve").input(
     z.object({
       id: z.number(),
       reason: z.string().min(5),
@@ -276,7 +276,7 @@ export const erpMaterialRequestsRouter = router({
     return { success: true };
   }),
 
-  fulfill: erpPermissionProcedure("inventory", "edit").input(
+  fulfill: erpPermissionProcedure("erp_inventory", "update").input(
     z.object({
       id: z.number(),
       lines: z.array(z.object({
@@ -371,7 +371,7 @@ export const erpMaterialRequestsRouter = router({
 
   // --- STATS ---
 
-  stats: erpPermissionProcedure("inventory", "view").input(
+  stats: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({ projectId: z.number().optional() }).optional()
   ).query(async ({ input }) => {
     const db = (await getDb())!;

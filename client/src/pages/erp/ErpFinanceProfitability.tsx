@@ -18,8 +18,8 @@ function formatPercent(bps: number) {
 
 export default function ErpFinanceProfitability() {
   const { hasPermission } = useErpPermissions();
-  const canView = hasPermission("finance", "view");
-  const canEdit = hasPermission("finance", "edit");
+  const canView = hasPermission("erp_finance", "view");
+  const canEdit = hasPermission("erp_finance", "update");
 
   const [selectedProject, setSelectedProject] = useState<string>("");
 

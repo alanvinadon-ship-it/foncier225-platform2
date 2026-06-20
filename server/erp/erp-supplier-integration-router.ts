@@ -18,7 +18,7 @@ export const erpSupplierIntegrationRouter = router({
   /**
    * GET — Liste des prix fournisseurs avec filtres
    */
-  listPrices: erpPermissionProcedure("inventory", "view").input(
+  listPrices: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({
       vendorId: z.number().optional(),
       itemId: z.number().optional(),
@@ -52,7 +52,7 @@ export const erpSupplierIntegrationRouter = router({
   /**
    * POST — Créer un prix fournisseur
    */
-  createPrice: erpPermissionProcedure("inventory", "create").input(
+  createPrice: erpPermissionProcedure("erp_inventory", "create").input(
     z.object({
       vendorId: z.number(),
       itemId: z.number(),
@@ -109,7 +109,7 @@ export const erpSupplierIntegrationRouter = router({
   /**
    * PUT — Modifier un prix fournisseur
    */
-  updatePrice: erpPermissionProcedure("inventory", "edit").input(
+  updatePrice: erpPermissionProcedure("erp_inventory", "update").input(
     z.object({
       id: z.number(),
       unitPrice: z.number().min(0).optional(),
@@ -162,7 +162,7 @@ export const erpSupplierIntegrationRouter = router({
   /**
    * DELETE — Supprimer un prix fournisseur
    */
-  deletePrice: erpPermissionProcedure("inventory", "delete").input(
+  deletePrice: erpPermissionProcedure("erp_inventory", "delete").input(
     z.object({ id: z.number() })
   ).mutation(async ({ input, ctx }) => {
     const db = (await getDb())!;
@@ -186,7 +186,7 @@ export const erpSupplierIntegrationRouter = router({
   /**
    * GET — Fournisseurs d'un article (avec prix)
    */
-  itemSuppliers: erpPermissionProcedure("inventory", "view").input(
+  itemSuppliers: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({ itemId: z.number() })
   ).query(async ({ input }) => {
     const db = (await getDb())!;
@@ -213,7 +213,7 @@ export const erpSupplierIntegrationRouter = router({
   /**
    * GET — Articles d'un fournisseur (catalogue)
    */
-  vendorItems: erpPermissionProcedure("inventory", "view").input(
+  vendorItems: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({ vendorId: z.number() })
   ).query(async ({ input }) => {
     const db = (await getDb())!;
@@ -242,7 +242,7 @@ export const erpSupplierIntegrationRouter = router({
   /**
    * GET — Comparaison des fournisseurs pour un article
    */
-  compareSuppliers: erpPermissionProcedure("inventory", "view").input(
+  compareSuppliers: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({ itemId: z.number() })
   ).query(async ({ input }) => {
     const db = (await getDb())!;
@@ -273,7 +273,7 @@ export const erpSupplierIntegrationRouter = router({
   /**
    * POST — Définir un fournisseur comme préféré pour un article
    */
-  setPreferred: erpPermissionProcedure("inventory", "edit").input(
+  setPreferred: erpPermissionProcedure("erp_inventory", "update").input(
     z.object({ id: z.number() })
   ).mutation(async ({ input, ctx }) => {
     const db = (await getDb())!;
@@ -309,7 +309,7 @@ export const erpSupplierIntegrationRouter = router({
   /**
    * GET — Liste des intégrations fournisseurs
    */
-  listIntegrations: erpPermissionProcedure("inventory", "view").input(
+  listIntegrations: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({
       vendorId: z.number().optional(),
       isActive: z.boolean().optional(),
@@ -338,7 +338,7 @@ export const erpSupplierIntegrationRouter = router({
   /**
    * POST — Créer une intégration fournisseur
    */
-  createIntegration: erpPermissionProcedure("inventory", "create").input(
+  createIntegration: erpPermissionProcedure("erp_inventory", "create").input(
     z.object({
       vendorId: z.number(),
       integrationType: z.enum(["api", "edi", "email", "manual"]),
@@ -378,7 +378,7 @@ export const erpSupplierIntegrationRouter = router({
   /**
    * POST — Simuler une synchronisation
    */
-  sync: erpPermissionProcedure("inventory", "edit").input(
+  sync: erpPermissionProcedure("erp_inventory", "update").input(
     z.object({ id: z.number() })
   ).mutation(async ({ input, ctx }) => {
     const db = (await getDb())!;

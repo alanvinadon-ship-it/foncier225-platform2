@@ -19,7 +19,7 @@ export const erpWastageRouter = router({
   /**
    * GET — Liste des pertes avec filtres
    */
-  list: erpPermissionProcedure("inventory", "view").input(
+  list: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({
       projectId: z.number().optional(),
       itemId: z.number().optional(),
@@ -57,7 +57,7 @@ export const erpWastageRouter = router({
   /**
    * GET — Détail d'une perte
    */
-  getById: erpPermissionProcedure("inventory", "view").input(
+  getById: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({ id: z.number() })
   ).query(async ({ input }) => {
     const db = (await getDb())!;
@@ -73,7 +73,7 @@ export const erpWastageRouter = router({
   /**
    * POST — Enregistrer une perte
    */
-  create: erpPermissionProcedure("inventory", "create").input(
+  create: erpPermissionProcedure("erp_inventory", "create").input(
     z.object({
       projectId: z.number().optional(),
       itemId: z.number(),
@@ -120,7 +120,7 @@ export const erpWastageRouter = router({
   /**
    * PUT — Modifier une perte
    */
-  update: erpPermissionProcedure("inventory", "edit").input(
+  update: erpPermissionProcedure("erp_inventory", "update").input(
     z.object({
       id: z.number(),
       quantity: z.number().min(1).optional(),
@@ -168,7 +168,7 @@ export const erpWastageRouter = router({
   /**
    * DELETE — Supprimer une perte (soft delete)
    */
-  delete: erpPermissionProcedure("inventory", "delete").input(
+  delete: erpPermissionProcedure("erp_inventory", "delete").input(
     z.object({ id: z.number() })
   ).mutation(async ({ input, ctx }) => {
     const db = (await getDb())!;
@@ -196,7 +196,7 @@ export const erpWastageRouter = router({
   /**
    * GET — Analyse des pertes (par projet, matériau, cause)
    */
-  analysis: erpPermissionProcedure("inventory", "view").input(
+  analysis: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({
       groupBy: z.enum(["project", "item", "cause"]),
       projectId: z.number().optional(),
@@ -235,7 +235,7 @@ export const erpWastageRouter = router({
   /**
    * GET — Pertes d'un projet
    */
-  byProject: erpPermissionProcedure("inventory", "view").input(
+  byProject: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({ projectId: z.number() })
   ).query(async ({ input }) => {
     const db = (await getDb())!;
@@ -253,7 +253,7 @@ export const erpWastageRouter = router({
   /**
    * GET — KPI pertes
    */
-  stats: erpPermissionProcedure("inventory", "view").input(
+  stats: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({
       projectId: z.number().optional(),
       dateFrom: z.number().optional(),

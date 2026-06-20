@@ -39,9 +39,9 @@ function formatXOF(amount: number) {
 
 export default function ErpSupplierIntegration() {
   const { hasPermission } = useErpPermissions();
-  const canView = hasPermission("inventory", "view");
-  const canCreate = hasPermission("inventory", "create");
-  const canEdit = hasPermission("inventory", "edit");
+  const canView = hasPermission("erp_inventory", "view");
+  const canCreate = hasPermission("erp_inventory", "create");
+  const canEdit = hasPermission("erp_inventory", "update");
 
   const [tab, setTab] = useState("prices");
   const [showPriceDialog, setShowPriceDialog] = useState(false);

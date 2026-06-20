@@ -2102,3 +2102,10 @@
 - [x] Créer une page ErpGantt.tsx globale (vue multi-projets) accessible à /erp/gantt
 - [x] Ajouter la route /erp/gantt dans App.tsx
 - [x] Vérifier TypeScript et tests
+
+## Fix: Permissions ERP — modules sans préfixe erp_
+- [x] Corriger hasPermission("inventory",...) → hasPermission("erp_inventory",...) dans ErpSupplierIntegration, ErpMaterialRequests, ErpWastage, ErpInventory
+- [x] Corriger hasPermission("finance",...) → hasPermission("erp_finance",...) dans ErpFinanceBudgets, ErpFinanceCashFlow, ErpFinanceProfitability
+- [x] Corriger action "edit" → "update" (action ERP correcte) dans frontend et serveur
+- [x] Corriger erpPermissionProcedure("inventory",...) → erpPermissionProcedure("erp_inventory",...) dans tous les routeurs serveur
+- [x] Corriger erpPermissionProcedure("finance",...) → erpPermissionProcedure("erp_finance",...) dans erp-finance-router et erp-overrun-alerts-router

@@ -42,10 +42,10 @@ function formatXOF(amount: number) {
 
 export default function ErpFinanceBudgets() {
   const { hasPermission } = useErpPermissions();
-  const canView = hasPermission("finance", "view");
-  const canCreate = hasPermission("finance", "create");
-  const canEdit = hasPermission("finance", "edit");
-  const canApprove = hasPermission("finance", "approve");
+  const canView = hasPermission("erp_finance", "view");
+  const canCreate = hasPermission("erp_finance", "create");
+  const canEdit = hasPermission("erp_finance", "update");
+  const canApprove = hasPermission("erp_finance", "approve");
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showLinesDialog, setShowLinesDialog] = useState<number | null>(null);

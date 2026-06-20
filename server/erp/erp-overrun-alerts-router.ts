@@ -439,7 +439,7 @@ export const erpOverrunAlertsRouter = router({
   /**
    * GET — Liste des alertes
    */
-  list: erpPermissionProcedure("finance", "view").input(
+  list: erpPermissionProcedure("erp_finance", "view").input(
     z.object({
       projectId: z.number().optional(),
       alertType: z.string().optional(),
@@ -470,7 +470,7 @@ export const erpOverrunAlertsRouter = router({
   /**
    * POST — Déclencher une vérification d'alertes
    */
-  check: erpPermissionProcedure("finance", "edit").mutation(async ({ ctx }) => {
+  check: erpPermissionProcedure("erp_finance", "update").mutation(async ({ ctx }) => {
     const db = (await getDb())!;
     const result = await runAlertEngine(db, ctx.user.id);
     await createAuditEvent({
@@ -484,7 +484,7 @@ export const erpOverrunAlertsRouter = router({
   /**
    * POST — Acquitter une alerte
    */
-  acknowledge: erpPermissionProcedure("finance", "edit").input(
+  acknowledge: erpPermissionProcedure("erp_finance", "update").input(
     z.object({ id: z.number() })
   ).mutation(async ({ input, ctx }) => {
     const db = (await getDb())!;
@@ -507,7 +507,7 @@ export const erpOverrunAlertsRouter = router({
   /**
    * GET — Alertes d'un projet
    */
-  byProject: erpPermissionProcedure("finance", "view").input(
+  byProject: erpPermissionProcedure("erp_finance", "view").input(
     z.object({ projectId: z.number() })
   ).query(async ({ input }) => {
     const db = (await getDb())!;

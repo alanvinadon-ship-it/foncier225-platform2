@@ -25,8 +25,8 @@ function formatXOF(amount: number) {
 
 export default function ErpFinanceCashFlow() {
   const { hasPermission } = useErpPermissions();
-  const canView = hasPermission("finance", "view");
-  const canCreate = hasPermission("finance", "create");
+  const canView = hasPermission("erp_finance", "view");
+  const canCreate = hasPermission("erp_finance", "create");
 
   const [tab, setTab] = useState("list");
   const [showCreateDialog, setShowCreateDialog] = useState(false);

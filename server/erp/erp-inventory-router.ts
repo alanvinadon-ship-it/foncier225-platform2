@@ -31,7 +31,7 @@ const MOVEMENT_TYPES = ["IN", "OUT", "TRANSFER", "ADJUSTMENT", "WASTAGE", "RETUR
 export const erpInventoryRouter = router({
   // --- ITEMS ---
 
-  listItems: erpPermissionProcedure("inventory", "view").input(
+  listItems: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({
       projectId: z.number().optional(),
       category: z.string().optional(),
@@ -66,7 +66,7 @@ export const erpInventoryRouter = router({
     return { items, total: countResult.count };
   }),
 
-  getItem: erpPermissionProcedure("inventory", "view").input(
+  getItem: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({ id: z.number() })
   ).query(async ({ input }) => {
     const db = (await getDb())!;
@@ -92,7 +92,7 @@ export const erpInventoryRouter = router({
     return { ...item, movements, location };
   }),
 
-  createItem: erpPermissionProcedure("inventory", "create").input(
+  createItem: erpPermissionProcedure("erp_inventory", "create").input(
     z.object({
       sku: z.string().min(2).max(64),
       name: z.string().min(2).max(255),
@@ -132,7 +132,7 @@ export const erpInventoryRouter = router({
     return { id: result.insertId };
   }),
 
-  updateItem: erpPermissionProcedure("inventory", "edit").input(
+  updateItem: erpPermissionProcedure("erp_inventory", "update").input(
     z.object({
       id: z.number(),
       sku: z.string().min(2).max(64).optional(),
@@ -168,7 +168,7 @@ export const erpInventoryRouter = router({
     return { success: true };
   }),
 
-  deleteItem: erpPermissionProcedure("inventory", "delete").input(
+  deleteItem: erpPermissionProcedure("erp_inventory", "delete").input(
     z.object({ id: z.number() })
   ).mutation(async ({ input, ctx }) => {
     const db = (await getDb())!;
@@ -197,7 +197,7 @@ export const erpInventoryRouter = router({
 
   // --- LOCATIONS ---
 
-  listLocations: erpPermissionProcedure("inventory", "view").input(
+  listLocations: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({ projectId: z.number().optional() }).optional()
   ).query(async ({ input }) => {
     const db = (await getDb())!;
@@ -209,7 +209,7 @@ export const erpInventoryRouter = router({
       .orderBy(erpStockLocations.name);
   }),
 
-  createLocation: erpPermissionProcedure("inventory", "create").input(
+  createLocation: erpPermissionProcedure("erp_inventory", "create").input(
     z.object({
       name: z.string().min(2).max(128),
       description: z.string().optional(),
@@ -233,7 +233,7 @@ export const erpInventoryRouter = router({
     return { id: result.insertId };
   }),
 
-  updateLocation: erpPermissionProcedure("inventory", "edit").input(
+  updateLocation: erpPermissionProcedure("erp_inventory", "update").input(
     z.object({
       id: z.number(),
       name: z.string().min(2).max(128).optional(),
@@ -250,7 +250,7 @@ export const erpInventoryRouter = router({
     return { success: true };
   }),
 
-  deleteLocation: erpPermissionProcedure("inventory", "delete").input(
+  deleteLocation: erpPermissionProcedure("erp_inventory", "delete").input(
     z.object({ id: z.number() })
   ).mutation(async ({ input, ctx }) => {
     const db = (await getDb())!;
@@ -272,7 +272,7 @@ export const erpInventoryRouter = router({
 
   // --- MOVEMENTS ---
 
-  addMovement: erpPermissionProcedure("inventory", "edit").input(
+  addMovement: erpPermissionProcedure("erp_inventory", "update").input(
     z.object({
       itemId: z.number(),
       locationId: z.number().optional(),
@@ -349,7 +349,7 @@ export const erpInventoryRouter = router({
     return { id: movement.insertId, previousStock, newStock };
   }),
 
-  listMovements: erpPermissionProcedure("inventory", "view").input(
+  listMovements: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({
       itemId: z.number().optional(),
       type: z.string().optional(),
@@ -382,7 +382,7 @@ export const erpInventoryRouter = router({
 
   // --- STOCK LEVELS ---
 
-  stockLevels: erpPermissionProcedure("inventory", "view").input(
+  stockLevels: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({
       projectId: z.number().optional(),
       locationId: z.number().optional(),
@@ -421,7 +421,7 @@ export const erpInventoryRouter = router({
     }));
   }),
 
-  criticalStock: erpPermissionProcedure("inventory", "view").input(
+  criticalStock: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({ projectId: z.number().optional() }).optional()
   ).query(async ({ input }) => {
     const db = (await getDb())!;
@@ -445,7 +445,7 @@ export const erpInventoryRouter = router({
 
   // --- STATS ---
 
-  stats: erpPermissionProcedure("inventory", "view").input(
+  stats: erpPermissionProcedure("erp_inventory", "view").input(
     z.object({ projectId: z.number().optional() }).optional()
   ).query(async ({ input }) => {
     const db = (await getDb())!;

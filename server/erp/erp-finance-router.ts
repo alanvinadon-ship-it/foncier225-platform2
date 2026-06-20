@@ -30,7 +30,7 @@ const budgetRouter = router({
   /**
    * GET — Liste des budgets
    */
-  list: erpPermissionProcedure("finance", "view").input(
+  list: erpPermissionProcedure("erp_finance", "view").input(
     z.object({
       projectId: z.number().optional(),
       status: z.enum(BUDGET_STATUSES).optional(),
@@ -58,7 +58,7 @@ const budgetRouter = router({
   /**
    * POST — Créer un budget
    */
-  create: erpPermissionProcedure("finance", "create").input(
+  create: erpPermissionProcedure("erp_finance", "create").input(
     z.object({
       projectId: z.number(),
       name: z.string().min(1).max(255),
@@ -85,7 +85,7 @@ const budgetRouter = router({
   /**
    * GET — Détail d'un budget avec ses lignes
    */
-  getById: erpPermissionProcedure("finance", "view").input(
+  getById: erpPermissionProcedure("erp_finance", "view").input(
     z.object({ id: z.number() })
   ).query(async ({ input }) => {
     const db = (await getDb())!;
@@ -98,7 +98,7 @@ const budgetRouter = router({
   /**
    * PUT — Modifier un budget (seulement si draft ou revised)
    */
-  update: erpPermissionProcedure("finance", "edit").input(
+  update: erpPermissionProcedure("erp_finance", "update").input(
     z.object({
       id: z.number(),
       name: z.string().min(1).max(255).optional(),
@@ -122,7 +122,7 @@ const budgetRouter = router({
   /**
    * POST — Approuver un budget
    */
-  approve: erpPermissionProcedure("finance", "approve").input(
+  approve: erpPermissionProcedure("erp_finance", "approve").input(
     z.object({ id: z.number() })
   ).mutation(async ({ input, ctx }) => {
     const db = (await getDb())!;
@@ -142,7 +142,7 @@ const budgetRouter = router({
   /**
    * GET — Budget d'un projet
    */
-  byProject: erpPermissionProcedure("finance", "view").input(
+  byProject: erpPermissionProcedure("erp_finance", "view").input(
     z.object({ projectId: z.number() })
   ).query(async ({ input }) => {
     const db = (await getDb())!;
@@ -155,7 +155,7 @@ const budgetRouter = router({
   /**
    * GET — Variance budgétaire (prévu vs réalisé)
    */
-  variance: erpPermissionProcedure("finance", "view").input(
+  variance: erpPermissionProcedure("erp_finance", "view").input(
     z.object({ projectId: z.number() })
   ).query(async ({ input }) => {
     const db = (await getDb())!;
@@ -193,7 +193,7 @@ const budgetRouter = router({
   /**
    * POST — Ajouter une ligne budgétaire
    */
-  addLine: erpPermissionProcedure("finance", "create").input(
+  addLine: erpPermissionProcedure("erp_finance", "create").input(
     z.object({
       budgetId: z.number(),
       category: z.enum(BUDGET_CATEGORIES),
@@ -232,7 +232,7 @@ const budgetRouter = router({
   /**
    * PUT — Modifier une ligne budgétaire
    */
-  updateLine: erpPermissionProcedure("finance", "edit").input(
+  updateLine: erpPermissionProcedure("erp_finance", "update").input(
     z.object({
       id: z.number(),
       initialAmount: z.number().min(0).optional(),
@@ -274,7 +274,7 @@ const cashFlowRouter = router({
   /**
    * GET — Liste des flux de trésorerie
    */
-  list: erpPermissionProcedure("finance", "view").input(
+  list: erpPermissionProcedure("erp_finance", "view").input(
     z.object({
       projectId: z.number().optional(),
       type: z.enum(CASH_FLOW_TYPES).optional(),
@@ -310,7 +310,7 @@ const cashFlowRouter = router({
   /**
    * POST — Enregistrer un flux
    */
-  create: erpPermissionProcedure("finance", "create").input(
+  create: erpPermissionProcedure("erp_finance", "create").input(
     z.object({
       projectId: z.number().optional(),
       type: z.enum(CASH_FLOW_TYPES),
@@ -345,7 +345,7 @@ const cashFlowRouter = router({
   /**
    * GET — Résumé cash flow par période
    */
-  summary: erpPermissionProcedure("finance", "view").input(
+  summary: erpPermissionProcedure("erp_finance", "view").input(
     z.object({
       projectId: z.number().optional(),
       dateFrom: z.number().optional(),
@@ -383,7 +383,7 @@ const cashFlowRouter = router({
   /**
    * GET — Cash flow d'un projet
    */
-  byProject: erpPermissionProcedure("finance", "view").input(
+  byProject: erpPermissionProcedure("erp_finance", "view").input(
     z.object({ projectId: z.number() })
   ).query(async ({ input }) => {
     const db = (await getDb())!;
@@ -398,7 +398,7 @@ const cashFlowRouter = router({
   /**
    * GET — Prévisions (paiements à venir non payés)
    */
-  forecast: erpPermissionProcedure("finance", "view").input(
+  forecast: erpPermissionProcedure("erp_finance", "view").input(
     z.object({
       daysAhead: z.number().min(1).max(365).default(30),
       projectId: z.number().optional(),
@@ -437,7 +437,7 @@ const profitabilityRouter = router({
   /**
    * GET — Liste des snapshots de rentabilité
    */
-  list: erpPermissionProcedure("finance", "view").input(
+  list: erpPermissionProcedure("erp_finance", "view").input(
     z.object({
       limit: z.number().min(1).max(100).default(50),
       offset: z.number().min(0).default(0),
@@ -456,7 +456,7 @@ const profitabilityRouter = router({
   /**
    * GET — Rentabilité d'un projet
    */
-  byProject: erpPermissionProcedure("finance", "view").input(
+  byProject: erpPermissionProcedure("erp_finance", "view").input(
     z.object({ projectId: z.number() })
   ).query(async ({ input }) => {
     const db = (await getDb())!;
@@ -470,7 +470,7 @@ const profitabilityRouter = router({
   /**
    * POST — Recalculer la rentabilité d'un projet
    */
-  recalculate: erpPermissionProcedure("finance", "edit").input(
+  recalculate: erpPermissionProcedure("erp_finance", "update").input(
     z.object({ projectId: z.number() })
   ).mutation(async ({ input, ctx }) => {
     const db = (await getDb())!;
@@ -511,7 +511,7 @@ const profitabilityRouter = router({
   /**
    * GET — Classement des projets par rentabilité
    */
-  ranking: erpPermissionProcedure("finance", "view").input(
+  ranking: erpPermissionProcedure("erp_finance", "view").input(
     z.object({
       sortBy: z.enum(["grossMargin", "netMargin", "grossMarginPercent", "netMarginPercent"]).default("netMarginPercent"),
       limit: z.number().min(1).max(50).default(20),
@@ -551,7 +551,7 @@ const budgetSyncRouter = router({
   /**
    * POST — Sync budget engagedAmount/paidAmount from invoices & payments
    */
-  syncFromInvoices: erpPermissionProcedure("finance", "edit").input(
+  syncFromInvoices: erpPermissionProcedure("erp_finance", "update").input(
     z.object({ projectId: z.number() })
   ).mutation(async ({ input, ctx }) => {
     const result = await syncBudgetFromProject(input.projectId);
