@@ -2386,3 +2386,15 @@
 - [x] Sidebar ERP (catégorie Finance) + routes App.tsx (5 routes)
 - [x] Tests Vitest (13 tests) + 0 erreur TypeScript + 1287 tests PASS total
 - [x] Checkpoint final
+
+## Liaison Commandes Clients ↔ Budget & Comptabilité
+
+- [x] Service sync Budget recettes : syncSalesOrdersToBudget — agrège committed/invoiced/paid dans erpBudgetLineAmounts REVENUE
+- [x] Hook updateStatus → invoiced : génère automatiquement une facture de vente (FV-YYYY-NNNN) dans erp_invoices
+- [x] Écriture pré-comptable automatique : Journal VE (Débit 411000 Client / Crédit 701000 Ventes / Crédit 445700 TVA)
+- [x] Écriture encaissement client : Journal BQ/CA (Débit 512/531 Trésorerie / Crédit 411000 Client)
+- [x] Cash-flow prévisionnel : getSalesOrdersCashFlowForecast (encaissements attendus + retards)
+- [x] Procédures tRPC : integration.syncToBudget, integration.generateInvoice, integration.cashFlowForecast, integration.recordPayment
+- [x] Tests Vitest : 15 tests dédiés + 1302 tests PASS total (48 fichiers)
+- [x] Vérification TypeScript : 0 erreur
+- [x] Checkpoint final

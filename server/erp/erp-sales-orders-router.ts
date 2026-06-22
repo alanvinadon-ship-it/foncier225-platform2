@@ -10,6 +10,12 @@ import {
   erpSalesOrderHistory,
 } from "../../drizzle/schema";
 import { eq, desc, sql, and, gte, lte, inArray } from "drizzle-orm";
+import {
+  syncSalesOrdersToBudget,
+  generateSalesInvoice,
+  getSalesOrdersCashFlowForecast,
+  generateClientPaymentPreEntry,
+} from "./erp-sales-orders-integration.service";
 
 // ============ CLIENTS ============
 
@@ -321,7 +327,22 @@ const ordersRouter = router({
       const updates: any = { status: input.newStatus, updatedAt: now };
 
       if (input.newStatus === "delivered") updates.deliveredDate = now;
-      if (input.newStatus === "invoiced" && input.invoiceId) updates.invoiceId = input.invoiceId;
+      if (input.newStatus === "invoiced") {
+        // Générer automatiquement la facture de vente si pas d'invoiceId fourni
+        if (input.invoiceId) {
+          updates.invoiceId = input.invoiceId;
+        } else {
+          try {
+            const invoiceResult = await generateSalesInvoice(input.id, ctx.user.id);
+            if (invoiceResult) {
+              updates.invoiceId = invoiceResult.invoiceId;
+            }
+          } catch (e) {
+            // Ne pas bloquer le changement de statut si la génération échoue
+            console.error("Erreur génération facture auto:", e);
+          }
+        }
+      }
       if (input.newStatus === "paid") {
         updates.paymentStatus = "paid";
         updates.paidAmount = input.paidAmount || order.totalTTC;
@@ -441,9 +462,90 @@ const ordersRouter = router({
     }),
 });
 
-// ============ EXPORT ============
+// ============ INTÉGRATION BUDGET / COMPTABILITÉ / TRÉSORERIE ============
+const integrationRouter = router({
+  /** Synchroniser les commandes vers le budget (lignes REVENUE) */
+  syncToBudget: erpPermissionProcedure("erp_sales_orders", "update")
+    .input(z.object({ budgetId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const result = await syncSalesOrdersToBudget(input.budgetId);
+      await createAuditEvent({
+        actorId: ctx.user.id,
+        action: "sales_orders_budget_sync",
+        targetType: "erp_budget",
+        targetId: input.budgetId,
+        details: { linesUpdated: result.linesUpdated, totalCommitted: result.totalCommitted, totalPaid: result.totalPaid },
+      });
+      return result;
+    }),
 
+  /** Générer automatiquement une facture de vente pour une commande */
+  generateInvoice: erpPermissionProcedure("erp_sales_orders", "create")
+    .input(z.object({ orderId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const result = await generateSalesInvoice(input.orderId, ctx.user.id);
+      if (!result) {
+        throw new Error("Impossible de générer la facture : commande introuvable ou client manquant");
+      }
+      return result;
+    }),
+
+  /** Récupérer le cash-flow prévisionnel basé sur les commandes */
+  cashFlowForecast: erpPermissionProcedure("erp_sales_orders", "view")
+    .input(z.object({ months: z.number().min(1).max(24).optional() }).optional())
+    .query(async ({ input }) => {
+      return getSalesOrdersCashFlowForecast(input?.months || 6);
+    }),
+
+  /** Enregistrer un encaissement client et générer l'écriture comptable */
+  recordPayment: erpPermissionProcedure("erp_sales_orders", "update")
+    .input(z.object({
+      orderId: z.number(),
+      amount: z.number().min(1),
+      paymentMethod: z.enum(["virement", "cheque", "cash", "caisse", "mobile_money"]),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = (await getDb())!;
+      const [order] = await db.select().from(erpSalesOrders).where(eq(erpSalesOrders.id, input.orderId));
+      if (!order) throw new Error("Commande introuvable");
+
+      const newPaidAmount = (order.paidAmount || 0) + input.amount;
+      const totalTTC = order.totalTTC || 0;
+      const paymentStatus = newPaidAmount >= totalTTC ? "paid" : "partial";
+      const now = Date.now();
+
+      await db.update(erpSalesOrders).set({
+        paidAmount: newPaidAmount,
+        paymentStatus,
+        paidDate: paymentStatus === "paid" ? now : order.paidDate,
+        status: paymentStatus === "paid" ? "paid" : order.status,
+        updatedAt: now,
+      }).where(eq(erpSalesOrders.id, input.orderId));
+
+      // Générer l'écriture comptable d'encaissement
+      const preEntryId = await generateClientPaymentPreEntry(
+        input.orderId, input.amount, input.paymentMethod, ctx.user.id
+      );
+
+      // Historique
+      if (paymentStatus === "paid" && order.status !== "paid") {
+        await db.insert(erpSalesOrderHistory).values({
+          orderId: input.orderId,
+          fromStatus: order.status,
+          toStatus: "paid",
+          comment: `Paiement complet reçu (${input.paymentMethod})`,
+          changedBy: ctx.user.id,
+          changedAt: now,
+        });
+      }
+
+      return { success: true, newPaidAmount, paymentStatus, preEntryId };
+    }),
+});
+
+// ============ EXPORT ============
 export const erpSalesOrdersRouter = router({
   clients: clientsRouter,
   orders: ordersRouter,
+  integration: integrationRouter,
 });
