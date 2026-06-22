@@ -7,6 +7,8 @@ import { erpInvoices, erpInvoiceLines, erpPayments, erpProjects, erpVendors, erp
 import { syncBudgetFromInvoice } from "./erp-budget-sync";
 import { generateInvoicePreEntry } from "./erp-accounting-auto";
 import { generateAndUploadInvoicePdf, getCompanySettings, upsertCompanySettings, getNextNormalizedInvoiceNumber } from "./erp-invoice-pdf.service";
+import { storagePut } from "../storage";
+import { erpCompanySettings } from "../../drizzle/schema";
 
 // ============================================================
 // CONSTANTS
@@ -609,5 +611,38 @@ export const erpInvoicesRouter = router({
     .mutation(async ({ input }) => {
       const result = await upsertCompanySettings(input);
       return result;
+    }),
+
+  // ---- UPLOAD LOGO SOCIÉTÉ ----
+  uploadCompanyLogo: erpPermissionProcedure("erp_finance", "manage")
+    .input(z.object({
+      fileBase64: z.string(),
+      fileName: z.string(),
+      mimeType: z.string(),
+    }))
+    .mutation(async ({ input }) => {
+      const { fileBase64, fileName, mimeType } = input;
+      const buffer = Buffer.from(fileBase64, "base64");
+      const ext = fileName.split(".").pop() || "png";
+      const key = `company/logo-${Date.now()}.${ext}`;
+      const { url } = await storagePut(key, buffer, mimeType);
+
+      // Mettre à jour le logoUrl dans les paramètres société
+      const db = (await getDb())!;
+      const [existing] = await db.select().from(erpCompanySettings);
+      if (existing) {
+        await db.update(erpCompanySettings)
+          .set({ logoUrl: url, updatedAt: Date.now() })
+          .where(eq(erpCompanySettings.id, existing.id));
+      } else {
+        await db.insert(erpCompanySettings).values({
+          companyName: "Mon Entreprise",
+          logoUrl: url,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+      }
+
+      return { url };
     }),
 });

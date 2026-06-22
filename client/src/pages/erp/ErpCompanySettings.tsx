@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,131 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Building2, Save, FileText } from "lucide-react";
+import { Building2, Save, FileText, Upload, ImageIcon, Trash2 } from "lucide-react";
+
+// --- Composant Upload Logo ---
+function LogoUploader({ currentLogoUrl, onUploaded }: { currentLogoUrl?: string | null; onUploaded: () => void }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<string | null>(currentLogoUrl || null);
+  const [uploading, setUploading] = useState(false);
+
+  const uploadMut = trpc.erp.invoices.uploadCompanyLogo.useMutation({
+    onSuccess: (data) => {
+      toast.success("Logo téléversé avec succès");
+      setPreview(data.url);
+      onUploaded();
+    },
+    onError: (e) => toast.error(`Erreur : ${e.message}`),
+    onSettled: () => setUploading(false),
+  });
+
+  useEffect(() => {
+    setPreview(currentLogoUrl || null);
+  }, [currentLogoUrl]);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validation
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/svg+xml"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Format non supporté. Utilisez PNG, JPG, WebP ou SVG.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Le fichier est trop volumineux (max 2 Mo).");
+      return;
+    }
+
+    // Prévisualisation locale
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload en base64
+    setUploading(true);
+    const arrayBuffer = await file.arrayBuffer();
+    const base64 = btoa(
+      new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
+    );
+    uploadMut.mutate({
+      fileBase64: base64,
+      fileName: file.name,
+      mimeType: file.type,
+    });
+
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleRemoveLogo = () => {
+    setPreview(null);
+    // On met à jour via updateCompanySettings avec logoUrl vide
+  };
+
+  return (
+    <div className="space-y-3">
+      <Label>Logo de l'entreprise</Label>
+      <div className="flex items-start gap-4">
+        {/* Zone de prévisualisation */}
+        <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center overflow-hidden bg-gray-50">
+          {preview ? (
+            <img
+              src={preview}
+              alt="Logo entreprise"
+              className="w-full h-full object-contain p-2"
+            />
+          ) : (
+            <div className="text-center text-gray-400">
+              <ImageIcon className="w-8 h-8 mx-auto mb-1" />
+              <span className="text-xs">Aucun logo</span>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="space-y-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            {uploading ? "Téléversement..." : "Téléverser un logo"}
+          </Button>
+          {preview && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-red-600 hover:text-red-700"
+              onClick={handleRemoveLogo}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Supprimer
+            </Button>
+          )}
+          <p className="text-xs text-gray-400">
+            PNG, JPG, WebP ou SVG. Max 2 Mo.<br />
+            Recommandé : 200×80 px, fond transparent.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ErpCompanySettings() {
   const { data: settings, isLoading, refetch } = trpc.erp.invoices.getCompanySettings.useQuery();
@@ -139,12 +263,20 @@ export default function ErpCompanySettings() {
           </CardContent>
         </Card>
 
-        {/* Coordonnées */}
+        {/* Logo + Coordonnées */}
         <Card>
           <CardHeader>
-            <CardTitle>Coordonnées</CardTitle>
+            <CardTitle>Logo & Coordonnées</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Upload Logo */}
+            <LogoUploader
+              currentLogoUrl={settings?.logoUrl}
+              onUploaded={() => refetch()}
+            />
+
+            <hr className="my-4" />
+
             <div>
               <Label>Adresse</Label>
               <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Cocody, Riviera Palmeraie" />
@@ -216,6 +348,22 @@ export default function ErpCompanySettings() {
               <Label>Conditions de paiement</Label>
               <Input value={form.defaultPaymentTerms} onChange={(e) => setForm({ ...form, defaultPaymentTerms: e.target.value })} placeholder="Un mois date de dépôt de facture" />
             </div>
+
+            {/* Aperçu en-tête facture */}
+            {settings?.logoUrl && (
+              <div className="mt-4 p-4 border rounded-lg bg-gray-50">
+                <p className="text-xs text-gray-500 mb-2 font-medium">Aperçu en-tête facture :</p>
+                <div className="flex items-start gap-4">
+                  <img src={settings.logoUrl} alt="Logo" className="h-12 object-contain" />
+                  <div className="text-xs text-gray-700">
+                    <p className="font-bold">{form.companyName || "Raison sociale"}</p>
+                    <p>{form.address || "Adresse"}, {form.city || "Ville"}</p>
+                    <p>NCC: {form.ncc || "—"} | RCCM: {form.rccm || "—"}</p>
+                    <p>Tél: {form.phone || "—"} | {form.email || "—"}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

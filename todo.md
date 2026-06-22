@@ -2423,3 +2423,12 @@
 - [x] Tests Vitest : 9 tests dédiés + 1311 tests PASS total (49 fichiers)
 - [x] Vérification TypeScript : 0 erreur
 - [x] Checkpoint final
+
+## Upload Logo Entreprise + Intégration PDF
+
+- [x] Procédure tRPC uploadCompanyLogo (upload S3 + mise à jour logoUrl dans erp_company_settings)
+- [x] Composant LogoUploader dans ErpCompanySettings (prévisualisation, validation format/taille, upload base64)
+- [x] Intégration logo dans le service PDF (fetch URL S3 + doc.image() en en-tête)
+- [x] Aperçu en-tête facture dans la page Paramètres (avec logo + infos société)
+- [x] Tests : 1311 PASS + 0 erreur TypeScript
+- [x] Checkpoint final

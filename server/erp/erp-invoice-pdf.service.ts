@@ -232,6 +232,21 @@ async function renderInvoicePdf(data: InvoicePdfData): Promise<Buffer> {
       const rightCol = 320;
       let y = 40;
 
+      // ===== LOGO (en haut à gauche, au-dessus du bloc émetteur) =====
+      if (data.company.logoUrl) {
+        try {
+          const logoResponse = await fetch(data.company.logoUrl);
+          if (logoResponse.ok) {
+            const logoArrayBuffer = await logoResponse.arrayBuffer();
+            const logoBuffer = Buffer.from(logoArrayBuffer);
+            doc.image(logoBuffer, leftCol, y, { width: 100, height: 40, fit: [100, 40] });
+            y += 45;
+          }
+        } catch (_e) {
+          // Si le logo ne peut pas être chargé, on continue sans
+        }
+      }
+
       // ===== EN-TÊTE ÉMETTEUR (gauche) =====
       doc.lineWidth(0.5);
       doc.rect(leftCol, y, 260, 200).dash(3, { space: 2 }).stroke();
