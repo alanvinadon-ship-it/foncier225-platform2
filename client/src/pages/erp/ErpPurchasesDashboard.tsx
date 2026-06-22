@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ShoppingCart, Package, Clock, TrendingUp, AlertTriangle, CheckCircle, BarChart3 } from "lucide-react";
 import {
   Chart as ChartJS,
@@ -34,8 +35,13 @@ const MONTH_LABELS: Record<string, string> = {
 };
 
 export default function ErpPurchasesDashboard() {
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
   // KPIs overview
   const { data: stats, isLoading: statsLoading } = trpc.erp.purchases.stats.overview.useQuery();
+
+  // CAPEX/OPEX dashboard
+  const { data: capexOpexData } = trpc.erp.purchases.orders.dashboard.useQuery({ year: selectedYear });
 
   // Recent purchase orders
   const { data: recentOrders } = trpc.erp.purchases.orders.list.useQuery({ limit: 10, offset: 0 });
@@ -201,10 +207,61 @@ export default function ErpPurchasesDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard Achats</h1>
-        <Badge variant="outline" className="text-sm">
-          {new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
-        </Badge>
+        <div className="flex items-center gap-3">
+          <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {[2024, 2025, 2026, 2027].map(y => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Badge variant="outline" className="text-sm">
+            {new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+          </Badge>
+        </div>
       </div>
+
+      {/* Répartition CAPEX / OPEX */}
+      {capexOpexData && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="border-blue-200 bg-blue-50/30">
+            <CardContent className="p-5">
+              <p className="text-xs text-blue-600 font-semibold uppercase">CAPEX (Investissement)</p>
+              <p className="text-2xl font-bold text-blue-700 mt-1">{formatXOF(capexOpexData.capex.amount)}</p>
+              <p className="text-xs text-muted-foreground mt-1">{capexOpexData.capex.count} bons de commande</p>
+              {capexOpexData.totalAmount > 0 && (
+                <div className="mt-2 w-full bg-blue-100 rounded-full h-2">
+                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${Math.round((capexOpexData.capex.amount / capexOpexData.totalAmount) * 100)}%` }}></div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <Card className="border-orange-200 bg-orange-50/30">
+            <CardContent className="p-5">
+              <p className="text-xs text-orange-600 font-semibold uppercase">OPEX (Fonctionnement)</p>
+              <p className="text-2xl font-bold text-orange-700 mt-1">{formatXOF(capexOpexData.opex.amount)}</p>
+              <p className="text-xs text-muted-foreground mt-1">{capexOpexData.opex.count} bons de commande</p>
+              {capexOpexData.totalAmount > 0 && (
+                <div className="mt-2 w-full bg-orange-100 rounded-full h-2">
+                  <div className="bg-orange-600 h-2 rounded-full" style={{ width: `${Math.round((capexOpexData.opex.amount / capexOpexData.totalAmount) * 100)}%` }}></div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-5">
+              <p className="text-xs text-muted-foreground font-semibold uppercase">Total {selectedYear}</p>
+              <p className="text-2xl font-bold mt-1">{formatXOF(capexOpexData.totalAmount)}</p>
+              <p className="text-xs text-muted-foreground mt-1">{capexOpexData.totalOrders} bons de commande</p>
+              <div className="mt-2 flex gap-1">
+                <Badge variant="outline" className="text-xs">CAPEX {capexOpexData.totalAmount > 0 ? Math.round((capexOpexData.capex.amount / capexOpexData.totalAmount) * 100) : 0}%</Badge>
+                <Badge variant="outline" className="text-xs">OPEX {capexOpexData.totalAmount > 0 ? Math.round((capexOpexData.opex.amount / capexOpexData.totalAmount) * 100) : 0}%</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

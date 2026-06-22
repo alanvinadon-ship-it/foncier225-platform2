@@ -2460,3 +2460,13 @@
 - [x] Page Paramètres Société : section "Numérotation Bons de Commande" (préfixe, séquence, aperçu format)
 - [x] Tests : 1321 PASS + 0 erreur TypeScript
 - [x] Checkpoint final
+
+## Filtres CAPEX/OPEX + Tableau de bord Achats
+
+- [x] Filtre par type CAPEX/OPEX dans la liste des bons de commande (sélecteur + colonne badge)
+- [x] Filtre par statut dans la liste des bons de commande
+- [x] Procédure tRPC orders.dashboard (répartition CAPEX/OPEX, top 10 fournisseurs, évolution mensuelle, statuts)
+- [x] Dashboard Achats enrichi : section CAPEX/OPEX (3 cartes avec barres de progression + pourcentages)
+- [x] Sélecteur d'année + route et sidebar existants
+- [x] Tests : 1321 PASS (50 fichiers) + 0 erreur TypeScript
+- [x] Checkpoint final

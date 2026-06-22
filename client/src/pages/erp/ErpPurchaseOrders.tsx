@@ -34,12 +34,14 @@ export default function ErpPurchaseOrders() {
   const canApprove = hasPermission("erp_purchases", "approve");
 
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const [typeFilter, setTypeFilter] = useState<string>("");
   const [showCreate, setShowCreate] = useState(false);
   const [showDetail, setShowDetail] = useState<number | null>(null);
   const [lines, setLines] = useState([{ itemType: "material", description: "", quantityOrdered: 1, unit: "unité", unitPrice: 0, taxRate: 1800 }]);
 
   const ordersQuery = trpc.erp.purchases.orders.list.useQuery({
     status: statusFilter && statusFilter !== "all" ? statusFilter : undefined,
+    purchaseType: typeFilter && typeFilter !== "all" ? typeFilter as "CAPEX" | "OPEX" : undefined,
     limit: 50, offset: 0,
   }, { enabled: canView });
 
@@ -105,8 +107,21 @@ export default function ErpPurchaseOrders() {
             <SelectItem value="sent">Envoyé</SelectItem>
             <SelectItem value="partially_received">Partiellement reçu</SelectItem>
             <SelectItem value="fully_received">Reçu</SelectItem>
+            <SelectItem value="invoiced">Facturé</SelectItem>
+            <SelectItem value="cancelled">Annulé</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-48"><SelectValue placeholder="Tous les types" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les types</SelectItem>
+            <SelectItem value="CAPEX">CAPEX (Investissement)</SelectItem>
+            <SelectItem value="OPEX">OPEX (Fonctionnement)</SelectItem>
+          </SelectContent>
+        </Select>
+        {(statusFilter && statusFilter !== "all" || typeFilter && typeFilter !== "all") && (
+          <Button variant="ghost" size="sm" onClick={() => { setStatusFilter(""); setTypeFilter(""); }}>Réinitialiser</Button>
+        )}
       </div>
 
       {/* Tableau */}
@@ -116,6 +131,7 @@ export default function ErpPurchaseOrders() {
             <tr>
               <th className="text-left p-3 font-medium">N° BC</th>
               <th className="text-left p-3 font-medium">Date</th>
+              <th className="text-left p-3 font-medium">Type</th>
               <th className="text-left p-3 font-medium">Statut</th>
               <th className="text-right p-3 font-medium">Montant TTC</th>
               <th className="text-center p-3 font-medium">Actions</th>
@@ -126,6 +142,7 @@ export default function ErpPurchaseOrders() {
               <tr key={po.id} className="border-t hover:bg-muted/30">
                 <td className="p-3 font-mono text-xs">{po.poNumber}</td>
                 <td className="p-3 text-muted-foreground">{formatDate(po.orderDate)}</td>
+                <td className="p-3"><Badge variant="outline" className="text-xs">{po.purchaseType || "OPEX"}</Badge></td>
                 <td className="p-3"><Badge className={`text-xs ${STATUS_COLORS[po.status] || ""}`}>{STATUS_LABELS[po.status] || po.status}</Badge></td>
                 <td className="p-3 text-right font-semibold">{formatXOF(po.totalAmount || 0)}</td>
                 <td className="p-3 text-center">
@@ -134,7 +151,7 @@ export default function ErpPurchaseOrders() {
               </tr>
             ))}
             {(!ordersQuery.data?.orders || ordersQuery.data.orders.length === 0) && (
-              <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Aucun bon de commande</td></tr>
+              <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Aucun bon de commande</td></tr>
             )}
           </tbody>
         </table>

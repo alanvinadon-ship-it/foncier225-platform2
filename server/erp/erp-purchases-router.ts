@@ -220,6 +220,7 @@ const ordersRouter = router({
   list: erpPermissionProcedure("erp_purchases", "view")
     .input(z.object({
       status: z.string().optional(),
+      purchaseType: z.enum(["CAPEX", "OPEX"]).optional(),
       vendorId: z.number().optional(),
       projectId: z.number().optional(),
       limit: z.number().min(1).max(100).default(50),
@@ -230,6 +231,7 @@ const ordersRouter = router({
       const params = input || { limit: 50, offset: 0 };
       const conditions: any[] = [isNull(erpPurchaseOrders.deletedAt)];
       if (params.status) conditions.push(eq(erpPurchaseOrders.status, params.status));
+      if (params.purchaseType) conditions.push(eq(erpPurchaseOrders.purchaseType, params.purchaseType));
       if (params.vendorId) conditions.push(eq(erpPurchaseOrders.vendorId, params.vendorId));
       if (params.projectId) conditions.push(eq(erpPurchaseOrders.projectId, params.projectId));
       const where = and(...conditions);
@@ -364,6 +366,85 @@ const ordersRouter = router({
       const result = await generatePurchaseOrderPdf(input.id, ctx.user.id);
       await createAuditEvent({ actorId: ctx.user.id, action: "erp.purchases.order.pdf_generated", targetType: "purchase_order", targetId: input.id, details: { url: result.url } });
       return result;
+    }),
+
+  // --- TABLEAU DE BORD ACHATS ---
+  dashboard: erpPermissionProcedure("erp_purchases", "view")
+    .input(z.object({ year: z.number().optional() }).optional())
+    .query(async ({ input }) => {
+      const db = (await getDb())!;
+      const year = input?.year || new Date().getFullYear();
+      const startOfYear = new Date(year, 0, 1).getTime();
+      const endOfYear = new Date(year + 1, 0, 1).getTime();
+
+      const allOrders = await db.select().from(erpPurchaseOrders)
+        .where(and(
+          isNull(erpPurchaseOrders.deletedAt),
+          sql`${erpPurchaseOrders.createdAt} >= ${startOfYear}`,
+          sql`${erpPurchaseOrders.createdAt} < ${endOfYear}`
+        ));
+
+      // Répartition CAPEX/OPEX
+      const capexOrders = allOrders.filter(o => o.purchaseType === "CAPEX");
+      const opexOrders = allOrders.filter(o => o.purchaseType === "OPEX" || !o.purchaseType);
+      const capexTotal = capexOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+      const opexTotal = opexOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+
+      // Par statut
+      const statusBreakdown: Record<string, { count: number; amount: number }> = {};
+      for (const o of allOrders) {
+        if (!statusBreakdown[o.status]) statusBreakdown[o.status] = { count: 0, amount: 0 };
+        statusBreakdown[o.status].count++;
+        statusBreakdown[o.status].amount += o.totalAmount || 0;
+      }
+
+      // Top fournisseurs
+      const vendorMap: Record<number, { vendorId: number; count: number; amount: number }> = {};
+      for (const o of allOrders) {
+        if (!o.vendorId) continue;
+        if (!vendorMap[o.vendorId]) vendorMap[o.vendorId] = { vendorId: o.vendorId, count: 0, amount: 0 };
+        vendorMap[o.vendorId].count++;
+        vendorMap[o.vendorId].amount += o.totalAmount || 0;
+      }
+      const topVendorIds = Object.values(vendorMap).sort((a, b) => b.amount - a.amount).slice(0, 10);
+
+      // Récupérer les noms des fournisseurs
+      let vendorNames: Record<number, string> = {};
+      if (topVendorIds.length > 0) {
+        const vendors = await db.select({ id: erpVendors.id, name: erpVendors.name })
+          .from(erpVendors)
+          .where(sql`${erpVendors.id} IN (${sql.join(topVendorIds.map(v => sql`${v.vendorId}`), sql`,`)})`);
+        for (const v of vendors) vendorNames[v.id] = v.name;
+      }
+
+      const topVendors = topVendorIds.map(v => ({
+        vendorId: v.vendorId,
+        vendorName: vendorNames[v.vendorId] || "Inconnu",
+        count: v.count,
+        amount: v.amount,
+      }));
+
+      // Évolution mensuelle
+      const monthlyData: { month: number; capex: number; opex: number; count: number }[] = [];
+      for (let m = 0; m < 12; m++) {
+        const mStart = new Date(year, m, 1).getTime();
+        const mEnd = new Date(year, m + 1, 1).getTime();
+        const monthOrders = allOrders.filter(o => o.createdAt >= mStart && o.createdAt < mEnd);
+        const mCapex = monthOrders.filter(o => o.purchaseType === "CAPEX").reduce((s, o) => s + (o.totalAmount || 0), 0);
+        const mOpex = monthOrders.filter(o => o.purchaseType === "OPEX" || !o.purchaseType).reduce((s, o) => s + (o.totalAmount || 0), 0);
+        monthlyData.push({ month: m + 1, capex: mCapex, opex: mOpex, count: monthOrders.length });
+      }
+
+      return {
+        year,
+        totalOrders: allOrders.length,
+        totalAmount: allOrders.reduce((s, o) => s + (o.totalAmount || 0), 0),
+        capex: { count: capexOrders.length, amount: capexTotal },
+        opex: { count: opexOrders.length, amount: opexTotal },
+        statusBreakdown,
+        topVendors,
+        monthlyData,
+      };
     }),
 });
 
