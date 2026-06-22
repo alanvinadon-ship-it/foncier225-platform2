@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { FileText, Plus, CheckCircle, Send, Eye, Package } from "lucide-react";
+import { FileText, Plus, CheckCircle, Send, Eye, Package, Download, Loader2 } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Brouillon", approved: "Approuvé", sent: "Envoyé", partially_received: "Partiellement reçu",
@@ -282,6 +282,7 @@ export default function ErpPurchaseOrders() {
                 </table>
               </div>
               <div className="flex gap-2 justify-end">
+                <GeneratePoPdfButton orderId={detailQuery.data.id} poNumber={detailQuery.data.poNumber} />
                 {detailQuery.data.status === "draft" && canApprove && (
                   <Button size="sm" onClick={() => approveMutation.mutate({ id: detailQuery.data!.id })}>
                     <CheckCircle className="h-4 w-4 mr-1" /> Approuver
@@ -298,5 +299,35 @@ export default function ErpPurchaseOrders() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+
+// --- Composant Bouton PDF Bon de Commande ---
+function GeneratePoPdfButton({ orderId, poNumber }: { orderId: number; poNumber: string }) {
+  const generatePdf = trpc.erp.purchases.orders.generatePdf.useMutation({
+    onSuccess: (data) => {
+      toast.success("PDF du bon de commande généré");
+      window.open(data.url, "_blank");
+    },
+    onError: (err) => {
+      toast.error("Erreur lors de la génération du PDF : " + err.message);
+    },
+  });
+
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={() => generatePdf.mutate({ id: orderId })}
+      disabled={generatePdf.isPending}
+    >
+      {generatePdf.isPending ? (
+        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+      ) : (
+        <Download className="h-4 w-4 mr-1" />
+      )}
+      PDF Bon de Commande
+    </Button>
   );
 }

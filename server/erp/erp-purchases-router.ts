@@ -2,6 +2,7 @@ import { z } from "zod";
 import { eq, and, desc, sql, isNull, gte, lte, like } from "drizzle-orm";
 import { router, erpPermissionProcedure } from "../_core/trpc";
 import { getDb, createAuditEvent } from "../db";
+import { generatePurchaseOrderPdf } from "./erp-purchase-order-pdf.service";
 import {
   erpPurchaseRequests,
   erpPurchaseRequestLines,
@@ -335,9 +336,16 @@ const ordersRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = (await getDb())!;
       const now = Date.now();
-      await db.update(erpPurchaseOrders).set({ status: "sent", sentToVendorAt: now, updatedAt: now }).where(eq(erpPurchaseOrders.id, input.id));
-      await createAuditEvent({ actorId: ctx.user.id, action: "erp.purchases.order.sent", targetType: "purchase_order", targetId: input.id, details: {} });
+            await db.update(erpPurchaseOrders).set({ status: "sent", sentToVendorAt: now, updatedAt: now }).where(eq(erpPurchaseOrders.id, input.id));      await createAuditEvent({ actorId: ctx.user.id, action: "erp.purchases.order.sent", targetType: "purchase_order", targetId: input.id, details: {} });
       return { success: true };
+    }),
+
+  generatePdf: erpPermissionProcedure("erp_purchases", "view")
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const result = await generatePurchaseOrderPdf(input.id, ctx.user.id);
+      await createAuditEvent({ actorId: ctx.user.id, action: "erp.purchases.order.pdf_generated", targetType: "purchase_order", targetId: input.id, details: { url: result.url } });
+      return result;
     }),
 });
 

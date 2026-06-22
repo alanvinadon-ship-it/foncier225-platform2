@@ -2432,3 +2432,20 @@
 - [x] Aperçu en-tête facture dans la page Paramètres (avec logo + infos société)
 - [x] Tests : 1311 PASS + 0 erreur TypeScript
 - [x] Checkpoint final
+
+## Génération PDF Bon de Commande (module Achats)
+
+- [x] Service génération PDF conforme au modèle Orange CI (PDFKit) — erp-purchase-order-pdf.service.ts
+- [x] En-tête : logo société (fetch S3), titre BON DE COMMANDE, infos émetteur
+- [x] Bloc infos : acheteur, organisation, type CAPEX/OPEX, devise, numéro BC, date, code fournisseur
+- [x] Bloc adresses (3 colonnes) : livraison, facturation, fournisseur
+- [x] Bloc observations : description concaténée des lignes
+- [x] Tableau lignes : N° Ligne, Quantité, UM, Réf Article, Description, Code Catégorie, Description Catégorie, Date livraison, Coût unitaire HT, Coût total HT
+- [x] Totaux : Total Net HT, Montant TVA, Total TTC
+- [x] Bloc signature : titre, date, nom signataire (approbateur), fonction
+- [x] Pied de page : informations légales société (RCCM, NCC, régime, banque)
+- [x] Procédure tRPC erp.purchases.orders.generatePdf + upload S3
+- [x] Bouton "PDF Bon de Commande" dans la vue détail (GeneratePoPdfButton)
+- [x] Tests Vitest : 10 tests dédiés + 1321 tests PASS total (50 fichiers)
+- [x] Vérification TypeScript : 0 erreur
+- [x] Checkpoint final
