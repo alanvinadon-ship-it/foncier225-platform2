@@ -2408,3 +2408,18 @@
 - [x] Route App.tsx (/erp/cash-flow-forecast) + entrée sidebar Finance
 - [x] Vérification TypeScript (0 erreur) + 1302 tests PASS
 - [x] Checkpoint final
+
+## Mise à jour Module Factures — Modèle Facture Normalisée CI
+
+- [x] Table erp_company_settings (NCC, RCCM, régime fiscal, centre impôts, coordonnées, références bancaires)
+- [x] Colonnes supplémentaires erp_sales_clients (ncc, tax_regime, rccm)
+- [x] Service génération PDF (PDFKit + QRCode) conforme au modèle FNE — erp-invoice-pdf.service.ts
+- [x] Numérotation normalisée : NCC + Année(2) + Séquence(12) = generateNormalizedInvoiceNumber()
+- [x] QR Code contenant : FNE|NCC|Numéro|Montant|Date
+- [x] Procédures tRPC : generatePdf, getNextInvoiceNumber, getCompanySettings, updateCompanySettings
+- [x] Page UI Paramètres Société (ErpCompanySettings.tsx) + route /erp/company-settings + sidebar
+- [x] Bouton "PDF Normalisé" dans la vue détail facture (GeneratePdfButton)
+- [x] Upload PDF vers S3 + mise à jour attachmentUrl/attachmentKey
+- [x] Tests Vitest : 9 tests dédiés + 1311 tests PASS total (49 fichiers)
+- [x] Vérification TypeScript : 0 erreur
+- [x] Checkpoint final

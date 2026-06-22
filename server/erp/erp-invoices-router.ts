@@ -6,6 +6,7 @@ import { createAuditEvent } from "../db";
 import { erpInvoices, erpInvoiceLines, erpPayments, erpProjects, erpVendors, erpContractors, users } from "../../drizzle/schema";
 import { syncBudgetFromInvoice } from "./erp-budget-sync";
 import { generateInvoicePreEntry } from "./erp-accounting-auto";
+import { generateAndUploadInvoicePdf, getCompanySettings, upsertCompanySettings, getNextNormalizedInvoiceNumber } from "./erp-invoice-pdf.service";
 
 // ============================================================
 // CONSTANTS
@@ -556,5 +557,57 @@ export const erpInvoicesRouter = router({
         overdueCount,
         byStatus,
       };
+    }),
+
+  // ---- GÉNÉRATION PDF ----
+  generatePdf: erpPermissionProcedure("erp_finance", "view")
+    .input(z.object({ invoiceId: z.number() }))
+    .mutation(async ({ input }) => {
+      const result = await generateAndUploadInvoicePdf(input.invoiceId);
+      return result;
+    }),
+
+  // ---- PROCHAIN NUMÉRO DE FACTURE NORMALISÉ ----
+  getNextInvoiceNumber: erpPermissionProcedure("erp_finance", "view")
+    .query(async () => {
+      try {
+        const number = await getNextNormalizedInvoiceNumber();
+        return { number };
+      } catch (e: any) {
+        return { number: null, error: e.message };
+      }
+    }),
+
+  // ---- PARAMÈTRES SOCIÉTÉ ----
+  getCompanySettings: erpPermissionProcedure("erp_finance", "view")
+    .query(async () => {
+      const settings = await getCompanySettings();
+      return settings;
+    }),
+
+  updateCompanySettings: erpPermissionProcedure("erp_finance", "manage")
+    .input(z.object({
+      companyName: z.string().min(1).optional(),
+      ncc: z.string().optional(),
+      rccm: z.string().optional(),
+      rccmDate: z.string().optional(),
+      taxRegime: z.string().optional(),
+      taxCenter: z.string().optional(),
+      address: z.string().optional(),
+      city: z.string().optional(),
+      postalBox: z.string().optional(),
+      phone: z.string().optional(),
+      email: z.string().optional(),
+      website: z.string().optional(),
+      bankReferences: z.string().optional(),
+      logoUrl: z.string().optional(),
+      invoicePrefix: z.string().optional(),
+      defaultPaymentTerms: z.string().optional(),
+      defaultPaymentMode: z.string().optional(),
+      defaultTaxRate: z.number().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const result = await upsertCompanySettings(input);
+      return result;
     }),
 });

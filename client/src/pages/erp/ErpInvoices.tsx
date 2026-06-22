@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Search, FileText, AlertTriangle, CheckCircle, XCircle, CreditCard, Eye, Trash2, Send, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Plus, Search, FileText, AlertTriangle, CheckCircle, XCircle, CreditCard, Eye, Trash2, Send, ThumbsUp, ThumbsDown, Download } from "lucide-react";
 
 // ============================================================
 // CONSTANTS
@@ -531,6 +531,7 @@ function InvoiceDetailDialog({ id, open, onClose, canApprove, onReject, onPay }:
         </div>
 
         <DialogFooter className="flex gap-2">
+          <GeneratePdfButton invoiceId={id} />
           {inv.status === "draft" && (
             <Button onClick={() => submitMut.mutate({ id })} disabled={submitMut.isPending}>
               <Send className="mr-2 h-4 w-4" /> Soumettre
@@ -649,5 +650,29 @@ function RejectDialog({ invoiceId, open, onClose }: { invoiceId: number; open: b
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+
+// --- Bouton Génération PDF Facture Normalisée ---
+function GeneratePdfButton({ invoiceId }: { invoiceId: number }) {
+  const generatePdf = trpc.erp.invoices.generatePdf.useMutation({
+    onSuccess: (data) => {
+      toast.success("PDF généré avec succès");
+      // Ouvrir le PDF dans un nouvel onglet
+      window.open(data.url, "_blank");
+    },
+    onError: (e) => toast.error(`Erreur PDF : ${e.message}`),
+  });
+
+  return (
+    <Button
+      variant="outline"
+      onClick={() => generatePdf.mutate({ invoiceId })}
+      disabled={generatePdf.isPending}
+    >
+      <Download className="mr-2 h-4 w-4" />
+      {generatePdf.isPending ? "Génération..." : "PDF Normalisé"}
+    </Button>
   );
 }

@@ -3455,9 +3455,9 @@ export const erpAccountingExports = mysqlTable("erp_accounting_exports", {
 export type ErpAccountingExport = typeof erpAccountingExports.$inferSelect;
 
 // --- Accounting Export Lines ---
-export const erpAccountingExportLines = mysqlTable("erp_acct_export_lines", {
+export const erpAccountingExportLines = mysqlTable("erp_accounting_export_lines", {
   id: int("id").autoincrement().primaryKey(),
-  exportId: int("export_id").notNull().references(() => erpAccountingExports.id, { onDelete: "cascade" }),
+  exportId: int("accounting_export_id").notNull().references(() => erpAccountingExports.id, { onDelete: "cascade" }),
   preEntryId: int("pre_entry_id").references(() => erpAccountingPreEntries.id, { onDelete: "set null" }),
   preEntryLineId: int("pre_entry_line_id").references(() => erpAccountingPreEntryLines.id, { onDelete: "set null" }),
   accountCode: varchar("account_code", { length: 16 }),
@@ -4188,6 +4188,9 @@ export const erpSalesClients = mysqlTable("erp_sales_clients", {
   contactPhone: varchar("contact_phone", { length: 32 }),
   address: text("address"),
   taxId: varchar("tax_id", { length: 64 }), // NCC / RCCM
+  ncc: varchar("ncc", { length: 32 }), // Numéro Compte Contribuable client
+  taxRegime: varchar("tax_regime", { length: 32 }), // RNI, RSI, etc.
+  rccm: varchar("rccm", { length: 128 }), // RCCM client
   paymentTermsDays: int("payment_terms_days").default(30),
   notes: text("notes"),
   isActive: tinyint("is_active").default(1),
@@ -4272,3 +4275,32 @@ export const erpSalesOrderHistory = mysqlTable("erp_sales_order_history", {
   orderIdx: index("idx_soh_order").on(table.orderId),
 }));
 export type ErpSalesOrderHistory = typeof erpSalesOrderHistory.$inferSelect;
+
+
+// --- Paramètres société (pour facturation normalisée CI) ---
+export const erpCompanySettings = mysqlTable("erp_company_settings", {
+  id: int("id").primaryKey().autoincrement(),
+  companyName: varchar("company_name", { length: 255 }).notNull(),
+  ncc: varchar("ncc", { length: 32 }), // Numéro de Compte Contribuable
+  rccm: varchar("rccm", { length: 128 }), // Registre du Commerce
+  rccmDate: varchar("rccm_date", { length: 32 }), // Date d'immatriculation RCCM
+  taxRegime: varchar("tax_regime", { length: 32 }), // RSI, RNI, etc.
+  taxCenter: varchar("tax_center", { length: 255 }), // Centre des impôts
+  address: text("address"),
+  city: varchar("city", { length: 100 }),
+  postalBox: varchar("postal_box", { length: 64 }), // BP
+  phone: varchar("phone", { length: 32 }),
+  email: varchar("email", { length: 255 }),
+  website: varchar("website", { length: 255 }),
+  bankReferences: text("bank_references"),
+  logoUrl: varchar("logo_url", { length: 512 }),
+  invoicePrefix: varchar("invoice_prefix", { length: 16 }), // Préfixe pour numérotation
+  invoiceNextSeq: bigint("invoice_next_seq", { mode: "number" }).default(1),
+  defaultPaymentTerms: varchar("default_payment_terms", { length: 255 }).default("Un mois date de dépôt de facture"),
+  defaultPaymentMode: varchar("default_payment_mode", { length: 64 }).default("Virement"),
+  defaultTaxRate: int("default_tax_rate").default(18), // TVA 18% CI
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+export type ErpCompanySettings = typeof erpCompanySettings.$inferSelect;
+export type InsertErpCompanySettings = typeof erpCompanySettings.$inferInsert;
