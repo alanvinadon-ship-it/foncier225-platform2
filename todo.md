@@ -2372,4 +2372,17 @@
 - [x] Supprimer la génération automatique de trackingPassword à la création ACD
 - [x] Remplacer le routeur public track par un stub d'interconnexion SIGFU (prêt à brancher l'API)
 - [x] Adapter la page /suivi : message informatif "service en cours de mise en place" si pas d'API
-- [ ] Checkpoint final
+- [x] Checkpoint final (2b654223)
+
+## Module Commandes Clients (Sales Orders) — BC reçus de clients
+- [x] Tables DB : erp_sales_clients, erp_sales_orders, erp_sales_order_lines, erp_sales_order_history
+- [x] Routeur tRPC salesOrders (CRUD clients, CRUD commandes, workflow statut, dashboard par client)
+- [x] Page UI liste commandes + création (ErpSalesOrdersList, ErpSalesOrderCreate)
+- [x] Page UI détail commande (lignes, statut workflow, historique) — ErpSalesOrderDetail
+- [x] Page UI dashboard commandes par client (Orange CI, CIE, etc.) — ErpSalesOrdersDashboard
+- [x] Page UI gestion clients entreprises — ErpSalesClients
+- [x] Intégration budget/trésorerie (impact prévisionnel dans dashboard)
+- [x] RBAC module erp_sales_orders (view, create, update, delete, export) — 36 modules total
+- [x] Sidebar ERP (catégorie Finance) + routes App.tsx (5 routes)
+- [x] Tests Vitest (13 tests) + 0 erreur TypeScript + 1287 tests PASS total
+- [x] Checkpoint final

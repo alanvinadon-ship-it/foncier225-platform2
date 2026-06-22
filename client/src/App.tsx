@@ -144,6 +144,11 @@ const ErpDirectionDataQuality = lazy(() => import("./pages/erp/ErpDirectionDataQ
 const ErpSystemHealth = lazy(() => import("./pages/erp/ErpSystemHealth"));
 const ErpScheduledJobs = lazy(() => import("./pages/erp/ErpScheduledJobs"));
 const ErpAdminDataQuality = lazy(() => import("./pages/erp/ErpAdminDataQuality"));
+const ErpSalesOrdersDashboard = lazy(() => import("./pages/erp/ErpSalesOrdersDashboard"));
+const ErpSalesOrdersList = lazy(() => import("./pages/erp/ErpSalesOrdersList"));
+const ErpSalesOrderCreate = lazy(() => import("./pages/erp/ErpSalesOrderCreate"));
+const ErpSalesOrderDetail = lazy(() => import("./pages/erp/ErpSalesOrderDetail"));
+const ErpSalesClients = lazy(() => import("./pages/erp/ErpSalesClients"));
 
 function RouteFallback() {
   return (
@@ -771,6 +776,31 @@ function Router() {
       <Route path="/erp/admin-data-quality">
         <ErpLayout>
           <ErpAdminDataQuality />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/sales-orders">
+        <ErpLayout>
+          <ErpSalesOrdersDashboard />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/sales-orders/list">
+        <ErpLayout>
+          <ErpSalesOrdersList />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/sales-orders/new">
+        <ErpLayout>
+          <ErpSalesOrderCreate />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/sales-orders/:id">
+        <ErpLayout>
+          <ErpSalesOrderDetail />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/sales-clients">
+        <ErpLayout>
+          <ErpSalesClients />
         </ErpLayout>
       </Route>
       <Route path="/erp/notifications">

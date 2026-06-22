@@ -42,7 +42,7 @@ describe("Sprint Gouvernance Direction — RBAC Modules", () => {
     expect(ERP_MODULES).toContain("erp_direction_actions");
     expect(ERP_MODULES).toContain("erp_direction_data_quality");
     expect(ERP_MODULES).toContain("erp_direction_schedules");
-    expect(ERP_MODULES.length).toBe(35);
+    expect(ERP_MODULES.length).toBe(36);
   });
 
   it("should have permissions for all new modules", async () => {

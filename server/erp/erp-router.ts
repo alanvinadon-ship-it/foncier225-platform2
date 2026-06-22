@@ -463,6 +463,7 @@ import { erpDirectionActionsRouter } from "./erp-direction-actions-router";
 import { erpDirectionDataQualityRouter } from "./erp-direction-data-quality-router";
 import { erpSystemHealthRouter } from "./erp-system-health-router";
 import { erpAdminDataQualityRouter } from "./erp-admin-data-quality-router";
+import { erpSalesOrdersRouter } from "./erp-sales-orders-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -519,4 +520,5 @@ export const erpRouter = router({
   directionDataQuality: erpDirectionDataQualityRouter,
   systemHealth: erpSystemHealthRouter,
   adminDataQuality: erpAdminDataQualityRouter,
+  salesOrders: erpSalesOrdersRouter,
 });

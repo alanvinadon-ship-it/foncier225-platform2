@@ -4171,3 +4171,104 @@ export const erpDirectionDataQualityChecks = mysqlTable("erp_direction_data_qual
 }));
 export type ErpDirectionDataQualityCheck = typeof erpDirectionDataQualityChecks.$inferSelect;
 export type InsertErpDirectionDataQualityCheck = typeof erpDirectionDataQualityChecks.$inferInsert;
+
+// =============================================
+// MODULE COMMANDES CLIENTS (Sales Orders)
+// =============================================
+
+// --- Clients entreprises (B2B) ---
+export const erpSalesClients = mysqlTable("erp_sales_clients", {
+  id: int("id").primaryKey().autoincrement(),
+  code: varchar("code", { length: 32 }).notNull().unique(),
+  name: varchar("name", { length: 255 }).notNull(),
+  shortName: varchar("short_name", { length: 64 }),
+  sector: varchar("sector", { length: 100 }), // telecom, energie, btp, public, autre
+  contactName: varchar("contact_name", { length: 255 }),
+  contactEmail: varchar("contact_email", { length: 255 }),
+  contactPhone: varchar("contact_phone", { length: 32 }),
+  address: text("address"),
+  taxId: varchar("tax_id", { length: 64 }), // NCC / RCCM
+  paymentTermsDays: int("payment_terms_days").default(30),
+  notes: text("notes"),
+  isActive: tinyint("is_active").default(1),
+  createdBy: int("created_by").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  nameIdx: index("idx_sales_client_name").on(table.name),
+  sectorIdx: index("idx_sales_client_sector").on(table.sector),
+}));
+export type ErpSalesClient = typeof erpSalesClients.$inferSelect;
+export type InsertErpSalesClient = typeof erpSalesClients.$inferInsert;
+
+// --- Commandes clients (Sales Orders / Bons de commande reçus) ---
+export const erpSalesOrders = mysqlTable("erp_sales_orders", {
+  id: int("id").primaryKey().autoincrement(),
+  orderNumber: varchar("order_number", { length: 64 }).notNull().unique(),
+  clientId: int("client_id").notNull(),
+  clientRef: varchar("client_ref", { length: 128 }), // Référence BC du client
+  subject: varchar("subject", { length: 500 }).notNull(),
+  description: text("description"),
+  status: varchar("status", { length: 32 }).notNull().default("received"), // received, in_progress, delivered, invoiced, paid, cancelled
+  priority: varchar("priority", { length: 16 }).default("normal"), // low, normal, high, urgent
+  totalHT: bigint("total_ht", { mode: "number" }).default(0), // en FCFA
+  taxRate: int("tax_rate").default(18), // TVA %
+  totalTTC: bigint("total_ttc", { mode: "number" }).default(0),
+  currency: varchar("currency", { length: 8 }).default("XOF"),
+  orderDate: bigint("order_date", { mode: "number" }).notNull(), // Date du BC client
+  expectedDeliveryDate: bigint("expected_delivery_date", { mode: "number" }),
+  deliveredDate: bigint("delivered_date", { mode: "number" }),
+  invoiceId: int("invoice_id"), // Lien vers facture émise
+  budgetLineId: int("budget_line_id"), // Lien vers ligne budgétaire (recettes)
+  periodId: int("period_id"), // Lien vers période budgétaire
+  paymentStatus: varchar("payment_status", { length: 32 }).default("pending"), // pending, partial, paid
+  paidAmount: bigint("paid_amount", { mode: "number" }).default(0),
+  paidDate: bigint("paid_date", { mode: "number" }),
+  attachmentUrl: text("attachment_url"), // Scan du BC
+  notes: text("notes"),
+  createdBy: int("created_by").notNull(),
+  assignedTo: int("assigned_to"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  clientIdx: index("idx_so_client").on(table.clientId),
+  statusIdx: index("idx_so_status").on(table.status),
+  orderDateIdx: index("idx_so_order_date").on(table.orderDate),
+  invoiceIdx: index("idx_so_invoice").on(table.invoiceId),
+}));
+export type ErpSalesOrder = typeof erpSalesOrders.$inferSelect;
+export type InsertErpSalesOrder = typeof erpSalesOrders.$inferInsert;
+
+// --- Lignes de commande client ---
+export const erpSalesOrderLines = mysqlTable("erp_sales_order_lines", {
+  id: int("id").primaryKey().autoincrement(),
+  orderId: int("order_id").notNull(),
+  lineNumber: int("line_number").notNull(),
+  description: varchar("description", { length: 500 }).notNull(),
+  quantity: int("quantity").default(1),
+  unit: varchar("unit", { length: 32 }).default("unité"), // unité, jour, mois, forfait, m², ml
+  unitPriceHT: bigint("unit_price_ht", { mode: "number" }).notNull(),
+  totalHT: bigint("total_ht", { mode: "number" }).notNull(),
+  deliveryStatus: varchar("delivery_status", { length: 32 }).default("pending"), // pending, partial, delivered
+  deliveredQuantity: int("delivered_quantity").default(0),
+  notes: text("notes"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  orderIdx: index("idx_sol_order").on(table.orderId),
+}));
+export type ErpSalesOrderLine = typeof erpSalesOrderLines.$inferSelect;
+export type InsertErpSalesOrderLine = typeof erpSalesOrderLines.$inferInsert;
+
+// --- Historique des changements de statut ---
+export const erpSalesOrderHistory = mysqlTable("erp_sales_order_history", {
+  id: int("id").primaryKey().autoincrement(),
+  orderId: int("order_id").notNull(),
+  fromStatus: varchar("from_status", { length: 32 }).notNull(),
+  toStatus: varchar("to_status", { length: 32 }).notNull(),
+  comment: text("comment"),
+  changedBy: int("changed_by").notNull(),
+  changedAt: bigint("changed_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  orderIdx: index("idx_soh_order").on(table.orderId),
+}));
+export type ErpSalesOrderHistory = typeof erpSalesOrderHistory.$inferSelect;

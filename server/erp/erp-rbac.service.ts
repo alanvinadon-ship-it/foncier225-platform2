@@ -48,6 +48,7 @@ export const ERP_MODULES = [
   "erp_system_health",
   "erp_scheduled_jobs",
   "erp_data_quality_global",
+  "erp_sales_orders",
 ] as const;
 
 export type ErpModule = (typeof ERP_MODULES)[number];
@@ -344,6 +345,13 @@ export const ERP_DEFAULT_PERMISSIONS: Array<{
   // Data Quality Global
   { module: "erp_data_quality_global", action: "view", displayName: "Voir la qualité globale", description: "Consulter les résultats qualité tous modules" },
   { module: "erp_data_quality_global", action: "create", displayName: "Lancer contrôle global", description: "Exécuter les contrôles qualité globaux" },
+
+  // Commandes Clients
+  { module: "erp_sales_orders", action: "view", displayName: "Voir les commandes clients", description: "Consulter les bons de commande reçus" },
+  { module: "erp_sales_orders", action: "create", displayName: "Créer une commande client", description: "Enregistrer un nouveau bon de commande" },
+  { module: "erp_sales_orders", action: "update", displayName: "Modifier une commande", description: "Modifier les informations d'une commande" },
+  { module: "erp_sales_orders", action: "delete", displayName: "Supprimer une commande", description: "Supprimer un bon de commande" },
+  { module: "erp_sales_orders", action: "export", displayName: "Exporter les commandes", description: "Exporter la liste des commandes clients" },
 ];
 
 // ============================================================
@@ -421,6 +429,7 @@ export const ERP_ROLE_DEFAULT_PERMISSIONS: Record<string, Array<{ module: ErpMod
     { module: "erp_system_health", action: "view" },
     { module: "erp_scheduled_jobs", action: "view" }, { module: "erp_scheduled_jobs", action: "create" },
     { module: "erp_data_quality_global", action: "view" }, { module: "erp_data_quality_global", action: "create" },
+    { module: "erp_sales_orders", action: "view" }, { module: "erp_sales_orders", action: "create" }, { module: "erp_sales_orders", action: "update" }, { module: "erp_sales_orders", action: "export" },
   ],
 
   // Safety Officer : sécurité, conformité, équipements
@@ -476,6 +485,7 @@ export const ERP_ROLE_DEFAULT_PERMISSIONS: Record<string, Array<{ module: ErpMod
     { module: "erp_system_health", action: "view" },
     { module: "erp_scheduled_jobs", action: "view" },
     { module: "erp_data_quality_global", action: "view" },
+    { module: "erp_sales_orders", action: "view" },
   ],
 };
 
