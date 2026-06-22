@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { FileText, Plus, CheckCircle, Send, Eye, Package, Download, Loader2 } from "lucide-react";
+import { FileText, Plus, CheckCircle, Send, Eye, Package, Download, Loader2, Paperclip, Upload } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Brouillon", approved: "Approuvé", sent: "Envoyé", partially_received: "Partiellement reçu",
@@ -37,7 +37,7 @@ export default function ErpPurchaseOrders() {
   const [typeFilter, setTypeFilter] = useState<string>("");
   const [showCreate, setShowCreate] = useState(false);
   const [showDetail, setShowDetail] = useState<number | null>(null);
-  const [lines, setLines] = useState([{ itemType: "material", description: "", quantityOrdered: 1, unit: "unité", unitPrice: 0, taxRate: 1800 }]);
+  const [lines, setLines] = useState([{ itemType: "material", designation: "", description: "", lineDate: "", quantityOrdered: 1, unit: "unité", unitPrice: 0, taxRate: 1800 }]);
 
   const ordersQuery = trpc.erp.purchases.orders.list.useQuery({
     status: statusFilter && statusFilter !== "all" ? statusFilter : undefined,
@@ -62,6 +62,10 @@ export default function ErpPurchaseOrders() {
   });
   const sendMutation = trpc.erp.purchases.orders.send.useMutation({
     onSuccess: () => { toast.success("BC envoyé au fournisseur"); ordersQuery.refetch(); detailQuery.refetch(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const uploadLineMutation = trpc.erp.purchases.orders.uploadLineAttachment.useMutation({
+    onSuccess: () => { toast.success("Pièce jointe ajoutée"); detailQuery.refetch(); },
     onError: (e) => toast.error(e.message),
   });
 
@@ -172,7 +176,9 @@ export default function ErpPurchaseOrders() {
               purchaseType: (fd.get("purchaseType") as "CAPEX" | "OPEX") || "OPEX",
               lines: lines.map(l => ({
                 itemType: l.itemType,
+                designation: l.designation || undefined,
                 description: l.description,
+                lineDate: l.lineDate ? new Date(l.lineDate).getTime() : undefined,
                 quantityOrdered: l.quantityOrdered,
                 unit: l.unit,
                 unitPrice: l.unitPrice,
@@ -218,44 +224,63 @@ export default function ErpPurchaseOrders() {
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <Label className="text-base font-semibold">Lignes de commande</Label>
-                <Button type="button" size="sm" variant="outline" onClick={() => setLines([...lines, { itemType: "material", description: "", quantityOrdered: 1, unit: "unité", unitPrice: 0, taxRate: 1800 }])}>
+                <Button type="button" size="sm" variant="outline" onClick={() => setLines([...lines, { itemType: "material", designation: "", description: "", lineDate: "", quantityOrdered: 1, unit: "unité", unitPrice: 0, taxRate: 1800 }])}>
                   <Plus className="h-3 w-3 mr-1" /> Ligne
                 </Button>
               </div>
               {lines.map((line, idx) => (
-                <div key={idx} className="grid grid-cols-12 gap-2 items-end border p-2 rounded">
-                  <div className="col-span-2">
-                    <Label className="text-xs">Type</Label>
-                    <Select value={line.itemType} onValueChange={(v) => { const nl = [...lines]; nl[idx].itemType = v; setLines(nl); }}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="material">Matériau</SelectItem>
-                        <SelectItem value="equipment">Équipement</SelectItem>
-                        <SelectItem value="service">Service</SelectItem>
-                        <SelectItem value="subcontracting">Sous-traitance</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <div key={idx} className="border p-3 rounded space-y-2">
+                  <div className="grid grid-cols-12 gap-2 items-end">
+                    <div className="col-span-2">
+                      <Label className="text-xs">Type</Label>
+                      <Select value={line.itemType} onValueChange={(v) => { const nl = [...lines]; nl[idx].itemType = v; setLines(nl); }}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="material">Matériau</SelectItem>
+                          <SelectItem value="equipment">Équipement</SelectItem>
+                          <SelectItem value="service">Service</SelectItem>
+                          <SelectItem value="subcontracting">Sous-traitance</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-3">
+                      <Label className="text-xs">Désignation</Label>
+                      <Input className="h-8 text-xs" placeholder="Désignation" value={line.designation} onChange={(e) => { const nl = [...lines]; nl[idx].designation = e.target.value; setLines(nl); }} />
+                    </div>
+                    <div className="col-span-3">
+                      <Label className="text-xs">Description *</Label>
+                      <Input className="h-8 text-xs" value={line.description} onChange={(e) => { const nl = [...lines]; nl[idx].description = e.target.value; setLines(nl); }} required />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Date</Label>
+                      <Input className="h-8 text-xs" type="date" value={line.lineDate} onChange={(e) => { const nl = [...lines]; nl[idx].lineDate = e.target.value; setLines(nl); }} />
+                    </div>
+                    <div className="col-span-1">
+                      {lines.length > 1 && (
+                        <Button type="button" size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-500" onClick={() => setLines(lines.filter((_, i) => i !== idx))}>×</Button>
+                      )}
+                    </div>
                   </div>
-                  <div className="col-span-4">
-                    <Label className="text-xs">Description *</Label>
-                    <Input className="h-8 text-xs" value={line.description} onChange={(e) => { const nl = [...lines]; nl[idx].description = e.target.value; setLines(nl); }} required />
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-xs">Qté</Label>
-                    <Input className="h-8 text-xs" type="number" min={1} value={line.quantityOrdered} onChange={(e) => { const nl = [...lines]; nl[idx].quantityOrdered = parseInt(e.target.value) || 1; setLines(nl); }} />
-                  </div>
-                  <div className="col-span-2">
-                    <Label className="text-xs">Prix HT</Label>
-                    <Input className="h-8 text-xs" type="number" min={0} value={line.unitPrice} onChange={(e) => { const nl = [...lines]; nl[idx].unitPrice = parseInt(e.target.value) || 0; setLines(nl); }} />
-                  </div>
-                  <div className="col-span-1">
-                    <Label className="text-xs">TVA%</Label>
-                    <Input className="h-8 text-xs" type="number" value={line.taxRate / 100} onChange={(e) => { const nl = [...lines]; nl[idx].taxRate = Math.round(parseFloat(e.target.value) * 100) || 0; setLines(nl); }} />
-                  </div>
-                  <div className="col-span-1">
-                    {lines.length > 1 && (
-                      <Button type="button" size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-500" onClick={() => setLines(lines.filter((_, i) => i !== idx))}>×</Button>
-                    )}
+                  <div className="grid grid-cols-12 gap-2 items-end">
+                    <div className="col-span-2">
+                      <Label className="text-xs">Qté</Label>
+                      <Input className="h-8 text-xs" type="number" min={1} value={line.quantityOrdered} onChange={(e) => { const nl = [...lines]; nl[idx].quantityOrdered = parseInt(e.target.value) || 1; setLines(nl); }} />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Unité</Label>
+                      <Input className="h-8 text-xs" value={line.unit} onChange={(e) => { const nl = [...lines]; nl[idx].unit = e.target.value; setLines(nl); }} />
+                    </div>
+                    <div className="col-span-3">
+                      <Label className="text-xs">Prix unitaire HT</Label>
+                      <Input className="h-8 text-xs" type="number" min={0} value={line.unitPrice} onChange={(e) => { const nl = [...lines]; nl[idx].unitPrice = parseInt(e.target.value) || 0; setLines(nl); }} />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">TVA %</Label>
+                      <Input className="h-8 text-xs" type="number" value={line.taxRate / 100} onChange={(e) => { const nl = [...lines]; nl[idx].taxRate = Math.round(parseFloat(e.target.value) * 100) || 0; setLines(nl); }} />
+                    </div>
+                    <div className="col-span-3 text-xs text-right pt-4">
+                      Montant: <strong>{formatXOF(line.quantityOrdered * line.unitPrice)}</strong>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -289,22 +314,45 @@ export default function ErpPurchaseOrders() {
                   <thead className="bg-muted/50">
                     <tr>
                       <th className="text-left p-2">Type</th>
+                      <th className="text-left p-2">Désignation</th>
                       <th className="text-left p-2">Description</th>
-                      <th className="text-right p-2">Qté Cmd</th>
-                      <th className="text-right p-2">Qté Reçue</th>
-                      <th className="text-right p-2">Prix Unit.</th>
+                      <th className="text-center p-2">Date</th>
+                      <th className="text-right p-2">Qté</th>
+                      <th className="text-right p-2">PU HT</th>
                       <th className="text-right p-2">Total</th>
+                      <th className="text-center p-2">Pièce</th>
                     </tr>
                   </thead>
                   <tbody>
                     {detailQuery.data.lines?.map((l: any) => (
                       <tr key={l.id} className="border-t">
                         <td className="p-2"><Badge variant="outline" className="text-xs">{l.itemType}</Badge></td>
+                        <td className="p-2 font-medium">{l.designation || "—"}</td>
                         <td className="p-2">{l.description}</td>
+                        <td className="p-2 text-center">{l.lineDate ? formatDate(l.lineDate) : "—"}</td>
                         <td className="p-2 text-right">{l.quantityOrdered}</td>
-                        <td className="p-2 text-right">{l.quantityReceived}</td>
                         <td className="p-2 text-right">{formatXOF(l.unitPrice)}</td>
                         <td className="p-2 text-right font-semibold">{formatXOF(l.lineTotal)}</td>
+                        <td className="p-2 text-center">
+                          {l.attachmentUrl ? (
+                            <a href={l.attachmentUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline"><Paperclip className="h-3 w-3 inline" /></a>
+                          ) : (
+                            <label className="cursor-pointer text-muted-foreground hover:text-foreground">
+                              <Upload className="h-3 w-3 inline" />
+                              <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                if (file.size > 5 * 1024 * 1024) { toast.error("Max 5 Mo"); return; }
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                  const base64 = (reader.result as string).split(",")[1];
+                                  uploadLineMutation.mutate({ lineId: l.id, fileName: file.name, fileBase64: base64, contentType: file.type });
+                                };
+                                reader.readAsDataURL(file);
+                              }} />
+                            </label>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

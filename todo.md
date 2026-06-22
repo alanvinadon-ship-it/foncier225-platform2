@@ -2470,3 +2470,14 @@
 - [x] Sélecteur d'année + route et sidebar existants
 - [x] Tests : 1321 PASS (50 fichiers) + 0 erreur TypeScript
 - [x] Checkpoint final
+
+## Colonnes Désignation + Date + Pièce jointe (Dépenses & Achats)
+- [x] Colonnes designation, line_date, attachment_url/key/name dans erp_expense_lines
+- [x] Colonnes designation, line_date, attachment_url/key/name dans erp_purchase_order_lines
+- [x] Routeur expenses : linesRouter (add, list, delete, uploadAttachment)
+- [x] Routeur purchases : uploadLineAttachment + designation/lineDate dans create
+- [x] Page ErpExpenses : section lignes avec formulaire (désignation, date, description, qté, prix) + upload pièce
+- [x] Page ErpPurchaseOrders : formulaire création enrichi (désignation, date) + vue détail avec colonne Pièce
+- [x] Upload S3 avec validation taille (5 Mo max) et formats (PDF, images, Word, Excel)
+- [x] Tests : 1321 PASS (50 fichiers) + 0 erreur TypeScript
+- [x] Checkpoint final

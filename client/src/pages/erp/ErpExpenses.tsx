@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { CreditCard, Plus, CheckCircle, XCircle, Send, Eye, TrendingUp } from "lucide-react";
+import { CreditCard, Plus, CheckCircle, XCircle, Send, Eye, TrendingUp, Paperclip, Upload, FileText, Trash2 } from "lucide-react";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Brouillon", submitted: "Soumise", approved: "Approuvée",
@@ -48,6 +48,22 @@ export default function ErpExpenses() {
   const detailQuery = trpc.erp.expenses.expenses.getById.useQuery(
     { id: showDetail! }, { enabled: !!showDetail }
   );
+  const linesQuery = trpc.erp.expenses.lines.listByExpense.useQuery(
+    { expenseId: showDetail! }, { enabled: !!showDetail }
+  );
+  const addLineMutation = trpc.erp.expenses.lines.add.useMutation({
+    onSuccess: () => { toast.success("Ligne ajout\u00e9e"); linesQuery.refetch(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const removeLineMutation = trpc.erp.expenses.lines.remove.useMutation({
+    onSuccess: () => { toast.success("Ligne supprim\u00e9e"); linesQuery.refetch(); },
+  });
+  const uploadAttachmentMutation = trpc.erp.expenses.lines.uploadAttachment.useMutation({
+    onSuccess: () => { toast.success("Pi\u00e8ce jointe ajout\u00e9e"); linesQuery.refetch(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const [showAddLine, setShowAddLine] = useState(false);
+  const [newLine, setNewLine] = useState({ designation: "", description: "", lineDate: "", quantity: 1, unitPrice: 0 });
 
   const projectsQuery = trpc.erp.projects.list.useQuery({ limit: 100, offset: 0 }, { enabled: canView });
   const categoriesQuery = trpc.erp.expenses.categories.list.useQuery(undefined, { enabled: canView });
@@ -268,6 +284,87 @@ export default function ErpExpenses() {
               {detailQuery.data.paymentMethod && (
                 <div className="text-sm"><span className="text-muted-foreground">Paiement:</span> {detailQuery.data.paymentMethod}</div>
               )}
+              {/* --- LIGNES DE DÉPENSES --- */}
+              <div className="border-t pt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-semibold">Lignes de d\u00e9pense</h4>
+                  {detailQuery.data.status === "draft" && canCreate && (
+                    <Button size="sm" variant="outline" onClick={() => setShowAddLine(!showAddLine)}>
+                      <Plus className="h-3 w-3 mr-1" /> Ajouter
+                    </Button>
+                  )}
+                </div>
+                {showAddLine && (
+                  <div className="border rounded p-3 mb-3 space-y-2 bg-muted/30">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><Label className="text-xs">D\u00e9signation</Label><Input placeholder="D\u00e9signation" value={newLine.designation} onChange={e => setNewLine(p => ({...p, designation: e.target.value}))} /></div>
+                      <div><Label className="text-xs">Date</Label><Input type="date" value={newLine.lineDate} onChange={e => setNewLine(p => ({...p, lineDate: e.target.value}))} /></div>
+                    </div>
+                    <div><Label className="text-xs">Description</Label><Input placeholder="Description" value={newLine.description} onChange={e => setNewLine(p => ({...p, description: e.target.value}))} /></div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><Label className="text-xs">Quantit\u00e9</Label><Input type="number" min={1} value={newLine.quantity} onChange={e => setNewLine(p => ({...p, quantity: +e.target.value}))} /></div>
+                      <div><Label className="text-xs">Prix unitaire</Label><Input type="number" min={0} value={newLine.unitPrice} onChange={e => setNewLine(p => ({...p, unitPrice: +e.target.value}))} /></div>
+                    </div>
+                    <Button size="sm" onClick={() => {
+                      if (!newLine.description) { toast.error("Description requise"); return; }
+                      addLineMutation.mutate({
+                        expenseId: showDetail!,
+                        designation: newLine.designation || undefined,
+                        description: newLine.description,
+                        lineDate: newLine.lineDate ? new Date(newLine.lineDate).getTime() : undefined,
+                        quantity: newLine.quantity,
+                        unitPrice: newLine.unitPrice,
+                      });
+                      setNewLine({ designation: "", description: "", lineDate: "", quantity: 1, unitPrice: 0 });
+                      setShowAddLine(false);
+                    }}>Enregistrer la ligne</Button>
+                  </div>
+                )}
+                {linesQuery.data && linesQuery.data.length > 0 ? (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {linesQuery.data.map((line: any) => (
+                      <div key={line.id} className="border rounded p-2 text-xs flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          {line.designation && <div className="font-medium truncate">{line.designation}</div>}
+                          <div className="text-muted-foreground truncate">{line.description}</div>
+                          <div className="flex gap-3 mt-1">
+                            {line.lineDate && <span>{formatDate(line.lineDate)}</span>}
+                            <span>{line.quantity} x {formatXOF(line.unitPrice)}</span>
+                            <span className="font-medium">{formatXOF(line.lineTotal)}</span>
+                          </div>
+                          {line.attachmentUrl ? (
+                            <a href={line.attachmentUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline flex items-center gap-1 mt-1">
+                              <FileText className="h-3 w-3" /> {line.attachmentName || "Pi\u00e8ce jointe"}
+                            </a>
+                          ) : (
+                            <label className="cursor-pointer text-muted-foreground hover:text-foreground flex items-center gap-1 mt-1">
+                              <Paperclip className="h-3 w-3" /> Joindre pi\u00e8ce
+                              <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                if (file.size > 5 * 1024 * 1024) { toast.error("Fichier trop volumineux (max 5 Mo)"); return; }
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                  const base64 = (reader.result as string).split(",")[1];
+                                  uploadAttachmentMutation.mutate({ lineId: line.id, fileName: file.name, fileBase64: base64, contentType: file.type });
+                                };
+                                reader.readAsDataURL(file);
+                              }} />
+                            </label>
+                          )}
+                        </div>
+                        {detailQuery.data!.status === "draft" && canCreate && (
+                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => removeLineMutation.mutate({ id: line.id })}>
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Aucune ligne enregistr\u00e9e</p>
+                )}
+              </div>
               <div className="flex gap-2 justify-end">
                 {detailQuery.data.status === "draft" && canCreate && (
                   <Button size="sm" onClick={() => submitMutation.mutate({ id: detailQuery.data!.id })}>

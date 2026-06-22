@@ -2,9 +2,11 @@ import { z } from "zod";
 import { eq, and, desc, sql, isNull, gte, lte, like } from "drizzle-orm";
 import { router, erpPermissionProcedure } from "../_core/trpc";
 import { getDb, createAuditEvent } from "../db";
+import { storagePut } from "../storage";
 import {
   erpExpenses,
   erpExpenseCategories,
+  erpExpenseLines,
   erpVendors,
   erpProjects,
   users,
@@ -262,11 +264,112 @@ const statsRouter = router({
     }),
 });
 
+// --- LIGNES DE DÉPENSES ---
+const linesRouter = router({
+  listByExpense: erpPermissionProcedure("erp_expenses", "view")
+    .input(z.object({ expenseId: z.number() }))
+    .query(async ({ input }) => {
+      const db = (await getDb())!;
+      return db.select().from(erpExpenseLines).where(eq(erpExpenseLines.expenseId, input.expenseId));
+    }),
+
+  add: erpPermissionProcedure("erp_expenses", "create")
+    .input(z.object({
+      expenseId: z.number(),
+      designation: z.string().max(255).optional(),
+      description: z.string().min(1).max(500),
+      lineDate: z.number().optional(),
+      quantity: z.number().min(1).default(1),
+      unitPrice: z.number().min(0),
+      taxCodeId: z.number().nullable().optional(),
+      taxRate: z.number().min(0).max(10000).default(0),
+      projectId: z.number().nullable().optional(),
+      budgetLineId: z.number().nullable().optional(),
+      accountingAccountId: z.number().nullable().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      const now = Date.now();
+      const gross = input.quantity * input.unitPrice;
+      const taxAmount = Math.round(gross * input.taxRate / 10000);
+      const lineTotal = gross + taxAmount;
+      const [result] = await db.insert(erpExpenseLines).values({
+        expenseId: input.expenseId,
+        designation: input.designation ?? null,
+        description: input.description,
+        lineDate: input.lineDate ?? null,
+        quantity: input.quantity,
+        unitPrice: input.unitPrice,
+        taxCodeId: input.taxCodeId ?? null,
+        taxRate: input.taxRate,
+        taxAmount,
+        lineTotal,
+        projectId: input.projectId ?? null,
+        budgetLineId: input.budgetLineId ?? null,
+        accountingAccountId: input.accountingAccountId ?? null,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return { id: result.insertId, lineTotal };
+    }),
+
+  update: erpPermissionProcedure("erp_expenses", "update")
+    .input(z.object({
+      id: z.number(),
+      designation: z.string().max(255).optional(),
+      description: z.string().max(500).optional(),
+      lineDate: z.number().nullable().optional(),
+      quantity: z.number().min(1).optional(),
+      unitPrice: z.number().min(0).optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      const { id, ...data } = input;
+      const updateData: any = { ...data, updatedAt: Date.now() };
+      if (data.quantity !== undefined && data.unitPrice !== undefined) {
+        updateData.lineTotal = data.quantity * data.unitPrice;
+      }
+      await db.update(erpExpenseLines).set(updateData).where(eq(erpExpenseLines.id, id));
+      return { success: true };
+    }),
+
+  remove: erpPermissionProcedure("erp_expenses", "delete")
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      await db.delete(erpExpenseLines).where(eq(erpExpenseLines.id, input.id));
+      return { success: true };
+    }),
+
+  uploadAttachment: erpPermissionProcedure("erp_expenses", "update")
+    .input(z.object({
+      lineId: z.number(),
+      fileName: z.string().min(1).max(255),
+      fileBase64: z.string(),
+      contentType: z.string().max(128),
+    }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      const buffer = Buffer.from(input.fileBase64, "base64");
+      const ext = input.fileName.split(".").pop() || "bin";
+      const key = `erp/expense-lines/${input.lineId}/${Date.now()}.${ext}`;
+      const { url } = await storagePut(key, buffer, input.contentType);
+      await db.update(erpExpenseLines).set({
+        attachmentUrl: url,
+        attachmentKey: key,
+        attachmentName: input.fileName,
+        updatedAt: Date.now(),
+      }).where(eq(erpExpenseLines.id, input.lineId));
+      return { url, key, fileName: input.fileName };
+    }),
+});
+
 // ============================================================
 // EXPORT
 // ============================================================
 export const erpExpensesRouter = router({
   categories: categoriesRouter,
   expenses: expensesRouter,
+  lines: linesRouter,
   stats: statsRouter,
 });

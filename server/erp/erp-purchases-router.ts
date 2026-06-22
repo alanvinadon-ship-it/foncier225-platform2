@@ -3,6 +3,7 @@ import { eq, and, desc, sql, isNull, gte, lte, like } from "drizzle-orm";
 import { router, erpPermissionProcedure } from "../_core/trpc";
 import { getDb, createAuditEvent } from "../db";
 import { generatePurchaseOrderPdf } from "./erp-purchase-order-pdf.service";
+import { storagePut } from "../storage";
 import {
   erpPurchaseRequests,
   erpPurchaseRequestLines,
@@ -263,7 +264,9 @@ const ordersRouter = router({
       lines: z.array(z.object({
         itemType: z.string().min(1).max(32),
         inventoryItemId: z.number().nullable().optional(),
+        designation: z.string().max(255).optional(),
         description: z.string().min(1).max(500),
+        lineDate: z.number().optional(),
         quantityOrdered: z.number().min(1),
         unit: z.string().max(32).optional(),
         unitPrice: z.number().min(0),
@@ -320,7 +323,9 @@ const ordersRouter = router({
           purchaseOrderId: poId,
           itemType: line.itemType,
           inventoryItemId: line.inventoryItemId ?? null,
+          designation: line.designation ?? null,
           description: line.description,
+          lineDate: line.lineDate ?? null,
           quantityOrdered: line.quantityOrdered,
           quantityReceived: 0,
           unit: line.unit ?? null,
@@ -445,6 +450,28 @@ const ordersRouter = router({
         topVendors,
         monthlyData,
       };
+    }),
+
+  uploadLineAttachment: erpPermissionProcedure("erp_purchases", "update")
+    .input(z.object({
+      lineId: z.number(),
+      fileName: z.string().min(1).max(255),
+      fileBase64: z.string(),
+      contentType: z.string().max(128),
+    }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      const buffer = Buffer.from(input.fileBase64, "base64");
+      const ext = input.fileName.split(".").pop() || "bin";
+      const key = `erp/po-lines/${input.lineId}/${Date.now()}.${ext}`;
+      const { url } = await storagePut(key, buffer, input.contentType);
+      await db.update(erpPurchaseOrderLines).set({
+        attachmentUrl: url,
+        attachmentKey: key,
+        attachmentName: input.fileName,
+        updatedAt: Date.now(),
+      }).where(eq(erpPurchaseOrderLines.id, input.lineId));
+      return { url, key, fileName: input.fileName };
     }),
 });
 
