@@ -145,6 +145,7 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
       { label: "Objectifs Commerciaux", href: "/erp/sales-targets", icon: <Target size={18} />, module: "erp_sales_targets" },
       { label: "Commandes Clients", href: "/erp/sales-orders", icon: <Receipt size={18} />, module: "erp_sales_orders" },
       { label: "Clients Entreprises", href: "/erp/sales-clients", icon: <Building2 size={18} />, module: "erp_sales_orders" },
+      { label: "Cash-flow Prévisionnel", href: "/erp/cash-flow-forecast", icon: <TrendingUp size={18} />, module: "erp_sales_orders" },
     ],
   },
 

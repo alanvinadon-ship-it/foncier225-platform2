@@ -149,6 +149,7 @@ const ErpSalesOrdersList = lazy(() => import("./pages/erp/ErpSalesOrdersList"));
 const ErpSalesOrderCreate = lazy(() => import("./pages/erp/ErpSalesOrderCreate"));
 const ErpSalesOrderDetail = lazy(() => import("./pages/erp/ErpSalesOrderDetail"));
 const ErpSalesClients = lazy(() => import("./pages/erp/ErpSalesClients"));
+const ErpCashFlowForecast = lazy(() => import("./pages/erp/ErpCashFlowForecast"));
 
 function RouteFallback() {
   return (
@@ -801,6 +802,11 @@ function Router() {
       <Route path="/erp/sales-clients">
         <ErpLayout>
           <ErpSalesClients />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/cash-flow-forecast">
+        <ErpLayout>
+          <ErpCashFlowForecast />
         </ErpLayout>
       </Route>
       <Route path="/erp/notifications">

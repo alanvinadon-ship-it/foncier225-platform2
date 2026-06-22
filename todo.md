@@ -2398,3 +2398,13 @@
 - [x] Tests Vitest : 15 tests dédiés + 1302 tests PASS total (48 fichiers)
 - [x] Vérification TypeScript : 0 erreur
 - [x] Checkpoint final
+
+## Page Tableau de bord Cash-flow prévisionnel
+
+- [x] Page UI ErpCashFlowForecast avec graphique Chart.js (barres encaissements + ligne commandes)
+- [x] Tableau des retards de paiement (clients en retard, montants, jours de retard, urgence)
+- [x] KPIs : total attendu, total en retard, taux de recouvrement
+- [x] Détail mensuel avec top clients par période
+- [x] Route App.tsx (/erp/cash-flow-forecast) + entrée sidebar Finance
+- [x] Vérification TypeScript (0 erreur) + 1302 tests PASS
+- [x] Checkpoint final
