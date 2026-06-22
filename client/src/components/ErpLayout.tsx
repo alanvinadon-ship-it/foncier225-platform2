@@ -146,7 +146,6 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
       { label: "Commandes Clients", href: "/erp/sales-orders", icon: <Receipt size={18} />, module: "erp_sales_orders" },
       { label: "Clients Entreprises", href: "/erp/sales-clients", icon: <Building2 size={18} />, module: "erp_sales_orders" },
       { label: "Cash-flow Prévisionnel", href: "/erp/cash-flow-forecast", icon: <TrendingUp size={18} />, module: "erp_sales_orders" },
-      { label: "Paramètres Société", href: "/erp/company-settings", icon: <Building2 size={18} />, module: "erp_finance" },
     ],
   },
 
@@ -212,6 +211,7 @@ const ERP_ADMIN_ITEMS: NavItem[] = [
   { label: "Santé Système", href: "/erp/system-health", icon: <Activity size={18} />, module: "erp_audit_logs" },
   { label: "Jobs Planifiés", href: "/erp/scheduled-jobs", icon: <Landmark size={18} />, module: "erp_audit_logs" },
   { label: "Qualité Globale", href: "/erp/admin-data-quality", icon: <ShieldCheck size={18} />, module: "erp_audit_logs" },
+  { label: "Paramètres Société", href: "/erp/company-settings", icon: <Building2 size={18} />, module: "erp_audit_logs" },
 ];
 
 export function ErpLayout({ children }: { children: React.ReactNode }) {
