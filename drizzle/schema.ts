@@ -2578,6 +2578,7 @@ export const erpPurchaseOrders = mysqlTable("erp_purchase_orders", {
   taxAmount: bigint("tax_amount", { mode: "number" }).notNull().default(0),
   totalAmount: bigint("total_amount", { mode: "number" }).notNull().default(0),
   currency: varchar("currency", { length: 3 }).notNull().default("XOF"),
+  purchaseType: varchar("purchase_type", { length: 16 }).default("OPEX"), // CAPEX ou OPEX
   status: varchar("status", { length: 32 }).notNull().default("draft"), // draft, submitted, approved, sent, partially_received, fully_received, invoiced, partially_paid, paid, cancelled, closed
   approvedBy: int("approved_by").references(() => users.id, { onDelete: "set null" }),
   approvedAt: bigint("approved_at", { mode: "number" }),
@@ -4296,6 +4297,8 @@ export const erpCompanySettings = mysqlTable("erp_company_settings", {
   logoUrl: varchar("logo_url", { length: 512 }),
   invoicePrefix: varchar("invoice_prefix", { length: 16 }), // Préfixe pour numérotation
   invoiceNextSeq: bigint("invoice_next_seq", { mode: "number" }).default(1),
+  poPrefix: varchar("po_prefix", { length: 16 }).default("BC"), // Préfixe bon de commande (ex: OCI)
+  poNextSeq: bigint("po_next_seq", { mode: "number" }).default(1), // Séquence auto-incrémentée BC
   defaultPaymentTerms: varchar("default_payment_terms", { length: 255 }).default("Un mois date de dépôt de facture"),
   defaultPaymentMode: varchar("default_payment_mode", { length: 64 }).default("Virement"),
   defaultTaxRate: int("default_tax_rate").default(18), // TVA 18% CI

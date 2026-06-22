@@ -604,6 +604,8 @@ export const erpInvoicesRouter = router({
       bankReferences: z.string().optional(),
       logoUrl: z.string().optional(),
       invoicePrefix: z.string().optional(),
+      poPrefix: z.string().optional(),
+      poNextSeq: z.number().optional(),
       defaultPaymentTerms: z.string().optional(),
       defaultPaymentMode: z.string().optional(),
       defaultTaxRate: z.number().optional(),

@@ -155,6 +155,8 @@ export default function ErpCompanySettings() {
     website: "",
     bankReferences: "",
     invoicePrefix: "",
+    poPrefix: "BC",
+    poNextSeq: 1,
     defaultPaymentTerms: "Un mois date de dépôt de facture",
     defaultPaymentMode: "Virement",
     defaultTaxRate: 18,
@@ -177,6 +179,8 @@ export default function ErpCompanySettings() {
         website: settings.website || "",
         bankReferences: settings.bankReferences || "",
         invoicePrefix: settings.invoicePrefix || "",
+        poPrefix: settings.poPrefix || "BC",
+        poNextSeq: settings.poNextSeq || 1,
         defaultPaymentTerms: settings.defaultPaymentTerms || "Un mois date de dépôt de facture",
         defaultPaymentMode: settings.defaultPaymentMode || "Virement",
         defaultTaxRate: settings.defaultTaxRate || 18,
@@ -347,6 +351,29 @@ export default function ErpCompanySettings() {
             <div>
               <Label>Conditions de paiement</Label>
               <Input value={form.defaultPaymentTerms} onChange={(e) => setForm({ ...form, defaultPaymentTerms: e.target.value })} placeholder="Un mois date de dépôt de facture" />
+            </div>
+
+            {/* Section Bons de Commande */}
+            <div className="border-t pt-4 mt-4">
+              <h4 className="text-sm font-semibold mb-3">Numérotation Bons de Commande</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>Préfixe BC</Label>
+                  <Input value={form.poPrefix} onChange={(e) => setForm({ ...form, poPrefix: e.target.value })} placeholder="OCI" />
+                  <p className="text-xs text-gray-400 mt-1">Ex: OCI, FONCIER, etc.</p>
+                </div>
+                <div>
+                  <Label>Prochaine séquence BC</Label>
+                  <Input type="number" value={form.poNextSeq} onChange={(e) => setForm({ ...form, poNextSeq: Number(e.target.value) })} min={1} />
+                  <p className="text-xs text-gray-400 mt-1">Numéro du prochain BC</p>
+                </div>
+                <div>
+                  <Label>Format généré</Label>
+                  <div className="mt-2 px-3 py-2 bg-muted rounded text-sm font-mono">
+                    {form.poPrefix || "BC"}-BC{String(form.poNextSeq || 1).padStart(4, "0")}/{new Date().getFullYear().toString().slice(-2)}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Aperçu en-tête facture */}

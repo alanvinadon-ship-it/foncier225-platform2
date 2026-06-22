@@ -2449,3 +2449,14 @@
 - [x] Tests Vitest : 10 tests dédiés + 1321 tests PASS total (50 fichiers)
 - [x] Vérification TypeScript : 0 erreur
 - [x] Checkpoint final
+
+## Personnalisation Numérotation BC + Champ CAPEX/OPEX
+
+- [x] Colonnes po_prefix + po_next_seq dans erp_company_settings (préfixe configurable)
+- [x] Fonction generatePoNumber() : format {PREFIX}-BC{SEQUENCE}/{YY} (ex: OCI-BC0043/26)
+- [x] Colonne purchase_type (CAPEX/OPEX) dans erp_purchase_orders
+- [x] Formulaire création BC : sélecteur Type (CAPEX Investissement / OPEX Fonctionnement)
+- [x] Vue détail : badge CAPEX/OPEX + PDF mis à jour
+- [x] Page Paramètres Société : section "Numérotation Bons de Commande" (préfixe, séquence, aperçu format)
+- [x] Tests : 1321 PASS + 0 erreur TypeScript
+- [x] Checkpoint final

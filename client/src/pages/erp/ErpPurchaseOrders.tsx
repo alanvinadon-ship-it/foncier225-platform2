@@ -152,6 +152,7 @@ export default function ErpPurchaseOrders() {
             createMutation.mutate({
               vendorId,
               projectId: fd.get("projectId") ? Number(fd.get("projectId")) : null,
+              purchaseType: (fd.get("purchaseType") as "CAPEX" | "OPEX") || "OPEX",
               lines: lines.map(l => ({
                 itemType: l.itemType,
                 description: l.description,
@@ -162,7 +163,7 @@ export default function ErpPurchaseOrders() {
               })),
             });
           }} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label>Fournisseur *</Label>
                 <Select name="vendorId" required>
@@ -182,6 +183,16 @@ export default function ErpPurchaseOrders() {
                     {projectsQuery.data?.projects?.map((p: any) => (
                       <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Type *</Label>
+                <Select name="purchaseType" defaultValue="OPEX">
+                  <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CAPEX">CAPEX (Investissement)</SelectItem>
+                    <SelectItem value="OPEX">OPEX (Fonctionnement)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -250,8 +261,9 @@ export default function ErpPurchaseOrders() {
           <DialogHeader><DialogTitle>Bon de Commande {detailQuery.data?.poNumber}</DialogTitle></DialogHeader>
           {detailQuery.data && (
             <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="grid grid-cols-4 gap-4 text-sm">
                 <div><span className="text-muted-foreground">Statut:</span> <Badge className={`ml-1 text-xs ${STATUS_COLORS[detailQuery.data.status]}`}>{STATUS_LABELS[detailQuery.data.status]}</Badge></div>
+                <div><span className="text-muted-foreground">Type:</span> <Badge className="ml-1 text-xs" variant="outline">{detailQuery.data.purchaseType || "OPEX"}</Badge></div>
                 <div><span className="text-muted-foreground">Date:</span> {formatDate(detailQuery.data.orderDate)}</div>
                 <div><span className="text-muted-foreground">Total TTC:</span> <strong>{formatXOF(detailQuery.data.totalAmount || 0)}</strong></div>
               </div>

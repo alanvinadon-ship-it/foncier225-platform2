@@ -15,6 +15,7 @@ import {
   erpPurchaseCategories,
   erpVendors,
   erpProjects,
+  erpCompanySettings,
   users,
 } from "../../drizzle/schema";
 
@@ -29,6 +30,21 @@ function generateNumber(prefix: string): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const rand = Math.floor(Math.random() * 9000 + 1000);
   return `${prefix}-${y}${m}-${rand}`;
+}
+
+// Générer un numéro de BC conforme au format {PREFIX}-BC{SEQUENCE}/{YY}
+async function generatePoNumber(db: any): Promise<string> {
+  const [settings] = await db.select().from(erpCompanySettings);
+  const prefix = settings?.poPrefix || "BC";
+  const currentSeq = settings?.poNextSeq || 1;
+  const y = new Date().getFullYear().toString().slice(-2);
+  const seqStr = String(currentSeq).padStart(4, "0");
+  const poNumber = `${prefix}-BC${seqStr}/${y}`;
+  // Incrémenter la séquence
+  if (settings) {
+    await db.update(erpCompanySettings).set({ poNextSeq: currentSeq + 1, updatedAt: Date.now() }).where(eq(erpCompanySettings.id, settings.id));
+  }
+  return poNumber;
 }
 
 // --- CATÉGORIES D'ACHAT ---
@@ -240,6 +256,7 @@ const ordersRouter = router({
       rfqId: z.number().nullable().optional(),
       vendorId: z.number(),
       projectId: z.number().nullable().optional(),
+      purchaseType: z.enum(["CAPEX", "OPEX"]).default("OPEX"),
       expectedDeliveryDate: z.number().optional(),
       lines: z.array(z.object({
         itemType: z.string().min(1).max(32),
@@ -258,7 +275,7 @@ const ordersRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = (await getDb())!;
       const now = Date.now();
-      const poNumber = generateNumber("BC");
+      const poNumber = await generatePoNumber(db);
 
       // Calcul des totaux
       let subtotal = 0;
@@ -288,6 +305,7 @@ const ordersRouter = router({
         taxAmount: totalTax,
         totalAmount: subtotal + totalTax,
         currency: "XOF",
+        purchaseType: input.purchaseType,
         status: "draft",
         createdBy: ctx.user.id,
         createdAt: now,

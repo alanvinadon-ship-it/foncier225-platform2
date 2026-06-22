@@ -374,7 +374,7 @@ export async function generatePurchaseOrderPdf(purchaseOrderId: number, userId: 
       orderDate: formatDate(order.orderDate),
       printDate: formatDate(Date.now()),
       currency: order.currency || "XOF",
-      type: "CAPEX", // Par défaut, peut être enrichi
+      type: order.purchaseType || "OPEX",
       purchaseRequestNumber: "",
       contractNumber: "",
       vendorCode: String(vendor.id),
