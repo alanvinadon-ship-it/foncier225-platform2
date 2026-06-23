@@ -2516,3 +2516,20 @@
 - [x] Tests Vitest : 13 tests passés + 0 erreur TypeScript
 - [x] Documentation + rapport de sprint
 - [x] Checkpoint final
+
+## Sprint IA 2 Lot 1 — OCR, Classification Documentaire et Validation Humaine
+- [x] Audit préalable (tables documents, upload, RBAC, routes IA existantes)
+- [x] 4 tables DB : erp_ai_document_jobs, erp_ai_ocr_results, erp_ai_document_classifications, erp_ai_document_validation_logs
+- [x] Service OCR (LLM vision pour PDF/images, nettoyage texte, gestion multi-pages)
+- [x] Service classification LLM (30+ types documents, score confiance, alternatives)
+- [x] Routeur tRPC aiDocumentExtraction (jobs CRUD, run, retry-ocr, retry-classification, validate, reject, cancel, filtres avancés)
+- [x] Page /erp/ai/documents (liste jobs avec filtres, KPI, actions batch)
+- [x] Page /erp/ai/documents/:id (détail 5 onglets : aperçu, OCR, classification, validation, historique)
+- [x] RBAC module erp_ai_document_extraction ajouté dans ERP_MODULES
+- [x] Audit logs intégrés (validation_logs table dédiée)
+- [x] Notifications via workflow validation/rejet
+- [x] Data quality checks via score confiance OCR + classification
+- [x] Sidebar Extraction Docs + routes App.tsx (2 routes)
+- [x] Tests Vitest : 11 tests passés + 0 erreur TypeScript
+- [x] Documentation + rapport de sprint
+- [x] Checkpoint final

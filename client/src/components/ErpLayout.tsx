@@ -55,6 +55,7 @@ import {
   Brain,
   Bot,
   Lightbulb,
+  FileSearch,
 } from "lucide-react";
 import { useState } from "react";
 import { NotificationBell } from "@/components/erp/NotificationBell";
@@ -211,6 +212,7 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
       { label: "Chat IA", href: "/erp/ai/assistant", icon: <Bot size={18} />, module: "erp_ai_assistant" },
       { label: "Recommandations", href: "/erp/ai/recommendations", icon: <Lightbulb size={18} />, module: "erp_ai_assistant" },
       { label: "Métrés IA", href: "/erp/ai/plans", icon: <Brain size={18} />, module: "erp_ai_plan_analyzer" },
+      { label: "Extraction Docs", href: "/erp/ai/documents", icon: <FileSearch size={18} />, module: "erp_ai_document_extraction" },
     ],
   },
 

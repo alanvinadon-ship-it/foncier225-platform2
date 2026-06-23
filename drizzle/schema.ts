@@ -4608,3 +4608,115 @@ export const erpAiAuditLogs = mysqlTable("erp_ai_audit_logs", {
   createdAtIdx: index("idx_ai_audit_logs_created").on(table.createdAt),
 }));
 export type ErpAiAuditLog = typeof erpAiAuditLogs.$inferSelect;
+
+
+// ─── Sprint IA 2 Lot 1 — OCR, Classification Documentaire ───────────────────
+
+export const erpAiDocumentJobs = mysqlTable("erp_ai_document_jobs", {
+  id: int("id").primaryKey().autoincrement(),
+  jobNumber: varchar("job_number", { length: 32 }).notNull(),
+  documentId: int("document_id"),
+  sourceModule: varchar("source_module", { length: 64 }),
+  sourceType: varchar("source_type", { length: 64 }),
+  sourceId: int("source_id"),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  fileType: varchar("file_type", { length: 64 }).notNull(),
+  fileSize: int("file_size").default(0),
+  fileUrl: text("file_url"),
+  jobStatus: varchar("job_status", { length: 32 }).notNull().default("pending"),
+  ocrStatus: varchar("ocr_status", { length: 32 }).notNull().default("pending"),
+  classificationStatus: varchar("classification_status", { length: 32 }).notNull().default("pending"),
+  detectedDocumentType: varchar("detected_document_type", { length: 64 }),
+  confirmedDocumentType: varchar("confirmed_document_type", { length: 64 }),
+  confidenceScore: int("confidence_score"),
+  startedAt: bigint("started_at", { mode: "number" }),
+  finishedAt: bigint("finished_at", { mode: "number" }),
+  durationMs: int("duration_ms"),
+  errorMessage: text("error_message"),
+  createdBy: int("created_by").notNull(),
+  reviewedBy: int("reviewed_by"),
+  reviewedAt: bigint("reviewed_at", { mode: "number" }),
+  validatedBy: int("validated_by"),
+  validatedAt: bigint("validated_at", { mode: "number" }),
+  rejectedBy: int("rejected_by"),
+  rejectedAt: bigint("rejected_at", { mode: "number" }),
+  rejectionReason: text("rejection_reason"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  jobNumberIdx: index("idx_ai_doc_jobs_number").on(table.jobNumber),
+  documentIdx: index("idx_ai_doc_jobs_document").on(table.documentId),
+  statusIdx: index("idx_ai_doc_jobs_status").on(table.jobStatus),
+  ocrStatusIdx: index("idx_ai_doc_jobs_ocr_status").on(table.ocrStatus),
+  classStatusIdx: index("idx_ai_doc_jobs_class_status").on(table.classificationStatus),
+  createdByIdx: index("idx_ai_doc_jobs_created_by").on(table.createdBy),
+  createdAtIdx: index("idx_ai_doc_jobs_created_at").on(table.createdAt),
+}));
+export type ErpAiDocumentJob = typeof erpAiDocumentJobs.$inferSelect;
+
+export const erpAiOcrResults = mysqlTable("erp_ai_ocr_results", {
+  id: int("id").primaryKey().autoincrement(),
+  documentJobId: int("document_job_id").notNull(),
+  documentId: int("document_id"),
+  ocrEngine: varchar("ocr_engine", { length: 64 }).notNull().default("llm_vision"),
+  language: varchar("language", { length: 16 }),
+  rawText: text("raw_text"),
+  cleanedText: text("cleaned_text"),
+  pagesCount: int("pages_count").default(0),
+  pageResultsJson: text("page_results_json"),
+  confidenceScore: int("confidence_score"),
+  processingTimeMs: int("processing_time_ms"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  jobIdx: index("idx_ai_ocr_results_job").on(table.documentJobId),
+  documentIdx: index("idx_ai_ocr_results_document").on(table.documentId),
+}));
+export type ErpAiOcrResult = typeof erpAiOcrResults.$inferSelect;
+
+export const erpAiDocumentClassifications = mysqlTable("erp_ai_document_classifications", {
+  id: int("id").primaryKey().autoincrement(),
+  documentJobId: int("document_job_id").notNull(),
+  documentId: int("document_id"),
+  detectedDocumentType: varchar("detected_document_type", { length: 64 }).notNull(),
+  confirmedDocumentType: varchar("confirmed_document_type", { length: 64 }),
+  recommendedModule: varchar("recommended_module", { length: 64 }),
+  confidenceScore: int("confidence_score"),
+  classificationReason: text("classification_reason"),
+  alternativeTypesJson: text("alternative_types_json"),
+  status: varchar("status", { length: 32 }).notNull().default("suggested"),
+  correctedBy: int("corrected_by"),
+  correctedAt: bigint("corrected_at", { mode: "number" }),
+  reviewedBy: int("reviewed_by"),
+  reviewedAt: bigint("reviewed_at", { mode: "number" }),
+  validatedBy: int("validated_by"),
+  validatedAt: bigint("validated_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  jobIdx: index("idx_ai_doc_class_job").on(table.documentJobId),
+  documentIdx: index("idx_ai_doc_class_document").on(table.documentId),
+  statusIdx: index("idx_ai_doc_class_status").on(table.status),
+  typeIdx: index("idx_ai_doc_class_type").on(table.detectedDocumentType),
+}));
+export type ErpAiDocumentClassification = typeof erpAiDocumentClassifications.$inferSelect;
+
+export const erpAiDocumentValidationLogs = mysqlTable("erp_ai_document_validation_logs", {
+  id: int("id").primaryKey().autoincrement(),
+  documentJobId: int("document_job_id").notNull(),
+  classificationId: int("classification_id"),
+  action: varchar("action", { length: 64 }).notNull(),
+  oldDocumentType: varchar("old_document_type", { length: 64 }),
+  newDocumentType: varchar("new_document_type", { length: 64 }),
+  comments: text("comments"),
+  performedBy: int("performed_by").notNull(),
+  performedAt: bigint("performed_at", { mode: "number" }).notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  jobIdx: index("idx_ai_doc_val_logs_job").on(table.documentJobId),
+  classIdx: index("idx_ai_doc_val_logs_class").on(table.classificationId),
+  actionIdx: index("idx_ai_doc_val_logs_action").on(table.action),
+  performedByIdx: index("idx_ai_doc_val_logs_performed_by").on(table.performedBy),
+}));
+export type ErpAiDocumentValidationLog = typeof erpAiDocumentValidationLogs.$inferSelect;

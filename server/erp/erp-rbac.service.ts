@@ -51,6 +51,7 @@ export const ERP_MODULES = [
   "erp_sales_orders",
   "erp_ai_plan_analyzer",
   "erp_ai_assistant",
+  "erp_ai_document_extraction",
 ] as const;
 
 export type ErpModule = (typeof ERP_MODULES)[number];
