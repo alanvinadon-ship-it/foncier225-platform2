@@ -209,7 +209,7 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
     children: [
       { label: "Chat IA", href: "/erp/ai/assistant", icon: <Bot size={18} />, module: "erp_ai_assistant" },
       { label: "Recommandations", href: "/erp/ai/recommendations", icon: <Lightbulb size={18} />, module: "erp_ai_assistant" },
-      { label: "Analyses Plans", href: "/erp/ai/plans", icon: <Brain size={18} />, module: "erp_ai_plan_analyzer" },
+      { label: "Métrés IA", href: "/erp/ai/plans", icon: <Brain size={18} />, module: "erp_ai_plan_analyzer" },
       { label: "Audit IA", href: "/erp/ai/audit", icon: <Activity size={18} />, module: "erp_ai_assistant" },
     ],
   },
