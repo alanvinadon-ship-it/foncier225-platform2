@@ -426,34 +426,44 @@ export function ErpLayout({ children }: { children: React.ReactNode }) {
             );
           })}
 
-          {/* Section Admin */}
+          {/* Section Admin as Collapsible Group */}
           {visibleAdminItems.length > 0 && (
-            <>
-              {sidebarOpen && (
-                <div className="pt-4 pb-1 px-3">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Administration
-                  </span>
+            <div>
+              <button
+                onClick={() => toggleGroup("Administration")}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm cursor-pointer transition-colors text-muted-foreground hover:bg-accent hover:text-foreground`}
+              >
+                <Settings size={18} />
+                {sidebarOpen && (
+                  <>
+                    <span className="flex-1 text-left font-medium">Administration</span>
+                    {expandedGroups.has("Administration") ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  </>
+                )}
+              </button>
+
+              {sidebarOpen && expandedGroups.has("Administration") && (
+                <div className="ml-4 pl-3 border-l border-border/50 space-y-0.5 mt-0.5">
+                  {visibleAdminItems.map(item => {
+                    const isActive = location === item.href || location.startsWith(item.href + "/");
+                    return (
+                      <Link key={item.href} href={item.href}>
+                        <div
+                          className={`flex items-center gap-3 px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors ${
+                            isActive
+                              ? "bg-primary/10 text-primary font-medium"
+                              : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                          }`}
+                        >
+                          {item.icon}
+                          <span>{item.label}</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
-              {visibleAdminItems.map(item => {
-                const isActive = location === item.href;
-                return (
-                  <Link key={item.href} href={item.href}>
-                    <div
-                      className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm cursor-pointer transition-colors ${
-                        isActive
-                          ? "bg-primary/10 text-primary font-medium"
-                          : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                      }`}
-                    >
-                      {item.icon}
-                      {sidebarOpen && <span>{item.label}</span>}
-                    </div>
-                  </Link>
-                );
-              })}
-            </>
+            </div>
           )}
         </nav>
 
