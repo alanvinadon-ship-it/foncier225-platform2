@@ -2533,3 +2533,19 @@
 - [x] Tests Vitest : 11 tests passés + 0 erreur TypeScript
 - [x] Documentation + rapport de sprint
 - [x] Checkpoint final
+
+## Sprint IA 2 Lot 2 — Extraction Champs Métier et Application ERP Contrôlée
+- [x] Audit préalable (tables Lot 1, routeurs, modules ERP cibles)
+- [x] 4 tables DB : erp_ai_doc_field_extractions, erp_ai_document_extraction_fields, erp_ai_document_line_items, erp_ai_document_apply_actions
+- [x] Service extraction LLM structuré (prompts par type document, normalisation montants/dates/devises, validation)
+- [x] Routeur tRPC étendu : extraction.run/getByJobId/validate, fields.list/confirm/reject/correct/confirmAll, lineItems.list/confirm/update/remove/confirmAll, applyActions.applyToErp/list/recommendedActions
+- [x] Onglet UI Champs extraits (tableau éditable, badges confiance, correction inline, confirm/reject)
+- [x] Onglet UI Lignes détectées (tableau éditable, confirmation/correction/suppression lignes)
+- [x] Onglet UI Application ERP (boutons contextuels par type document, désactivés si non validé)
+- [x] RBAC étendu (module erp_ai_document_extraction déjà en place)
+- [x] Audit logs via table erp_ai_document_apply_actions
+- [x] Notifications via toast.success/error dans les mutations
+- [x] Data quality checks via confidenceScore par champ + validation extraction
+- [x] Tests Vitest : 12 tests passés + 0 erreur TypeScript
+- [x] Documentation + rapport de sprint
+- [x] Checkpoint final

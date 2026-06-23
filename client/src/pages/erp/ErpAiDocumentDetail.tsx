@@ -10,8 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useParams, useLocation } from "wouter";
 import {
   ArrowLeft, FileText, Eye, ScanText, Tag, CheckCircle, History,
-  RefreshCw, XCircle, Loader2, AlertTriangle, ExternalLink
+  RefreshCw, XCircle, Loader2, AlertTriangle, ExternalLink,
+  FileSpreadsheet, Layers, Zap, Check, X, Pencil, Send
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   pending: { label: "En attente", color: "bg-gray-100 text-gray-700" },
@@ -116,6 +118,9 @@ export default function ErpAiDocumentDetail() {
           <TabsTrigger value="preview"><Eye className="h-4 w-4 mr-1" /> Aperçu</TabsTrigger>
           <TabsTrigger value="ocr"><ScanText className="h-4 w-4 mr-1" /> OCR</TabsTrigger>
           <TabsTrigger value="classification"><Tag className="h-4 w-4 mr-1" /> Classification</TabsTrigger>
+          <TabsTrigger value="fields"><FileSpreadsheet className="h-4 w-4 mr-1" /> Champs</TabsTrigger>
+          <TabsTrigger value="lines"><Layers className="h-4 w-4 mr-1" /> Lignes</TabsTrigger>
+          <TabsTrigger value="apply"><Zap className="h-4 w-4 mr-1" /> Application</TabsTrigger>
           <TabsTrigger value="validation"><CheckCircle className="h-4 w-4 mr-1" /> Validation</TabsTrigger>
           <TabsTrigger value="history"><History className="h-4 w-4 mr-1" /> Historique</TabsTrigger>
         </TabsList>
@@ -331,6 +336,21 @@ export default function ErpAiDocumentDetail() {
           )}
         </TabsContent>
 
+        {/* TAB: Champs extraits (Lot 2) */}
+        <TabsContent value="fields" className="space-y-4">
+          <FieldsTab jobId={Number(id)} />
+        </TabsContent>
+
+        {/* TAB: Lignes détectées (Lot 2) */}
+        <TabsContent value="lines" className="space-y-4">
+          <LinesTab jobId={Number(id)} />
+        </TabsContent>
+
+        {/* TAB: Application ERP (Lot 2) */}
+        <TabsContent value="apply" className="space-y-4">
+          <ApplyTab jobId={Number(id)} />
+        </TabsContent>
+
         {/* TAB: Validation */}
         <TabsContent value="validation" className="space-y-4">
           <h3 className="font-medium">Validation humaine</h3>
@@ -413,6 +433,393 @@ export default function ErpAiDocumentDetail() {
           )}
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// ============================================================
+// LOT 2 — COMPOSANTS ONGLETS EXTRACTION
+// ============================================================
+
+function FieldsTab({ jobId }: { jobId: number }) {
+  const extraction = trpc.erp.aiDocumentExtraction.extraction.getByJobId.useQuery({ jobId });
+  const fields = trpc.erp.aiDocumentExtraction.fields.list.useQuery(
+    { extractionId: extraction.data?.id || 0 },
+    { enabled: !!extraction.data?.id }
+  );
+  const runExtraction = trpc.erp.aiDocumentExtraction.extraction.run.useMutation({
+    onSuccess: () => { extraction.refetch(); fields.refetch(); toast.success("Extraction lancée"); },
+    onError: (e) => toast.error(e.message),
+  });
+  const confirmField = trpc.erp.aiDocumentExtraction.fields.confirm.useMutation({ onSuccess: () => fields.refetch() });
+  const rejectField = trpc.erp.aiDocumentExtraction.fields.reject.useMutation({ onSuccess: () => fields.refetch() });
+  const correctField = trpc.erp.aiDocumentExtraction.fields.correct.useMutation({ onSuccess: () => fields.refetch() });
+  const confirmAll = trpc.erp.aiDocumentExtraction.fields.confirmAll.useMutation({ onSuccess: () => fields.refetch() });
+  const validateExtraction = trpc.erp.aiDocumentExtraction.extraction.validate.useMutation({
+    onSuccess: () => { extraction.refetch(); toast.success("Extraction validée"); },
+  });
+
+  const [editingField, setEditingField] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState("");
+
+  if (!extraction.data) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center">
+          <FileSpreadsheet className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-50" />
+          <p className="text-muted-foreground mb-4">Aucune extraction de champs disponible.</p>
+          <Button onClick={() => runExtraction.mutate({ jobId })} disabled={runExtraction.isPending}>
+            {runExtraction.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Zap className="h-4 w-4 mr-2" />}
+            Lancer l'extraction des champs
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const ext = extraction.data;
+  const fieldsList = fields.data || [];
+  const confirmedCount = fieldsList.filter(f => f.status === "confirmed" || f.status === "corrected").length;
+
+  return (
+    <div className="space-y-4">
+      {/* Header extraction */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-medium">Champs extraits — {ext.documentType}</h3>
+          <p className="text-sm text-muted-foreground">
+            {fieldsList.length} champs détectés · {confirmedCount} confirmés · Score: {((ext.confidenceScore || 0))}%
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {ext.status !== "validated" && fieldsList.length > 0 && (
+            <Button size="sm" variant="outline" onClick={() => confirmAll.mutate({ extractionId: ext.id })}>
+              <Check className="h-4 w-4 mr-1" /> Tout confirmer
+            </Button>
+          )}
+          {ext.status !== "validated" && confirmedCount === fieldsList.length && fieldsList.length > 0 && (
+            <Button size="sm" onClick={() => validateExtraction.mutate({ extractionId: ext.id })}>
+              <CheckCircle className="h-4 w-4 mr-1" /> Valider l'extraction
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Table des champs */}
+      <Card>
+        <CardContent className="p-0">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left p-3 font-medium">Champ</th>
+                <th className="text-left p-3 font-medium">Valeur extraite</th>
+                <th className="text-left p-3 font-medium">Confiance</th>
+                <th className="text-left p-3 font-medium">Statut</th>
+                <th className="text-right p-3 font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {fieldsList.map((field) => (
+                <tr key={field.id} className="hover:bg-muted/30">
+                  <td className="p-3">
+                    <span className="font-medium">{field.fieldLabel || field.fieldKey}</span>
+                  </td>
+                  <td className="p-3">
+                    {editingField === field.id ? (
+                      <div className="flex gap-1">
+                        <Input value={editValue} onChange={(e) => setEditValue(e.target.value)} className="h-7 text-sm" />
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => {
+                          correctField.mutate({ fieldId: field.id, correctedValue: editValue });
+                          setEditingField(null);
+                        }}><Check className="h-3 w-3" /></Button>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setEditingField(null)}>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className={field.isCorrected ? "text-blue-600 font-medium" : ""}>
+                        {field.isCorrected ? field.correctedValue : (field.normalizedValue || field.rawValue)}
+                        {field.isCorrected && <Badge variant="outline" className="ml-2 text-xs">Corrigé</Badge>}
+                      </span>
+                    )}
+                  </td>
+                  <td className="p-3">
+                    <Badge variant={field.confidenceScore && field.confidenceScore > 0.8 ? "default" : "secondary"}>
+                      {((field.confidenceScore || 0) * 100).toFixed(0)}%
+                    </Badge>
+                  </td>
+                  <td className="p-3">
+                    <Badge variant={
+                      field.status === "confirmed" || field.status === "corrected" ? "default" :
+                      field.status === "rejected" ? "destructive" : "secondary"
+                    }>
+                      {field.status === "confirmed" ? "Confirmé" : field.status === "corrected" ? "Corrigé" : field.status === "rejected" ? "Rejeté" : "Suggéré"}
+                    </Badge>
+                  </td>
+                  <td className="p-3 text-right">
+                    {field.status === "suggested" && ext.status !== "validated" && (
+                      <div className="flex gap-1 justify-end">
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => confirmField.mutate({ fieldId: field.id })} title="Confirmer">
+                          <Check className="h-3 w-3 text-green-600" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setEditingField(field.id); setEditValue(field.normalizedValue || field.rawValue || ""); }} title="Corriger">
+                          <Pencil className="h-3 w-3 text-blue-600" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => rejectField.mutate({ fieldId: field.id })} title="Rejeter">
+                          <X className="h-3 w-3 text-red-600" />
+                        </Button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {fieldsList.length === 0 && (
+            <div className="py-8 text-center text-muted-foreground">
+              <FileSpreadsheet className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              Aucun champ extrait.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function LinesTab({ jobId }: { jobId: number }) {
+  const extraction = trpc.erp.aiDocumentExtraction.extraction.getByJobId.useQuery({ jobId });
+  const lines = trpc.erp.aiDocumentExtraction.lineItems.list.useQuery(
+    { extractionId: extraction.data?.id || 0 },
+    { enabled: !!extraction.data?.id }
+  );
+  const confirmLine = trpc.erp.aiDocumentExtraction.lineItems.confirm.useMutation({ onSuccess: () => lines.refetch() });
+  const removeLine = trpc.erp.aiDocumentExtraction.lineItems.remove.useMutation({ onSuccess: () => lines.refetch() });
+  const updateLine = trpc.erp.aiDocumentExtraction.lineItems.update.useMutation({ onSuccess: () => lines.refetch() });
+  const confirmAll = trpc.erp.aiDocumentExtraction.lineItems.confirmAll.useMutation({ onSuccess: () => lines.refetch() });
+
+  const [editingLine, setEditingLine] = useState<number | null>(null);
+  const [editData, setEditData] = useState<any>({});
+
+  if (!extraction.data) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-muted-foreground">
+          <Layers className="h-10 w-10 mx-auto mb-3 opacity-50" />
+          <p>Lancez d'abord l'extraction des champs (onglet Champs) pour détecter les lignes.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const linesList = lines.data || [];
+  const confirmedCount = linesList.filter(l => l.status === "confirmed" || l.status === "corrected").length;
+  const totalHT = linesList.reduce((sum, l) => sum + (l.lineTotal || 0), 0);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-medium">Lignes détectées</h3>
+          <p className="text-sm text-muted-foreground">
+            {linesList.length} lignes · {confirmedCount} confirmées · Total HT: {totalHT.toLocaleString("fr-FR")} FCFA
+          </p>
+        </div>
+        {linesList.length > 0 && (
+          <Button size="sm" variant="outline" onClick={() => confirmAll.mutate({ extractionId: extraction.data!.id })}>
+            <Check className="h-4 w-4 mr-1" /> Tout confirmer
+          </Button>
+        )}
+      </div>
+
+      <Card>
+        <CardContent className="p-0 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left p-3 font-medium">#</th>
+                <th className="text-left p-3 font-medium">Description</th>
+                <th className="text-right p-3 font-medium">Qté</th>
+                <th className="text-left p-3 font-medium">Unité</th>
+                <th className="text-right p-3 font-medium">P.U.</th>
+                <th className="text-right p-3 font-medium">Total</th>
+                <th className="text-left p-3 font-medium">Statut</th>
+                <th className="text-right p-3 font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {linesList.map((line, idx) => (
+                <tr key={line.id} className="hover:bg-muted/30">
+                  <td className="p-3 text-muted-foreground">{line.lineNumber || idx + 1}</td>
+                  <td className="p-3">
+                    {editingLine === line.id ? (
+                      <Input value={editData.description || ""} onChange={(e) => setEditData({ ...editData, description: e.target.value })} className="h-7 text-sm" />
+                    ) : (
+                      <span className="truncate max-w-[200px] block">{line.description}</span>
+                    )}
+                  </td>
+                  <td className="p-3 text-right">
+                    {editingLine === line.id ? (
+                      <Input type="number" value={editData.quantity || 0} onChange={(e) => setEditData({ ...editData, quantity: Number(e.target.value) })} className="h-7 text-sm w-20" />
+                    ) : (line.quantity || 0)}
+                  </td>
+                  <td className="p-3">{line.unit || "-"}</td>
+                  <td className="p-3 text-right">
+                    {editingLine === line.id ? (
+                      <Input type="number" value={editData.unitPrice || 0} onChange={(e) => setEditData({ ...editData, unitPrice: Number(e.target.value) })} className="h-7 text-sm w-24" />
+                    ) : ((line.unitPrice || 0).toLocaleString("fr-FR"))}
+                  </td>
+                  <td className="p-3 text-right font-medium">{(line.lineTotal || 0).toLocaleString("fr-FR")}</td>
+                  <td className="p-3">
+                    <Badge variant={line.status === "confirmed" || line.status === "corrected" ? "default" : line.status === "rejected" ? "destructive" : "secondary"}>
+                      {line.status === "confirmed" ? "OK" : line.status === "corrected" ? "Corrigé" : line.status === "rejected" ? "Rejeté" : "Suggéré"}
+                    </Badge>
+                  </td>
+                  <td className="p-3 text-right">
+                    {line.status === "suggested" && (
+                      <div className="flex gap-1 justify-end">
+                        {editingLine === line.id ? (
+                          <>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => {
+                              updateLine.mutate({ lineId: line.id, ...editData });
+                              setEditingLine(null);
+                            }}><Check className="h-3 w-3 text-green-600" /></Button>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setEditingLine(null)}>
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => confirmLine.mutate({ lineId: line.id })} title="Confirmer">
+                              <Check className="h-3 w-3 text-green-600" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setEditingLine(line.id); setEditData({ description: line.description, quantity: line.quantity, unitPrice: line.unitPrice }); }} title="Modifier">
+                              <Pencil className="h-3 w-3 text-blue-600" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => removeLine.mutate({ lineId: line.id })} title="Supprimer">
+                              <X className="h-3 w-3 text-red-600" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {linesList.length === 0 && (
+            <div className="py-8 text-center text-muted-foreground">
+              <Layers className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              Aucune ligne détectée.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function ApplyTab({ jobId }: { jobId: number }) {
+  const extraction = trpc.erp.aiDocumentExtraction.extraction.getByJobId.useQuery({ jobId });
+  const job = trpc.erp.aiDocumentExtraction.jobs.getById.useQuery({ id: jobId });
+  const recommendedActions = trpc.erp.aiDocumentExtraction.applyActions.recommendedActions.useQuery(
+    { documentType: job.data?.detectedDocumentType || "" },
+    { enabled: !!job.data?.detectedDocumentType }
+  );
+  const appliedActions = trpc.erp.aiDocumentExtraction.applyActions.list.useQuery(
+    { extractionId: extraction.data?.id || 0 },
+    { enabled: !!extraction.data?.id }
+  );
+  const applyToErp = trpc.erp.aiDocumentExtraction.applyActions.applyToErp.useMutation({
+    onSuccess: (data) => { appliedActions.refetch(); toast.success(`Brouillon créé: ${data.targetModule} #${data.targetId}`); },
+    onError: (e) => toast.error(e.message),
+  });
+
+  if (!extraction.data || extraction.data.status !== "validated") {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center text-muted-foreground">
+          <Zap className="h-10 w-10 mx-auto mb-3 opacity-50" />
+          <p className="mb-2">L'extraction doit être validée avant d'appliquer vers un module ERP.</p>
+          <p className="text-xs">Allez dans l'onglet "Champs" pour valider l'extraction.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const actions = recommendedActions.data || [];
+  const applied = appliedActions.data || [];
+
+  return (
+    <div className="space-y-4">
+      <h3 className="font-medium">Application vers modules ERP</h3>
+      <p className="text-sm text-muted-foreground">
+        Créez un brouillon dans le module ERP approprié à partir des données extraites et validées.
+      </p>
+
+      {/* Actions recommandées */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {actions.map((action: any) => {
+          const alreadyApplied = applied.some(a => a.actionType === action.actionType);
+          return (
+            <Card key={action.actionType} className={alreadyApplied ? "border-green-200 bg-green-50/50" : ""}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium text-sm">{action.label}</h4>
+                    <p className="text-xs text-muted-foreground mt-1">{action.description}</p>
+                    <Badge variant="outline" className="mt-2 text-xs">{action.targetModule}</Badge>
+                  </div>
+                  {alreadyApplied ? (
+                    <Badge className="bg-green-100 text-green-700"><Check className="h-3 w-3 mr-1" /> Appliqué</Badge>
+                  ) : (
+                    <Button size="sm" onClick={() => applyToErp.mutate({ extractionId: extraction.data!.id, actionType: action.actionType })} disabled={applyToErp.isPending}>
+                      {applyToErp.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
+                      Appliquer
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {actions.length === 0 && (
+        <Card>
+          <CardContent className="py-6 text-center text-muted-foreground">
+            Aucune action recommandée pour ce type de document.
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Historique des applications */}
+      {applied.length > 0 && (
+        <div className="mt-6">
+          <h4 className="font-medium text-sm mb-2">Historique des applications</h4>
+          <div className="space-y-2">
+            {applied.map((a) => (
+              <Card key={a.id}>
+                <CardContent className="p-3 flex items-center justify-between">
+                  <div>
+                    <span className="font-medium text-sm">{a.actionType}</span>
+                    <span className="text-xs text-muted-foreground ml-2">→ {a.targetModule} #{a.targetId}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={a.status === "success" ? "default" : "destructive"}>
+                      {a.status === "success" ? "Succès" : "Échec"}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {a.appliedAt ? new Date(a.appliedAt).toLocaleString("fr-FR") : ""}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

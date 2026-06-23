@@ -4720,3 +4720,88 @@ export const erpAiDocumentValidationLogs = mysqlTable("erp_ai_document_validatio
   performedByIdx: index("idx_ai_doc_val_logs_performed_by").on(table.performedBy),
 }));
 export type ErpAiDocumentValidationLog = typeof erpAiDocumentValidationLogs.$inferSelect;
+
+// ============================================================
+// ERP AI DOCUMENT EXTRACTIONS (Lot 2 — Extraction Champs Métier)
+// ============================================================
+
+export const erpAiDocFieldExtractions = mysqlTable("erp_ai_doc_field_extractions", {
+  id: int("id").primaryKey().autoincrement(),
+  documentJobId: int("document_job_id").notNull(),
+  documentId: int("document_id"),
+  documentType: varchar("document_type", { length: 64 }).notNull(),
+  sourceModule: varchar("source_module", { length: 64 }),
+  sourceType: varchar("source_type", { length: 64 }),
+  sourceId: int("source_id"),
+  extractedDataJson: json("extracted_data_json"),
+  normalizedDataJson: json("normalized_data_json"),
+  validationErrorsJson: json("validation_errors_json"),
+  confidenceScore: int("confidence_score"),
+  status: varchar("status", { length: 32 }).notNull().default("suggested"),
+  createdBy: int("created_by"),
+  reviewedBy: int("reviewed_by"),
+  reviewedAt: bigint("reviewed_at", { mode: "number" }),
+  validatedBy: int("validated_by"),
+  validatedAt: bigint("validated_at", { mode: "number" }),
+  rejectedBy: int("rejected_by"),
+  rejectedAt: bigint("rejected_at", { mode: "number" }),
+  rejectionReason: text("rejection_reason"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+});
+
+export const erpAiDocumentExtractionFields = mysqlTable("erp_ai_document_extraction_fields", {
+  id: int("id").primaryKey().autoincrement(),
+  documentExtractionId: int("document_extraction_id").notNull(),
+  fieldKey: varchar("field_key", { length: 64 }).notNull(),
+  fieldLabel: varchar("field_label", { length: 128 }).notNull(),
+  fieldType: varchar("field_type", { length: 32 }).notNull().default("string"),
+  rawValue: text("raw_value"),
+  normalizedValue: text("normalized_value"),
+  confidenceScore: int("confidence_score"),
+  isRequired: tinyint("is_required").notNull().default(0),
+  isSensitive: tinyint("is_sensitive").notNull().default(0),
+  isCorrected: tinyint("is_corrected").notNull().default(0),
+  correctedValue: text("corrected_value"),
+  correctedBy: int("corrected_by"),
+  correctedAt: bigint("corrected_at", { mode: "number" }),
+  status: varchar("status", { length: 32 }).notNull().default("suggested"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
+});
+
+export const erpAiDocumentLineItems = mysqlTable("erp_ai_document_line_items", {
+  id: int("id").primaryKey().autoincrement(),
+  documentExtractionId: int("document_extraction_id").notNull(),
+  lineNumber: int("line_number").notNull(),
+  description: text("description"),
+  itemCode: varchar("item_code", { length: 64 }),
+  quantity: int("quantity"),
+  unit: varchar("unit", { length: 32 }),
+  unitPrice: int("unit_price"),
+  discountRate: int("discount_rate"),
+  taxRate: int("tax_rate"),
+  taxAmount: int("tax_amount"),
+  lineTotal: int("line_total"),
+  rawLineJson: json("raw_line_json"),
+  confidenceScore: int("confidence_score"),
+  status: varchar("status", { length: 32 }).notNull().default("suggested"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
+});
+
+export const erpAiDocumentApplyActions = mysqlTable("erp_ai_document_apply_actions", {
+  id: int("id").primaryKey().autoincrement(),
+  documentExtractionId: int("document_extraction_id").notNull(),
+  targetModule: varchar("target_module", { length: 64 }).notNull(),
+  targetType: varchar("target_type", { length: 64 }).notNull(),
+  targetId: int("target_id"),
+  actionType: varchar("action_type", { length: 64 }).notNull(),
+  status: varchar("status", { length: 32 }).notNull().default("pending"),
+  appliedBy: int("applied_by"),
+  appliedAt: bigint("applied_at", { mode: "number" }),
+  errorMessage: text("error_message"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
+});

@@ -717,4 +717,204 @@ export const erpAiDocumentExtractionRouter = router({
 
       return { id: result.insertId, jobNumber, fileUrl };
     }),
+
+  // ============================================================
+  // LOT 2 — EXTRACTION CHAMPS MÉTIER
+  // ============================================================
+
+  extraction: router({
+    run: erpPermissionProcedure("erp_ai_document_extraction", "create")
+      .input(z.object({ jobId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const { extractFieldsFromDocument } = await import("./erp-ai-field-extraction.service");
+        const result = await extractFieldsFromDocument(input.jobId, ctx.user.id);
+        await createAuditLog(ctx.user.id, "extraction.run", "ai_document_extraction", {
+          jobId: input.jobId, extractionId: result.extractionId,
+        });
+        return result;
+      }),
+
+    getByJobId: erpPermissionProcedure("erp_ai_document_extraction", "view")
+      .input(z.object({ jobId: z.number() }))
+      .query(async ({ input }) => {
+        const db = (await getDb())!;
+        const { erpAiDocFieldExtractions } = await import("../../drizzle/schema");
+        const [extraction] = await db.select().from(erpAiDocFieldExtractions)
+          .where(eq(erpAiDocFieldExtractions.documentJobId, input.jobId));
+        return extraction || null;
+      }),
+
+    validate: erpPermissionProcedure("erp_ai_document_extraction", "create")
+      .input(z.object({ extractionId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = (await getDb())!;
+        const { erpAiDocFieldExtractions } = await import("../../drizzle/schema");
+        await db.update(erpAiDocFieldExtractions)
+          .set({ status: "validated", validatedBy: ctx.user.id, validatedAt: Date.now(), updatedAt: Date.now() })
+          .where(eq(erpAiDocFieldExtractions.id, input.extractionId));
+        await createAuditLog(ctx.user.id, "extraction.validated", "ai_document_extraction", { extractionId: input.extractionId });
+        return { success: true };
+      }),
+
+    reject: erpPermissionProcedure("erp_ai_document_extraction", "create")
+      .input(z.object({ extractionId: z.number(), reason: z.string().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = (await getDb())!;
+        const { erpAiDocFieldExtractions } = await import("../../drizzle/schema");
+        await db.update(erpAiDocFieldExtractions)
+          .set({ status: "rejected", rejectedBy: ctx.user.id, rejectedAt: Date.now(), rejectionReason: input.reason || null, updatedAt: Date.now() })
+          .where(eq(erpAiDocFieldExtractions.id, input.extractionId));
+        await createAuditLog(ctx.user.id, "extraction.rejected", "ai_document_extraction", { extractionId: input.extractionId, reason: input.reason });
+        return { success: true };
+      }),
+  }),
+
+  fields: router({
+    list: erpPermissionProcedure("erp_ai_document_extraction", "view")
+      .input(z.object({ extractionId: z.number() }))
+      .query(async ({ input }) => {
+        const db = (await getDb())!;
+        const { erpAiDocumentExtractionFields } = await import("../../drizzle/schema");
+        return db.select().from(erpAiDocumentExtractionFields)
+          .where(eq(erpAiDocumentExtractionFields.documentExtractionId, input.extractionId));
+      }),
+
+    confirm: erpPermissionProcedure("erp_ai_document_extraction", "create")
+      .input(z.object({ fieldId: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = (await getDb())!;
+        const { erpAiDocumentExtractionFields } = await import("../../drizzle/schema");
+        await db.update(erpAiDocumentExtractionFields)
+          .set({ status: "confirmed", updatedAt: Date.now() })
+          .where(eq(erpAiDocumentExtractionFields.id, input.fieldId));
+        return { success: true };
+      }),
+
+    reject: erpPermissionProcedure("erp_ai_document_extraction", "create")
+      .input(z.object({ fieldId: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = (await getDb())!;
+        const { erpAiDocumentExtractionFields } = await import("../../drizzle/schema");
+        await db.update(erpAiDocumentExtractionFields)
+          .set({ status: "rejected", updatedAt: Date.now() })
+          .where(eq(erpAiDocumentExtractionFields.id, input.fieldId));
+        return { success: true };
+      }),
+
+    correct: erpPermissionProcedure("erp_ai_document_extraction", "create")
+      .input(z.object({ fieldId: z.number(), correctedValue: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = (await getDb())!;
+        const { erpAiDocumentExtractionFields } = await import("../../drizzle/schema");
+        await db.update(erpAiDocumentExtractionFields)
+          .set({ isCorrected: 1, correctedValue: input.correctedValue, correctedBy: ctx.user.id, correctedAt: Date.now(), status: "corrected", updatedAt: Date.now() })
+          .where(eq(erpAiDocumentExtractionFields.id, input.fieldId));
+        await createAuditLog(ctx.user.id, "field.corrected", "ai_document_extraction", { fieldId: input.fieldId });
+        return { success: true };
+      }),
+
+    confirmAll: erpPermissionProcedure("erp_ai_document_extraction", "create")
+      .input(z.object({ extractionId: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = (await getDb())!;
+        const { erpAiDocumentExtractionFields } = await import("../../drizzle/schema");
+        await db.update(erpAiDocumentExtractionFields)
+          .set({ status: "confirmed", updatedAt: Date.now() })
+          .where(eq(erpAiDocumentExtractionFields.documentExtractionId, input.extractionId));
+        return { success: true };
+      }),
+  }),
+
+  lineItems: router({
+    list: erpPermissionProcedure("erp_ai_document_extraction", "view")
+      .input(z.object({ extractionId: z.number() }))
+      .query(async ({ input }) => {
+        const db = (await getDb())!;
+        const { erpAiDocumentLineItems } = await import("../../drizzle/schema");
+        return db.select().from(erpAiDocumentLineItems)
+          .where(eq(erpAiDocumentLineItems.documentExtractionId, input.extractionId));
+      }),
+
+    confirm: erpPermissionProcedure("erp_ai_document_extraction", "create")
+      .input(z.object({ lineId: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = (await getDb())!;
+        const { erpAiDocumentLineItems } = await import("../../drizzle/schema");
+        await db.update(erpAiDocumentLineItems)
+          .set({ status: "confirmed", updatedAt: Date.now() })
+          .where(eq(erpAiDocumentLineItems.id, input.lineId));
+        return { success: true };
+      }),
+
+    update: erpPermissionProcedure("erp_ai_document_extraction", "create")
+      .input(z.object({
+        lineId: z.number(),
+        description: z.string().optional(),
+        quantity: z.number().optional(),
+        unit: z.string().optional(),
+        unitPrice: z.number().optional(),
+        taxRate: z.number().optional(),
+        lineTotal: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = (await getDb())!;
+        const { erpAiDocumentLineItems } = await import("../../drizzle/schema");
+        const { lineId, ...updates } = input;
+        await db.update(erpAiDocumentLineItems)
+          .set({ ...updates, status: "corrected", updatedAt: Date.now() })
+          .where(eq(erpAiDocumentLineItems.id, lineId));
+        return { success: true };
+      }),
+
+    remove: erpPermissionProcedure("erp_ai_document_extraction", "create")
+      .input(z.object({ lineId: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = (await getDb())!;
+        const { erpAiDocumentLineItems } = await import("../../drizzle/schema");
+        await db.update(erpAiDocumentLineItems)
+          .set({ status: "rejected", updatedAt: Date.now() })
+          .where(eq(erpAiDocumentLineItems.id, input.lineId));
+        return { success: true };
+      }),
+
+    confirmAll: erpPermissionProcedure("erp_ai_document_extraction", "create")
+      .input(z.object({ extractionId: z.number() }))
+      .mutation(async ({ input }) => {
+        const db = (await getDb())!;
+        const { erpAiDocumentLineItems } = await import("../../drizzle/schema");
+        await db.update(erpAiDocumentLineItems)
+          .set({ status: "confirmed", updatedAt: Date.now() })
+          .where(eq(erpAiDocumentLineItems.documentExtractionId, input.extractionId));
+        return { success: true };
+      }),
+  }),
+
+  applyActions: router({
+    applyToErp: erpPermissionProcedure("erp_ai_document_extraction", "create")
+      .input(z.object({ extractionId: z.number(), actionType: z.string() }))
+      .mutation(async ({ input, ctx }) => {
+        const { applyExtractionToErp } = await import("./erp-ai-field-extraction.service");
+        const result = await applyExtractionToErp(input.extractionId, input.actionType, ctx.user.id);
+        await createAuditLog(ctx.user.id, "extraction.applied", "ai_document_extraction", {
+          extractionId: input.extractionId, actionType: input.actionType, targetId: result.targetId,
+        });
+        return result;
+      }),
+
+    list: erpPermissionProcedure("erp_ai_document_extraction", "view")
+      .input(z.object({ extractionId: z.number() }))
+      .query(async ({ input }) => {
+        const db = (await getDb())!;
+        const { erpAiDocumentApplyActions } = await import("../../drizzle/schema");
+        return db.select().from(erpAiDocumentApplyActions)
+          .where(eq(erpAiDocumentApplyActions.documentExtractionId, input.extractionId));
+      }),
+
+    recommendedActions: protectedProcedure
+      .input(z.object({ documentType: z.string() }))
+      .query(async ({ input }) => {
+        const { getRecommendedActions } = await import("./erp-ai-field-extraction.service");
+        return getRecommendedActions(input.documentType);
+      }),
+  }),
 });
