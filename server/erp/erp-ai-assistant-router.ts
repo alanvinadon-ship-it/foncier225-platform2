@@ -6,7 +6,7 @@
 
 import { z } from "zod";
 import { eq, and, desc, sql, count, gte, lte } from "drizzle-orm";
-import { router, erpPermissionProcedure } from "../_core/trpc";
+import { router, protectedProcedure, erpPermissionProcedure } from "../_core/trpc";
 import { getDb } from "../db";
 import {
   erpAiConversations,
@@ -149,6 +149,13 @@ export const erpAiAssistantRouter = router({
 
   // ─── RECOMMENDATIONS ─────────────────────────────────────
   recommendations: router({
+    pendingCount: protectedProcedure.query(async () => {
+      const db = (await getDb())!;
+      const result = await db.select({ total: count() }).from(erpAiRecommendations)
+        .where(eq(erpAiRecommendations.status, "suggested"));
+      return { count: result[0]?.total || 0 };
+    }),
+
     list: erpPermissionProcedure("erp_ai_assistant", "view")
       .input(z.object({
         module: z.string().optional(),

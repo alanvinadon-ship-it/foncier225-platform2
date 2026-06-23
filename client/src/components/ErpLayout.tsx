@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useErpPermissions } from "@/hooks/useErpPermissions";
+import { trpc } from "@/lib/trpc";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -231,6 +232,20 @@ const ERP_ADMIN_ITEMS: NavItem[] = [
   { label: "Audit IA", href: "/erp/ai/audit", icon: <Activity size={18} />, module: "erp_ai_assistant" },
 ];
 
+function RecommendationBadge() {
+  const { data } = trpc.erp.aiAssistant.recommendations.pendingCount.useQuery(undefined, {
+    refetchInterval: 60000, // Rafraîchir toutes les 60s
+    staleTime: 30000,
+  });
+  const count = data?.count || 0;
+  if (count === 0) return null;
+  return (
+    <span className="ml-auto inline-flex items-center justify-center min-w-5 h-5 px-1.5 text-xs font-semibold rounded-full bg-orange-500 text-white">
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
 export function ErpLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { user } = useAuth();
@@ -381,7 +396,8 @@ export function ErpLayout({ children }: { children: React.ReactNode }) {
                               }`}
                             >
                               {child.icon}
-                              <span>{child.label}</span>
+                              <span className="flex-1">{child.label}</span>
+                              {child.href === "/erp/ai/recommendations" && <RecommendationBadge />}
                             </div>
                           </Link>
                         );
