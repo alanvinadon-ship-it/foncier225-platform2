@@ -151,6 +151,10 @@ const ErpSalesOrderDetail = lazy(() => import("./pages/erp/ErpSalesOrderDetail")
 const ErpSalesClients = lazy(() => import("./pages/erp/ErpSalesClients"));
 const ErpCashFlowForecast = lazy(() => import("./pages/erp/ErpCashFlowForecast"));
 const ErpCompanySettings = lazy(() => import("./pages/erp/ErpCompanySettings"));
+const ErpAiPlanAnalyzer = lazy(() => import("./pages/erp/ErpAiPlanAnalyzer"));
+const ErpAiPlanUpload = lazy(() => import("./pages/erp/ErpAiPlanUpload"));
+const ErpAiPlanDetail = lazy(() => import("./pages/erp/ErpAiPlanDetail"));
+const ErpAiPlanSettings = lazy(() => import("./pages/erp/ErpAiPlanSettings"));
 
 function RouteFallback() {
   return (
@@ -833,6 +837,26 @@ function Router() {
       <Route path="/erp/profile">
         <ErpLayout>
           <ErpProfile />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/ai/plans/upload">
+        <ErpLayout>
+          <ErpAiPlanUpload />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/ai/plans/settings">
+        <ErpLayout>
+          <ErpAiPlanSettings />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/ai/plans/:id">
+        <ErpLayout>
+          <ErpAiPlanDetail />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/ai/plans">
+        <ErpLayout>
+          <ErpAiPlanAnalyzer />
         </ErpLayout>
       </Route>
       <Route path="/erp/audit-logs">

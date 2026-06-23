@@ -2481,3 +2481,20 @@
 - [x] Upload S3 avec validation taille (5 Mo max) et formats (PDF, images, Word, Excel)
 - [x] Tests : 1321 PASS (50 fichiers) + 0 erreur TypeScript
 - [x] Checkpoint final
+
+## Sprint IA Construction — Module AI Plan Analyzer
+- [x] Audit préalable (rapport d'architecture)
+- [x] 7 tables DB : erp_ai_plan_analyses, erp_ai_plan_elements, erp_ai_material_takeoffs, erp_ai_engineering_checks, erp_ai_construction_rules, erp_ai_quantity_coefficients, erp_ai_plan_review_comments
+- [x] Service analyse IA (LLM vision) : détection éléments, extraction dimensions, contrôles ingénierie
+- [x] Moteur de calcul quantitatif : coefficients configurables, taux de perte, conversion unités
+- [x] Service génération PDF technique (10 sections, PDFKit)
+- [x] Routeur tRPC aiPlanAnalyzer : 11 sous-routeurs (analyses, actions, elements, takeoffs, checks, comments, rules, coefficients, exports, convert, assistant)
+- [x] Pages UI : liste analyses (dashboard KPI), upload, détail (7 onglets), paramètres (coefficients + règles)
+- [x] Intégration modules existants : Budget V2, Demandes Matériel, RFQ, Stock (vérification stock)
+- [x] Assistant IA conversationnel dans la page détail (onglet dédié)
+- [x] RBAC module erp_ai_plan_analyzer ajouté dans ERP_MODULES
+- [x] Exports Excel/CSV + PDF technique
+- [x] Sidebar IA Construction + routes App.tsx (4 routes)
+- [x] Tests Vitest : 7 tests passés + 0 erreur TypeScript
+- [x] Documentation + rapport de sprint
+- [x] Checkpoint final

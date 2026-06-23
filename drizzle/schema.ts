@@ -4317,3 +4317,162 @@ export const erpCompanySettings = mysqlTable("erp_company_settings", {
 });
 export type ErpCompanySettings = typeof erpCompanySettings.$inferSelect;
 export type InsertErpCompanySettings = typeof erpCompanySettings.$inferInsert;
+
+
+// ===== AI PLAN ANALYZER MODULE =====
+
+export const erpAiPlanAnalyses = mysqlTable("erp_ai_plan_analyses", {
+  id: int("id").primaryKey().autoincrement(),
+  analysisNumber: varchar("analysis_number", { length: 32 }).notNull(),
+  projectId: int("project_id"),
+  documentId: int("document_id"),
+  fileName: varchar("file_name", { length: 255 }).notNull(),
+  fileUrl: text("file_url").notNull(),
+  fileKey: varchar("file_key", { length: 255 }).notNull(),
+  fileType: varchar("file_type", { length: 16 }).notNull(), // pdf, jpg, png
+  planType: varchar("plan_type", { length: 32 }).notNull().default("unknown"), // architectural, structural, plumbing, electrical, foundation, reinforcement, vrd, mixed, unknown
+  scaleDetected: varchar("scale_detected", { length: 32 }),
+  scaleConfirmed: varchar("scale_confirmed", { length: 32 }),
+  floorLevel: varchar("floor_level", { length: 32 }),
+  hypotheses: text("hypotheses"),
+  analysisStatus: varchar("analysis_status", { length: 32 }).notNull().default("pending"), // pending, analyzing, completed, failed, reviewed, validated, rejected
+  confidenceScore: int("confidence_score"), // 0-100
+  aiRawResponse: text("ai_raw_response"),
+  createdBy: int("created_by").notNull(),
+  reviewedBy: int("reviewed_by"),
+  reviewedAt: bigint("reviewed_at", { mode: "number" }),
+  validatedBy: int("validated_by"),
+  validatedAt: bigint("validated_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+}, (table) => ({
+  projectIdx: index("idx_ai_plan_analyses_project").on(table.projectId),
+  statusIdx: index("idx_ai_plan_analyses_status").on(table.analysisStatus),
+}));
+export type ErpAiPlanAnalysis = typeof erpAiPlanAnalyses.$inferSelect;
+
+export const erpAiPlanElements = mysqlTable("erp_ai_plan_elements", {
+  id: int("id").primaryKey().autoincrement(),
+  planAnalysisId: int("plan_analysis_id").notNull(),
+  elementType: varchar("element_type", { length: 32 }).notNull(), // wall, column, beam, slab, foundation, footing, door, window, stair, room, pipe, electrical_point, plumbing_point, other
+  elementLabel: varchar("element_label", { length: 128 }),
+  floorLevel: varchar("floor_level", { length: 32 }),
+  zone: varchar("zone", { length: 64 }),
+  coordinatesJson: text("coordinates_json"),
+  dimensionsJson: text("dimensions_json"),
+  area: decimal("area", { precision: 12, scale: 3 }),
+  length: decimal("length", { precision: 12, scale: 3 }),
+  width: decimal("width", { precision: 12, scale: 3 }),
+  height: decimal("height", { precision: 12, scale: 3 }),
+  volume: decimal("volume", { precision: 12, scale: 3 }),
+  unit: varchar("unit", { length: 16 }).default("m"),
+  confidenceScore: int("confidence_score"), // 0-100
+  status: varchar("status", { length: 32 }).notNull().default("suggested"), // suggested, reviewed, corrected, validated, rejected
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  analysisIdx: index("idx_ai_plan_elements_analysis").on(table.planAnalysisId),
+  typeIdx: index("idx_ai_plan_elements_type").on(table.elementType),
+}));
+export type ErpAiPlanElement = typeof erpAiPlanElements.$inferSelect;
+
+export const erpAiMaterialTakeoffs = mysqlTable("erp_ai_material_takeoffs", {
+  id: int("id").primaryKey().autoincrement(),
+  planAnalysisId: int("plan_analysis_id").notNull(),
+  projectId: int("project_id"),
+  elementId: int("element_id"),
+  materialName: varchar("material_name", { length: 128 }).notNull(),
+  category: varchar("category", { length: 32 }).notNull(), // cement, sand, gravel, concrete, rebar, blocks, plumbing, electrical, finishing, other
+  unit: varchar("unit", { length: 16 }).notNull(),
+  calculatedQuantity: decimal("calculated_quantity", { precision: 14, scale: 3 }).notNull(),
+  wasteRate: decimal("waste_rate", { precision: 5, scale: 2 }).default("5.00"),
+  recommendedQuantity: decimal("recommended_quantity", { precision: 14, scale: 3 }).notNull(),
+  purchaseUnit: varchar("purchase_unit", { length: 32 }),
+  purchaseQuantity: decimal("purchase_quantity", { precision: 14, scale: 3 }),
+  unitPrice: int("unit_price"), // centimes
+  estimatedCost: int("estimated_cost"), // centimes
+  calculationMethod: varchar("calculation_method", { length: 64 }),
+  assumptionsJson: text("assumptions_json"),
+  confidenceScore: int("confidence_score"), // 0-100
+  status: varchar("status", { length: 32 }).notNull().default("suggested"), // draft, suggested, reviewed, corrected, validated, rejected, exported
+  reviewedBy: int("reviewed_by"),
+  validatedBy: int("validated_by"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  analysisIdx: index("idx_ai_material_takeoffs_analysis").on(table.planAnalysisId),
+  categoryIdx: index("idx_ai_material_takeoffs_category").on(table.category),
+}));
+export type ErpAiMaterialTakeoff = typeof erpAiMaterialTakeoffs.$inferSelect;
+
+export const erpAiEngineeringChecks = mysqlTable("erp_ai_engineering_checks", {
+  id: int("id").primaryKey().autoincrement(),
+  planAnalysisId: int("plan_analysis_id").notNull(),
+  projectId: int("project_id"),
+  checkType: varchar("check_type", { length: 32 }).notNull(), // foundation, column, beam, slab, masonry, plumbing, electrical, safety
+  checkName: varchar("check_name", { length: 128 }).notNull(),
+  description: text("description"),
+  severity: varchar("severity", { length: 16 }).notNull().default("info"), // info, low, medium, high, critical
+  status: varchar("status", { length: 32 }).notNull().default("needs_review"), // passed, warning, failed, needs_review, ignored, corrected
+  detectedIssue: text("detected_issue"),
+  recommendation: text("recommendation"),
+  relatedElementId: int("related_element_id"),
+  confidenceScore: int("confidence_score"), // 0-100
+  requiresEngineerValidation: boolean("requires_engineer_validation").notNull().default(true),
+  reviewedBy: int("reviewed_by"),
+  reviewedAt: bigint("reviewed_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  analysisIdx: index("idx_ai_engineering_checks_analysis").on(table.planAnalysisId),
+  severityIdx: index("idx_ai_engineering_checks_severity").on(table.severity),
+}));
+export type ErpAiEngineeringCheck = typeof erpAiEngineeringChecks.$inferSelect;
+
+export const erpAiConstructionRules = mysqlTable("erp_ai_construction_rules", {
+  id: int("id").primaryKey().autoincrement(),
+  ruleCode: varchar("rule_code", { length: 32 }).notNull(),
+  ruleName: varchar("rule_name", { length: 128 }).notNull(),
+  domain: varchar("domain", { length: 32 }).notNull(), // foundation, column, beam, slab, masonry, plumbing, electrical, safety, quantity, budget
+  description: text("description"),
+  ruleType: varchar("rule_type", { length: 32 }).notNull().default("check"), // check, warning, calculation, constraint
+  parametersJson: text("parameters_json"),
+  sourceReference: varchar("source_reference", { length: 255 }),
+  isActive: boolean("is_active").notNull().default(true),
+  requiresValidation: boolean("requires_validation").notNull().default(true),
+  createdBy: int("created_by").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+export type ErpAiConstructionRule = typeof erpAiConstructionRules.$inferSelect;
+
+export const erpAiQuantityCoefficients = mysqlTable("erp_ai_quantity_coefficients", {
+  id: int("id").primaryKey().autoincrement(),
+  coefficientCode: varchar("coefficient_code", { length: 32 }).notNull(),
+  name: varchar("name", { length: 128 }).notNull(),
+  usageDomain: varchar("usage_domain", { length: 32 }).notNull(), // concrete, masonry, rebar, plumbing, electrical, finishing
+  inputUnit: varchar("input_unit", { length: 16 }).notNull(),
+  outputUnit: varchar("output_unit", { length: 16 }).notNull(),
+  coefficientValue: decimal("coefficient_value", { precision: 12, scale: 4 }).notNull(),
+  wasteRateDefault: decimal("waste_rate_default", { precision: 5, scale: 2 }).notNull().default("5.00"),
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+export type ErpAiQuantityCoefficient = typeof erpAiQuantityCoefficients.$inferSelect;
+
+export const erpAiPlanReviewComments = mysqlTable("erp_ai_plan_review_comments", {
+  id: int("id").primaryKey().autoincrement(),
+  planAnalysisId: int("plan_analysis_id").notNull(),
+  elementId: int("element_id"),
+  comment: text("comment").notNull(),
+  commentType: varchar("comment_type", { length: 32 }).notNull().default("note"), // correction, validation, warning, engineer_note, architect_note, quantity_note
+  createdBy: int("created_by").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  analysisIdx: index("idx_ai_plan_review_comments_analysis").on(table.planAnalysisId),
+}));
+export type ErpAiPlanReviewComment = typeof erpAiPlanReviewComments.$inferSelect;

@@ -51,6 +51,7 @@ import {
   Gauge,
   TrendingUp,
   Mail,
+  Brain,
 } from "lucide-react";
 import { useState } from "react";
 import { NotificationBell } from "@/components/erp/NotificationBell";
@@ -195,6 +196,17 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
       { label: "Diffusion Rapports", href: "/erp/direction-schedules", icon: <Mail size={18} />, module: "erp_budget_integrations" },
       { label: "Qualité Données", href: "/erp/direction-data-quality", icon: <ShieldCheck size={18} />, module: "erp_budget_integrations" },
       { label: "Jobs Intégration", href: "/erp/budget-integrations/jobs", icon: <Activity size={18} />, module: "erp_budget_integrations" },
+    ],
+  },
+
+  // ===== IA CONSTRUCTION =====
+  {
+    label: "IA Construction",
+    icon: <Brain size={18} />,
+    module: "erp_ai_plan_analyzer",
+    children: [
+      { label: "Analyses Plans", href: "/erp/ai/plans", icon: <Brain size={18} />, module: "erp_ai_plan_analyzer" },
+      { label: "Paramètres IA", href: "/erp/ai/plans/settings", icon: <Settings size={18} />, module: "erp_ai_plan_analyzer" },
     ],
   },
 
