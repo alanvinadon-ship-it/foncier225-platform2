@@ -205,11 +205,11 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
   {
     label: "Intelligence Artificielle",
     icon: <Brain size={18} />,
+    module: "erp_ai_assistant",
     children: [
       { label: "Chat IA", href: "/erp/ai/assistant", icon: <Bot size={18} />, module: "erp_ai_assistant" },
       { label: "Recommandations", href: "/erp/ai/recommendations", icon: <Lightbulb size={18} />, module: "erp_ai_assistant" },
       { label: "Analyses Plans", href: "/erp/ai/plans", icon: <Brain size={18} />, module: "erp_ai_plan_analyzer" },
-      { label: "Paramètres IA", href: "/erp/ai/plans/settings", icon: <Settings size={18} />, module: "erp_ai_plan_analyzer" },
       { label: "Audit IA", href: "/erp/ai/audit", icon: <Activity size={18} />, module: "erp_ai_assistant" },
     ],
   },
@@ -228,6 +228,7 @@ const ERP_ADMIN_ITEMS: NavItem[] = [
   { label: "Jobs Planifiés", href: "/erp/scheduled-jobs", icon: <Landmark size={18} />, module: "erp_audit_logs" },
   { label: "Qualité Globale", href: "/erp/admin-data-quality", icon: <ShieldCheck size={18} />, module: "erp_audit_logs" },
   { label: "Paramètres Société", href: "/erp/company-settings", icon: <Building2 size={18} />, module: "erp_audit_logs" },
+  { label: "Paramètres IA", href: "/erp/ai/plans/settings", icon: <Brain size={18} />, module: "erp_ai_plan_analyzer" },
 ];
 
 export function ErpLayout({ children }: { children: React.ReactNode }) {
