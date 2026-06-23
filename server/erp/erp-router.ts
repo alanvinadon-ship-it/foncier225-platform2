@@ -465,6 +465,7 @@ import { erpSystemHealthRouter } from "./erp-system-health-router";
 import { erpAdminDataQualityRouter } from "./erp-admin-data-quality-router";
 import { erpSalesOrdersRouter } from "./erp-sales-orders-router";
 import { erpAiPlanAnalyzerRouter } from "./erp-ai-plan-analyzer-router";
+import { erpAiAssistantRouter } from "./erp-ai-assistant-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -523,4 +524,5 @@ export const erpRouter = router({
   adminDataQuality: erpAdminDataQualityRouter,
   salesOrders: erpSalesOrdersRouter,
   aiPlanAnalyzer: erpAiPlanAnalyzerRouter,
+  aiAssistant: erpAiAssistantRouter,
 });

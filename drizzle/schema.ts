@@ -4476,3 +4476,135 @@ export const erpAiPlanReviewComments = mysqlTable("erp_ai_plan_review_comments",
   analysisIdx: index("idx_ai_plan_review_comments_analysis").on(table.planAnalysisId),
 }));
 export type ErpAiPlanReviewComment = typeof erpAiPlanReviewComments.$inferSelect;
+
+
+// ============================================================
+// ERP AI ASSISTANT — TABLES (Sprint IA 1)
+// ============================================================
+
+export const erpAiConversations = mysqlTable("erp_ai_conversations", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id").notNull(),
+  module: varchar("module", { length: 64 }).notNull().default("general"),
+  title: varchar("title", { length: 255 }),
+  status: varchar("status", { length: 32 }).notNull().default("active"),
+  messageCount: int("message_count").notNull().default(0),
+  lastMessageAt: bigint("last_message_at", { mode: "number" }),
+  contextProjectId: int("context_project_id"),
+  contextBudgetId: int("context_budget_id"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  userIdx: index("idx_ai_conversations_user").on(table.userId),
+  moduleIdx: index("idx_ai_conversations_module").on(table.module),
+  statusIdx: index("idx_ai_conversations_status").on(table.status),
+}));
+export type ErpAiConversation = typeof erpAiConversations.$inferSelect;
+
+export const erpAiMessages = mysqlTable("erp_ai_messages", {
+  id: int("id").primaryKey().autoincrement(),
+  conversationId: int("conversation_id").notNull(),
+  role: varchar("role", { length: 16 }).notNull(),
+  content: text("content").notNull(),
+  sourceContextJson: text("source_context_json"),
+  tokensUsed: int("tokens_used"),
+  modelName: varchar("model_name", { length: 64 }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  conversationIdx: index("idx_ai_messages_conversation").on(table.conversationId),
+}));
+export type ErpAiMessage = typeof erpAiMessages.$inferSelect;
+
+export const erpAiRecommendations = mysqlTable("erp_ai_recommendations", {
+  id: int("id").primaryKey().autoincrement(),
+  module: varchar("module", { length: 64 }).notNull(),
+  sourceType: varchar("source_type", { length: 64 }).notNull(),
+  sourceId: int("source_id"),
+  recommendationType: varchar("recommendation_type", { length: 64 }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  confidenceScore: int("confidence_score"),
+  priority: varchar("priority", { length: 16 }).notNull().default("medium"),
+  status: varchar("status", { length: 32 }).notNull().default("suggested"),
+  generatedBy: varchar("generated_by", { length: 64 }).notNull().default("assistant"),
+  validatedBy: int("validated_by"),
+  validatedAt: bigint("validated_at", { mode: "number" }),
+  rejectedBy: int("rejected_by"),
+  rejectedAt: bigint("rejected_at", { mode: "number" }),
+  appliedBy: int("applied_by"),
+  appliedAt: bigint("applied_at", { mode: "number" }),
+  actionPayloadJson: text("action_payload_json"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  moduleIdx: index("idx_ai_recommendations_module").on(table.module),
+  statusIdx: index("idx_ai_recommendations_status").on(table.status),
+  priorityIdx: index("idx_ai_recommendations_priority").on(table.priority),
+  sourceIdx: index("idx_ai_recommendations_source").on(table.sourceType, table.sourceId),
+}));
+export type ErpAiRecommendation = typeof erpAiRecommendations.$inferSelect;
+
+export const erpAiDocumentExtractions = mysqlTable("erp_ai_document_extractions", {
+  id: int("id").primaryKey().autoincrement(),
+  documentId: int("document_id"),
+  documentType: varchar("document_type", { length: 64 }).notNull(),
+  fileUrl: text("file_url"),
+  extractedDataJson: text("extracted_data_json"),
+  confidenceScore: int("confidence_score"),
+  status: varchar("status", { length: 32 }).notNull().default("pending"),
+  validatedBy: int("validated_by"),
+  validatedAt: bigint("validated_at", { mode: "number" }),
+  rejectedBy: int("rejected_by"),
+  rejectedAt: bigint("rejected_at", { mode: "number" }),
+  createdBy: int("created_by").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  documentIdx: index("idx_ai_doc_extractions_document").on(table.documentId),
+  typeIdx: index("idx_ai_doc_extractions_type").on(table.documentType),
+  statusIdx: index("idx_ai_doc_extractions_status").on(table.status),
+}));
+export type ErpAiDocumentExtraction = typeof erpAiDocumentExtractions.$inferSelect;
+
+export const erpAiRiskScores = mysqlTable("erp_ai_risk_scores", {
+  id: int("id").primaryKey().autoincrement(),
+  module: varchar("module", { length: 64 }).notNull(),
+  sourceType: varchar("source_type", { length: 64 }).notNull(),
+  sourceId: int("source_id"),
+  riskType: varchar("risk_type", { length: 64 }).notNull(),
+  riskScore: int("risk_score").notNull(),
+  riskLevel: varchar("risk_level", { length: 16 }).notNull(),
+  explanation: text("explanation"),
+  recommendedAction: text("recommended_action"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdBy: int("created_by"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  moduleIdx: index("idx_ai_risk_scores_module").on(table.module),
+  sourceIdx: index("idx_ai_risk_scores_source").on(table.sourceType, table.sourceId),
+  levelIdx: index("idx_ai_risk_scores_level").on(table.riskLevel),
+}));
+export type ErpAiRiskScore = typeof erpAiRiskScores.$inferSelect;
+
+export const erpAiAuditLogs = mysqlTable("erp_ai_audit_logs", {
+  id: int("id").primaryKey().autoincrement(),
+  userId: int("user_id").notNull(),
+  module: varchar("module", { length: 64 }).notNull(),
+  action: varchar("action", { length: 64 }).notNull(),
+  promptHash: varchar("prompt_hash", { length: 64 }),
+  modelName: varchar("model_name", { length: 64 }),
+  inputSummary: text("input_summary"),
+  outputSummary: text("output_summary"),
+  tokensUsed: int("tokens_used"),
+  durationMs: int("duration_ms"),
+  status: varchar("status", { length: 32 }).notNull().default("success"),
+  errorMessage: text("error_message"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+}, (table) => ({
+  userIdx: index("idx_ai_audit_logs_user").on(table.userId),
+  moduleIdx: index("idx_ai_audit_logs_module").on(table.module),
+  actionIdx: index("idx_ai_audit_logs_action").on(table.action),
+  createdAtIdx: index("idx_ai_audit_logs_created").on(table.createdAt),
+}));
+export type ErpAiAuditLog = typeof erpAiAuditLogs.$inferSelect;

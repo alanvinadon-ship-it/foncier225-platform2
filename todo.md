@@ -2498,3 +2498,21 @@
 - [x] Tests Vitest : 7 tests passés + 0 erreur TypeScript
 - [x] Documentation + rapport de sprint
 - [x] Checkpoint final
+
+## Sprint IA 1 — Assistant IA ERP Central et Direction
+- [x] Audit données existantes et architecture IA
+- [x] Tables DB IA : erp_ai_conversations, erp_ai_messages, erp_ai_recommendations, erp_ai_document_extractions, erp_ai_risk_scores, erp_ai_audit_logs
+- [x] Service assistant IA contextuel (chat multi-module avec respect RBAC)
+- [x] Service résumé projet automatique
+- [x] Service résumé budget automatique
+- [x] Service résumé direction automatique
+- [x] Service recommandations IA (génération, validation, rejet, application)
+- [x] Routeur tRPC IA : chat, conversations CRUD, recommandations, résumés, audit logs, risques, dashboard
+- [x] Page /erp/ai/assistant (interface chat IA contextuel)
+- [x] Page /erp/ai/recommendations (liste recommandations IA avec actions)
+- [x] Page /erp/ai/audit (journal d'audit IA)
+- [x] RBAC module erp_ai_assistant ajouté dans ERP_MODULES
+- [x] Sidebar IA Assistant + routes App.tsx (3 entrées)
+- [x] Tests Vitest : 13 tests passés + 0 erreur TypeScript
+- [x] Documentation + rapport de sprint
+- [x] Checkpoint final

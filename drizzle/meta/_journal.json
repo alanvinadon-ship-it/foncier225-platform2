@@ -337,6 +337,13 @@
       "when": 1781944745175,
       "tag": "0047_swift_titania",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "5",
+      "when": 1782195313587,
+      "tag": "0048_groovy_nightshade",
+      "breakpoints": true
     }
   ]
 }
