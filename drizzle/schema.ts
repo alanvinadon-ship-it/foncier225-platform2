@@ -4805,3 +4805,101 @@ export const erpAiDocumentApplyActions = mysqlTable("erp_ai_document_apply_actio
   createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
 });
+
+// ============================================================
+// ERP AI PROVIDERS — Paramétrage Fournisseurs IA
+// ============================================================
+
+export const erpAiProviders = mysqlTable("erp_ai_providers", {
+  id: int("id").primaryKey().autoincrement(),
+  providerCode: varchar("provider_code", { length: 50 }).notNull(),
+  providerName: varchar("provider_name", { length: 100 }).notNull(),
+  providerType: varchar("provider_type", { length: 30 }).notNull(), // OpenAI, Anthropic, Gemini, Mistral, Groq, OpenRouter, Local, Custom
+  baseUrl: varchar("base_url", { length: 500 }),
+  encryptedApiKey: text("encrypted_api_key"), // AES-256-GCM encrypted
+  organizationId: varchar("organization_id", { length: 100 }),
+  projectId: varchar("project_id", { length: 100 }),
+  defaultTextModel: varchar("default_text_model", { length: 100 }),
+  defaultVisionModel: varchar("default_vision_model", { length: 100 }),
+  defaultEmbeddingModel: varchar("default_embedding_model", { length: 100 }),
+  supportsText: tinyint("supports_text").default(1),
+  supportsVision: tinyint("supports_vision").default(0),
+  supportsEmbeddings: tinyint("supports_embeddings").default(0),
+  supportsStreaming: tinyint("supports_streaming").default(0),
+  supportsJsonMode: tinyint("supports_json_mode").default(0),
+  maxTokens: int("max_tokens").default(4096),
+  temperature: varchar("temperature", { length: 10 }).default("0.7"),
+  timeoutSeconds: int("timeout_seconds").default(60),
+  headersJson: text("headers_json"), // JSON for custom headers (OpenRouter etc.)
+  isDefault: tinyint("is_default").default(0),
+  isActive: tinyint("is_active").default(1),
+  lastTestedAt: bigint("last_tested_at", { mode: "number" }),
+  lastTestStatus: varchar("last_test_status", { length: 20 }), // success, failed, timeout
+  createdBy: int("created_by"),
+  updatedBy: int("updated_by"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+});
+
+export const erpAiModelSettings = mysqlTable("erp_ai_model_settings", {
+  id: int("id").primaryKey().autoincrement(),
+  providerId: int("provider_id").notNull(),
+  taskType: varchar("task_type", { length: 50 }).notNull(), // Chat Assistant, OCR Vision, Document Classification, Field Extraction, Contract Analysis, Document Summary, Risk Detection, Plan Analysis, Quantity Takeoff, Engineering Checks, Embeddings, Report Generation
+  modelName: varchar("model_name", { length: 100 }).notNull(),
+  temperature: varchar("temperature", { length: 10 }).default("0.7"),
+  maxTokens: int("max_tokens").default(4096),
+  timeoutSeconds: int("timeout_seconds").default(60),
+  topP: varchar("top_p", { length: 10 }),
+  frequencyPenalty: varchar("frequency_penalty", { length: 10 }),
+  presencePenalty: varchar("presence_penalty", { length: 10 }),
+  jsonModeEnabled: tinyint("json_mode_enabled").default(0),
+  isActive: tinyint("is_active").default(1),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
+});
+
+export const erpAiTaskRouting = mysqlTable("erp_ai_task_routing", {
+  id: int("id").primaryKey().autoincrement(),
+  module: varchar("module", { length: 50 }).notNull(), // Documents IA, Assistant ERP, Assistant Direction, IA Foncier, IA Plan Analyzer, IA Finance, IA Achats, IA Comptabilité
+  taskType: varchar("task_type", { length: 50 }).notNull(),
+  primaryProviderId: int("primary_provider_id").notNull(),
+  fallbackProviderId: int("fallback_provider_id"),
+  secondFallbackProviderId: int("second_fallback_provider_id"),
+  enabled: tinyint("enabled").default(1),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
+});
+
+export const erpAiUsageLogs = mysqlTable("erp_ai_usage_logs", {
+  id: int("id").primaryKey().autoincrement(),
+  providerId: int("provider_id").notNull(),
+  modelName: varchar("model_name", { length: 100 }).notNull(),
+  module: varchar("module", { length: 50 }).notNull(),
+  taskType: varchar("task_type", { length: 50 }).notNull(),
+  sourceType: varchar("source_type", { length: 50 }), // document_job, chat, recommendation, plan_analysis, etc.
+  sourceId: int("source_id"),
+  userId: int("user_id"),
+  promptTokens: int("prompt_tokens").default(0),
+  completionTokens: int("completion_tokens").default(0),
+  totalTokens: int("total_tokens").default(0),
+  estimatedCost: varchar("estimated_cost", { length: 20 }), // stored as string for precision
+  currency: varchar("currency", { length: 5 }).default("USD"),
+  durationMs: int("duration_ms"),
+  status: varchar("status", { length: 20 }).notNull(), // Success, Failed, Timeout, Rate Limited, Fallback Used
+  errorMessage: text("error_message"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
+});
+
+export const erpAiCostLimits = mysqlTable("erp_ai_cost_limits", {
+  id: int("id").primaryKey().autoincrement(),
+  scopeType: varchar("scope_type", { length: 20 }).notNull(), // Global, User, Role, Module, Provider
+  scopeId: varchar("scope_id", { length: 100 }), // userId, roleName, moduleName, providerId
+  providerId: int("provider_id"),
+  monthlyTokenLimit: bigint("monthly_token_limit", { mode: "number" }),
+  monthlyCostLimit: varchar("monthly_cost_limit", { length: 20 }),
+  dailyRequestLimit: int("daily_request_limit"),
+  isActive: tinyint("is_active").default(1),
+  createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
+});

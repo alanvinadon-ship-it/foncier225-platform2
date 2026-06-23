@@ -2549,3 +2549,18 @@
 - [x] Tests Vitest : 12 tests passés + 0 erreur TypeScript
 - [x] Documentation + rapport de sprint
 - [x] Checkpoint final
+
+## Module Paramétrage Fournisseurs IA — Multi-Provider avec Chiffrement
+- [x] 5 tables DB : erp_ai_providers, erp_ai_model_settings, erp_ai_task_routing, erp_ai_usage_logs, erp_ai_cost_limits
+- [x] Service abstrait IA multi-provider (OpenAI, Anthropic, Gemini, Mistral, Groq, OpenRouter, Local/Custom)
+- [x] Chiffrement AES-256-GCM des clés API (AI_KEYS_ENCRYPTION_SECRET)
+- [x] Stratégie fallback automatique (primaire → fallback 1 → fallback 2)
+- [x] Routeur tRPC admin : providers CRUD/test/activate/deactivate/setDefault/rotateKey, model settings, task routing, usage, cost limits
+- [x] Page /erp/admin/ai-providers (liste, formulaire, test connexion, rotation clé)
+- [x] Page /erp/admin/ai-task-routing (routage par module/tâche avec fallback)
+- [x] Page /erp/admin/ai-usage (dashboard consommation, coûts, latence, limites)
+- [x] RBAC module erp_ai_assistant (réutilisé pour admin IA)
+- [x] Sidebar Administration : 3 entrées (Fournisseurs IA, Routage IA, Usage IA)
+- [x] Routes App.tsx : 3 routes admin IA
+- [x] Tests Vitest : 11 tests passés + 0 erreur TypeScript
+- [x] Documentation + checkpoint final

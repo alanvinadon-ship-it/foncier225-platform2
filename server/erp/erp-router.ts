@@ -467,6 +467,7 @@ import { erpSalesOrdersRouter } from "./erp-sales-orders-router";
 import { erpAiPlanAnalyzerRouter } from "./erp-ai-plan-analyzer-router";
 import { erpAiAssistantRouter } from "./erp-ai-assistant-router";
 import { erpAiDocumentExtractionRouter } from "./erp-ai-document-extraction-router";
+import { erpAiProviderRouter } from "./erp-ai-provider-router";
 
 export const erpRouter = router({
   auth: erpAuthRouter,
@@ -527,4 +528,5 @@ export const erpRouter = router({
   aiPlanAnalyzer: erpAiPlanAnalyzerRouter,
   aiAssistant: erpAiAssistantRouter,
   aiDocumentExtraction: erpAiDocumentExtractionRouter,
+  aiProviders: erpAiProviderRouter,
 });
