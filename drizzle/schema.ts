@@ -5326,3 +5326,56 @@ export const erpSolarTechnicalAlerts = mysqlTable("erp_solar_technical_alerts", 
   createdAt: bigint("created_at", { mode: "number" }).notNull(),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
 });
+
+
+// ===== TEMPLATES BILAN DE PUISSANCE =====
+
+export const erpSolarLoadTemplates = mysqlTable("erp_solar_load_templates", {
+  id: int("id").primaryKey().autoincrement(),
+  templateCode: varchar("template_code", { length: 64 }).notNull().unique(),
+  templateName: varchar("template_name", { length: 255 }).notNull(),
+  domain: varchar("domain", { length: 64 }).notNull(),
+  profileType: varchar("profile_type", { length: 128 }).notNull(),
+  comfortLevel: varchar("comfort_level", { length: 32 }).notNull().default("Standard"),
+  description: text("description"),
+  recommendedSiteType: varchar("recommended_site_type", { length: 128 }),
+  isActive: boolean("is_active").default(true),
+  createdBy: int("created_by"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+
+export const erpSolarLoadTemplateItems = mysqlTable("erp_solar_load_template_items", {
+  id: int("id").primaryKey().autoincrement(),
+  templateId: int("template_id").notNull(),
+  equipmentName: varchar("equipment_name", { length: 255 }).notNull(),
+  domain: varchar("domain", { length: 64 }),
+  category: varchar("category", { length: 64 }),
+  powerW: decimal("power_w", { precision: 10, scale: 2 }).notNull(),
+  quantity: int("quantity").notNull().default(1),
+  hoursPerDay: decimal("hours_per_day", { precision: 4, scale: 1 }).notNull(),
+  simultaneityCoefficient: decimal("simultaneity_coefficient", { precision: 4, scale: 2 }).notNull().default("1.00"),
+  startupFactor: decimal("startup_factor", { precision: 4, scale: 1 }).notNull().default("1.0"),
+  isCriticalLoad: boolean("is_critical_load").default(false),
+  isNightLoad: boolean("is_night_load").default(false),
+  isMotorLoad: boolean("is_motor_load").default(false),
+  priorityLevel: varchar("priority_level", { length: 32 }).notNull().default("Important"),
+  notes: text("notes"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+
+export const erpSolarLoadTemplateGenerations = mysqlTable("erp_solar_load_template_generations", {
+  id: int("id").primaryKey().autoincrement(),
+  solarProjectId: int("solar_project_id").notNull(),
+  templateId: int("template_id").notNull(),
+  generatedBy: int("generated_by").notNull(),
+  generatedAt: bigint("generated_at", { mode: "number" }).notNull(),
+  itemsCreatedCount: int("items_created_count").notNull().default(0),
+  totalPowerW: decimal("total_power_w", { precision: 12, scale: 2 }),
+  totalDailyEnergyWh: decimal("total_daily_energy_wh", { precision: 12, scale: 2 }),
+  criticalEnergyWh: decimal("critical_energy_wh", { precision: 12, scale: 2 }),
+  mode: varchar("mode", { length: 32 }).notNull().default("replace"),
+  status: varchar("status", { length: 32 }).notNull().default("Generated"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+});

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRoute } from "wouter";
+import { LoadTemplateWizard } from "./LoadTemplateWizard";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { ArrowLeft, Sun, Zap, Battery, Cable, DollarSign, Cpu, MessageSquare, Plus, Trash2, Play, Download, Search, Copy, BookOpen, AlertTriangle, Edit2, Check, X, Settings } from "lucide-react";
@@ -174,6 +175,7 @@ function LoadsTab({ projectId, loads }: { projectId: number; loads: any[] | unde
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Charges électriques</CardTitle>
           <div className="flex gap-2">
+            <LoadTemplateWizard projectId={projectId} onComplete={() => utils.erp.solar.loadItems.list.invalidate()} />
             <Button size="sm" variant={mode === "catalog" ? "default" : "outline"} onClick={() => setMode(mode === "catalog" ? "list" : "catalog")}>
               <BookOpen className="h-4 w-4 mr-1" />Bibliothèque
             </Button>

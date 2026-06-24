@@ -2671,3 +2671,37 @@
 - [ ] Créer docs/erp/solar-system-losses.md
 - [ ] Créer docs/erp/solar-cable-losses.md
 - [ ] Créer docs/erp/solar-battery-sizing-modes.md
+
+## Sprint Templates Bilan de Puissance par Domaine
+
+### Phase 1 : Schéma DB
+- [ ] Créer table erp_solar_load_templates (domain, profile_type, comfort_level, etc.)
+- [ ] Créer table erp_solar_load_template_items (charges prédéfinies par template)
+- [ ] Créer table erp_solar_load_template_generations (traçabilité)
+- [ ] Migrer le schéma (pnpm db:push)
+
+### Phase 2 : Seed data
+- [ ] Templates Domestique (F1 éco, F2 std, F3 std+, F4 confort, F5 villa std, Villa premium)
+- [ ] Templates Télécom (2G rural, 3G, 4G std, 5G std, 5G critique)
+- [ ] Templates Bureau (5 postes, 10 postes)
+- [ ] Templates Commerce (petite boutique, boutique avec froid)
+- [ ] Templates Santé (poste de santé, centre médical)
+- [ ] Templates Chantier (petit, moyen)
+- [ ] Templates Pompage (domestique, agricole, communautaire)
+
+### Phase 3 : Routeur tRPC
+- [ ] CRUD templates (list, getById, create, update, delete)
+- [ ] Procédure generateFromTemplate (apply template to project)
+- [ ] Procédure aiGenerateLoadTemplate (génération IA)
+- [ ] Audit logs pour chaque action
+
+### Phase 4 : UI
+- [ ] Bouton "Créer un bilan type" dans l'onglet Bilan
+- [ ] Wizard 4 étapes (domaine → profil → aperçu → génération)
+- [ ] Options : remplacer / fusionner / optimisation IA
+- [ ] Résumé après génération + recalcul KPIs
+
+### Phase 5 : Tests
+- [ ] Tests création et application templates
+- [ ] Tests seed data (domestique + télécom)
+- [x] Tests non-régression (0 erreurs TS)
