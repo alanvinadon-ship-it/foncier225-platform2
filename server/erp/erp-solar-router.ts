@@ -539,7 +539,7 @@ const sizingRouter = router({
         outputData: JSON.stringify(sizing),
         status: "completed",
         durationMs,
-        createdBy: ctx.user.id,
+        triggeredBy: ctx.user.id,
         createdAt: now,
       } as any);
 
@@ -705,7 +705,7 @@ const budgetRouter = router({
         outputData: JSON.stringify({ totalInvestment: budget.totalInvestment, lotsCount: budget.lines.length }),
         status: "completed",
         durationMs,
-        createdBy: ctx.user.id,
+        triggeredBy: ctx.user.id,
         createdAt: Date.now(),
       } as any);
 

@@ -2594,3 +2594,8 @@
 - [x] Tests Vitest complets
 - [x] Documentation technique
 - [x] 0 erreur TypeScript
+
+## Bug Fix — Boutons Dimensionner et Budgétiser en échec
+- [x] Diagnostiquer l'erreur des boutons Dimensionner et Budgétiser dans le détail projet solaire
+- [x] Corriger le backend (sizing.calculate / budget.calculate) — colonne triggeredBy au lieu de createdBy
+- [x] Vérifier le fonctionnement complet (15 tests passés, 0 erreur TS, serveur OK)
