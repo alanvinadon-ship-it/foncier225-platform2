@@ -629,12 +629,37 @@ const budgetRouter = router({
       // Get prices from catalog or use defaults
       const catalogItems = await db.select().from(erpSolarPriceCatalog).where(eq(erpSolarPriceCatalog.isActive, true));
       const prices: PriceCatalog = { ...DEFAULT_PRICES };
+      // Utiliser le premier article trouvé par catégorie (is_default ou premier actif)
+      const seen = new Set<string>();
       for (const item of catalogItems) {
-        if (item.category === "panels") prices.pricePerWcPanel = Number(item.unitPrice);
-        if (item.category === "batteries_lithium") prices.pricePerWhLithium = Number(item.unitPrice);
-        if (item.category === "batteries_plomb") prices.pricePerAhPlomb = Number(item.unitPrice);
-        if (item.category === "inverter") prices.pricePerWInverter = Number(item.unitPrice);
-        if (item.category === "cables") prices.pricePerMeterCable = Number(item.unitPrice);
+        if (item.category === "panneaux_solaires" && !seen.has("panel")) {
+          const wcMatch = item.itemName?.match(/(\d+)\s*W/i);
+          const panelWc = wcMatch ? parseInt(wcMatch[1]) : 550;
+          prices.pricePerWcPanel = Number(item.unitPrice) / panelWc;
+          seen.add("panel");
+        }
+        if (item.category === "batteries_lithium" && !seen.has("lithium")) {
+          prices.pricePerUnitLithium = Number(item.unitPrice);
+          const capMatch = item.itemName?.match(/(\d+[,.]?\d*)\s*kWh/i);
+          if (capMatch) prices.lithiumUnitCapacityWh = parseFloat(capMatch[1].replace(",", ".")) * 1000;
+          seen.add("lithium");
+        }
+        if (item.category === "batteries_plomb" && !seen.has("plomb")) {
+          prices.pricePerUnitPlomb = Number(item.unitPrice);
+          const capMatch = item.itemName?.match(/(\d+)\s*Ah/i);
+          if (capMatch) prices.plombUnitCapacityAh = parseInt(capMatch[1]);
+          seen.add("plomb");
+        }
+        if (item.category === "onduleurs" && !seen.has("inverter")) {
+          const kwMatch = item.itemName?.match(/(\d+)\s*kW/i);
+          const inverterW = kwMatch ? parseInt(kwMatch[1]) * 1000 : 5000;
+          prices.pricePerWInverter = Number(item.unitPrice) / inverterW;
+          seen.add("inverter");
+        }
+        if (item.category === "cables_solaires" && !seen.has("cable")) {
+          prices.pricePerMeterCable = Number(item.unitPrice);
+          seen.add("cable");
+        }
       }
       // Apply global settings overrides for budget percentages
       prices.structuresCoffretsPercent = getParam("STRUCTURES_PERCENT", prices.structuresCoffretsPercent);

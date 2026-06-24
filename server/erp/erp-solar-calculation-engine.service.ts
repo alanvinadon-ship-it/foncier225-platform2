@@ -106,8 +106,12 @@ export interface BudgetResult {
 
 export interface PriceCatalog {
   pricePerWcPanel: number;
-  pricePerWhLithium: number;
-  pricePerAhPlomb: number;
+  // Batteries lithium : prix par unité physique (pcs) + capacité unitaire en Wh
+  pricePerUnitLithium: number;
+  lithiumUnitCapacityWh: number;
+  // Batteries plomb : prix par unité physique (pcs) + capacité unitaire en Ah
+  pricePerUnitPlomb: number;
+  plombUnitCapacityAh: number;
   pricePerWInverter: number;
   pricePerMeterCable: number;
   structuresCoffretsPercent: number;
@@ -397,30 +401,32 @@ export function calculateBudget(
     calculationMethod: `${panelsQty} panneaux × ${sizing.pv.panelUnitPowerWc} Wc × ${prices.pricePerWcPanel} ${currency}/Wc`,
   });
 
-  // Lot 2 : Batteries
+  // Lot 2 : Batteries (calcul en nombre d'unités physiques)
   if (sizing.battery.technology === "lithium") {
-    const battAmount = sizing.battery.capacityWh * prices.pricePerWhLithium;
+    const battCount = Math.ceil(sizing.battery.capacityWh / prices.lithiumUnitCapacityWh);
+    const battAmount = battCount * prices.pricePerUnitLithium;
     lines.push({
       lotNumber: lotNumber++,
       lotName: "Batteries lithium",
       category: "batteries",
-      quantity: sizing.battery.capacityWh,
-      unit: "Wh",
-      unitPrice: prices.pricePerWhLithium,
+      quantity: battCount,
+      unit: "pcs",
+      unitPrice: prices.pricePerUnitLithium,
       amount: Math.round(battAmount),
-      calculationMethod: `${Math.round(sizing.battery.capacityWh)} Wh × ${prices.pricePerWhLithium} ${currency}/Wh`,
+      calculationMethod: `${Math.round(sizing.battery.capacityWh)} Wh / ${prices.lithiumUnitCapacityWh} Wh/unité = ${battCount} batteries × ${prices.pricePerUnitLithium.toLocaleString()} ${currency}`,
     });
   } else {
-    const battAmount = sizing.battery.capacityAh * prices.pricePerAhPlomb;
+    const battCount = Math.ceil(sizing.battery.capacityAh / prices.plombUnitCapacityAh);
+    const battAmount = battCount * prices.pricePerUnitPlomb;
     lines.push({
       lotNumber: lotNumber++,
       lotName: "Batteries plomb",
       category: "batteries",
-      quantity: sizing.battery.capacityAh,
-      unit: "Ah",
-      unitPrice: prices.pricePerAhPlomb,
+      quantity: battCount,
+      unit: "pcs",
+      unitPrice: prices.pricePerUnitPlomb,
       amount: Math.round(battAmount),
-      calculationMethod: `${Math.round(sizing.battery.capacityAh)} Ah × ${prices.pricePerAhPlomb} ${currency}/Ah`,
+      calculationMethod: `${Math.round(sizing.battery.capacityAh)} Ah / ${prices.plombUnitCapacityAh} Ah/unité = ${battCount} batteries × ${prices.pricePerUnitPlomb.toLocaleString()} ${currency}`,
     });
   }
 
@@ -498,8 +504,10 @@ export function calculateBudget(
 
 export const DEFAULT_PRICES: PriceCatalog = {
   pricePerWcPanel: 350, // XOF/Wc
-  pricePerWhLithium: 250, // XOF/Wh
-  pricePerAhPlomb: 4500, // XOF/Ah
+  pricePerUnitLithium: 650000, // XOF/batterie (Felicity 5kWh)
+  lithiumUnitCapacityWh: 5000, // 5 kWh par batterie
+  pricePerUnitPlomb: 190000, // XOF/batterie (GEL 12V 200Ah)
+  plombUnitCapacityAh: 200, // 200 Ah par batterie
   pricePerWInverter: 200, // XOF/W
   pricePerMeterCable: 150, // XOF/m·mm²
   structuresCoffretsPercent: 0.10, // 10%

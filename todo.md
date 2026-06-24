@@ -2599,3 +2599,10 @@
 - [x] Diagnostiquer l'erreur des boutons Dimensionner et Budgétiser dans le détail projet solaire
 - [x] Corriger le backend (sizing.calculate / budget.calculate) — colonne triggeredBy au lieu de createdBy
 - [x] Vérifier le fonctionnement complet (15 tests passés, 0 erreur TS, serveur OK)
+
+## Bug Fix — Calcul budget solaire incorrect (quantité batteries + lignes 5 & 6)
+- [x] Corriger la quantité batteries : convertir capacité totale Wh en nombre d'unités physiques (ceil(capacityWh / capacité_unitaire))
+- [x] Corriger les lignes 5 & 6 : le problème était en cascade (sous-total matériel gonflé par la ligne 2)
+- [x] Refactorer PriceCatalog : pricePerUnitLithium + lithiumUnitCapacityWh au lieu de pricePerWhLithium
+- [x] Adapter le mapping catalogue → PriceCatalog dans le router (extraction capacité depuis le nom)
+- [x] Vérifier les résultats avec des valeurs réalistes (15 tests passés)

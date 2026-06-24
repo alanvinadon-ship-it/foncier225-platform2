@@ -62,8 +62,10 @@ const sampleDesignInputs: DesignInputs = {
 
 const samplePriceCatalog: PriceCatalog = {
   pricePerWcPanel: 500,
-  pricePerWhLithium: 200,
-  pricePerAhPlomb: 3000,
+  pricePerUnitLithium: 650000,
+  lithiumUnitCapacityWh: 5000,
+  pricePerUnitPlomb: 190000,
+  plombUnitCapacityAh: 200,
   pricePerWInverter: 300,
   pricePerMeterCable: 2500,
   structuresCoffretsPercent: 0.1,
