@@ -45,6 +45,18 @@ export interface SolarScenario {
   risks: string[];
 }
 
+export interface CatalogItem {
+  itemCode: string;
+  itemName: string;
+  category: string;
+  unit: string;
+  unitPrice: number;
+  brand?: string | null;
+  model?: string | null;
+  qualityLevel?: string | null;
+  recommendedUsage?: string | null;
+}
+
 export interface SolarProjectContext {
   projectName: string;
   siteName?: string;
@@ -52,6 +64,7 @@ export interface SolarProjectContext {
   designInputs: DesignInputs;
   sizing: SizingResult;
   budget: BudgetResult;
+  catalog?: CatalogItem[];
 }
 
 // ============================================================
@@ -150,6 +163,10 @@ Site : ${ctx.siteName || "Non spécifié"}
 - Total : ${budget.totalInvestment.toLocaleString()} ${budget.currency}
 - Répartition : ${budget.lines.map(l => `${l.lotName}: ${l.amount.toLocaleString()} ${budget.currency}`).join(", ")}
 
+${ctx.catalog && ctx.catalog.length > 0 ? `
+## Catalogue de prix disponible
+${ctx.catalog.map(c => `- ${c.itemCode} | ${c.itemName} | ${c.brand || "Générique"} | ${c.category} | ${c.unitPrice.toLocaleString()} XOF/${c.unit} | Qualité: ${c.qualityLevel || "N/A"} | Usage: ${c.recommendedUsage || "N/A"}`).join("\n")}
+` : ""}
 Génère entre 4 et 8 recommandations couvrant :
 1. Analyse du bilan de puissance (charges critiques, consommations anormales)
 2. Dimensionnement PV (suffisance, marge)
@@ -157,8 +174,9 @@ Génère entre 4 et 8 recommandations couvrant :
 4. Onduleur (couverture démarrage, marge)
 5. Câblage (chute de tension, risques)
 6. Budget (optimisation, postes coûteux)
+7. Recommandations produits du catalogue (marques, modèles adaptés au projet)
 
-Types de recommandation possibles : LoadAnalysis, PvSizing, BatteryStorage, InverterSizing, CableRisk, BudgetOptimization, ConfigurationAlternative, Maintenance, Safety, ROI, SupplierRecommendation`;
+Types de recommandation possibles : LoadAnalysis, PvSizing, BatteryStorage, InverterSizing, CableRisk, BudgetOptimization, ConfigurationAlternative, Maintenance, Safety, ROI, SupplierRecommendation, ProductRecommendation`;
 }
 
 // ============================================================

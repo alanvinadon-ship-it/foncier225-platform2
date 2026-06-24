@@ -641,15 +641,66 @@ const settingsRouter = router({
       return db.select().from(erpSolarPriceCatalog).where(eq(erpSolarPriceCatalog.isActive, true)).orderBy(asc(erpSolarPriceCatalog.category));
     }),
     create: protectedProcedure
-      .input(z.object({ itemCode: z.string(), itemName: z.string(), category: z.string(), unit: z.string(), unitPrice: z.number(), supplierId: z.number().optional() }))
+      .input(z.object({
+        itemCode: z.string(),
+        itemName: z.string(),
+        category: z.string(),
+        unit: z.string(),
+        unitPrice: z.number(),
+        brand: z.string().optional(),
+        model: z.string().optional(),
+        qualityLevel: z.string().optional(),
+        recommendedUsage: z.string().optional(),
+        supplierId: z.number().optional(),
+      }))
       .mutation(async ({ input }) => {
         const db = (await getDb())!;
         const now = Date.now();
-        const [result] = await db.insert(erpSolarPriceCatalog).values({ ...input, unitPrice: String(input.unitPrice), currency: "XOF", isActive: true, createdAt: now, updatedAt: now } as any);
-        return { id: result.insertId };
+        // Check for duplicate
+        const [existing] = await db.select().from(erpSolarPriceCatalog).where(eq(erpSolarPriceCatalog.itemCode, input.itemCode));
+        if (existing) {
+          // Update existing item
+          await db.update(erpSolarPriceCatalog).set({
+            itemName: input.itemName,
+            category: input.category,
+            unit: input.unit,
+            unitPrice: String(input.unitPrice),
+            brand: input.brand || null,
+            model: input.model || null,
+            qualityLevel: input.qualityLevel || null,
+            recommendedUsage: input.recommendedUsage || null,
+            isActive: true,
+            updatedAt: now,
+          } as any).where(eq(erpSolarPriceCatalog.id, existing.id));
+          return { id: existing.id, updated: true };
+        }
+        const [result] = await db.insert(erpSolarPriceCatalog).values({
+          ...input,
+          unitPrice: String(input.unitPrice),
+          brand: input.brand || null,
+          model: input.model || null,
+          qualityLevel: input.qualityLevel || null,
+          recommendedUsage: input.recommendedUsage || null,
+          currency: "XOF",
+          isActive: true,
+          createdAt: now,
+          updatedAt: now,
+        } as any);
+        return { id: result.insertId, updated: false };
       }),
     update: protectedProcedure
-      .input(z.object({ id: z.number(), unitPrice: z.number().optional(), itemName: z.string().optional(), isActive: z.boolean().optional() }))
+      .input(z.object({
+        id: z.number(),
+        unitPrice: z.number().optional(),
+        itemName: z.string().optional(),
+        category: z.string().optional(),
+        unit: z.string().optional(),
+        brand: z.string().nullable().optional(),
+        model: z.string().nullable().optional(),
+        qualityLevel: z.string().nullable().optional(),
+        recommendedUsage: z.string().nullable().optional(),
+        isActive: z.boolean().optional(),
+      }))
       .mutation(async ({ input }) => {
         const db = (await getDb())!;
         const { id, ...updates } = input;
@@ -699,6 +750,20 @@ async function buildProjectContext(db: any, projectId: number): Promise<SolarPro
   const sizing = calculateFullSizing(loadBalance, designInputs);
   const budget = calculateBudget(sizing, DEFAULT_PRICES);
 
+  // Load catalog for AI context
+  const catalogRows = await db.select().from(erpSolarPriceCatalog).where(eq(erpSolarPriceCatalog.isActive, true));
+  const catalog = catalogRows.map((c: any) => ({
+    itemCode: c.itemCode,
+    itemName: c.itemName,
+    category: c.category,
+    unit: c.unit,
+    unitPrice: Number(c.unitPrice),
+    brand: c.brand,
+    model: c.model,
+    qualityLevel: c.qualityLevel,
+    recommendedUsage: c.recommendedUsage,
+  }));
+
   return {
     projectName: project.name,
     siteName: project.siteName || undefined,
@@ -706,6 +771,7 @@ async function buildProjectContext(db: any, projectId: number): Promise<SolarPro
     designInputs,
     sizing,
     budget,
+    catalog,
   };
 }
 

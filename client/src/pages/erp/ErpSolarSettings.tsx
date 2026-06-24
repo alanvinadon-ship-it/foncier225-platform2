@@ -231,13 +231,71 @@ function ZonesTab() {
 // ONGLET CATALOGUE DE PRIX
 // ============================================================
 
+const SOLAR_CATEGORIES = [
+  { value: "panneaux_solaires", label: "Panneaux solaires" },
+  { value: "batteries_lithium", label: "Batteries lithium" },
+  { value: "batteries_plomb", label: "Batteries plomb" },
+  { value: "onduleurs", label: "Onduleurs" },
+  { value: "regulateurs", label: "Régulateurs" },
+  { value: "cables_solaires", label: "Câbles solaires" },
+  { value: "protections_solaires", label: "Protections solaires" },
+  { value: "structures", label: "Structures" },
+  { value: "accessoires_solaires", label: "Accessoires solaires" },
+  { value: "monitoring_solaire", label: "Monitoring solaire" },
+  { value: "services", label: "Services" },
+  { value: "maintenance", label: "Maintenance" },
+  { value: "transport", label: "Transport" },
+  { value: "autres", label: "Autres" },
+];
+
+const SOLAR_UNITS = [
+  { value: "pcs", label: "pcs (pièce)" },
+  { value: "m", label: "m (mètre)" },
+  { value: "paire", label: "paire" },
+  { value: "kit", label: "kit" },
+  { value: "lot", label: "lot" },
+  { value: "kWc", label: "kWc (kilowatt-crête)" },
+  { value: "Wh", label: "Wh (Watt-heure)" },
+  { value: "Ah", label: "Ah (Ampère-heure)" },
+  { value: "W", label: "W (Watt)" },
+  { value: "forfait", label: "forfait" },
+];
+
+const QUALITY_LEVELS = [
+  { value: "economique", label: "Économique" },
+  { value: "bon_rapport", label: "Bon rapport qualité/prix" },
+  { value: "premium", label: "Premium" },
+];
+
+const USAGE_OPTIONS = [
+  { value: "residentiel", label: "Résidentiel" },
+  { value: "commercial", label: "Commercial" },
+  { value: "industriel", label: "Industriel" },
+  { value: "telecom", label: "Site télécom" },
+  { value: "backup", label: "Backup" },
+];
+
+type PriceForm = {
+  itemCode: string;
+  itemName: string;
+  category: string;
+  unit: string;
+  unitPrice: string;
+  brand: string;
+  model: string;
+  qualityLevel: string;
+  recommendedUsage: string;
+};
+
+const emptyForm: PriceForm = { itemCode: "", itemName: "", category: "panneaux_solaires", unit: "pcs", unitPrice: "", brand: "", model: "", qualityLevel: "bon_rapport", recommendedUsage: "" };
+
 function PricesTab() {
   const utils = trpc.useUtils();
   const { data: prices, isLoading } = trpc.erp.solar.settings.priceCatalog.list.useQuery();
   const createPrice = trpc.erp.solar.settings.priceCatalog.create.useMutation({
-    onSuccess: () => {
+    onSuccess: (res) => {
       utils.erp.solar.settings.priceCatalog.list.invalidate();
-      toast.success("Article ajouté au catalogue de prix");
+      toast.success(res.updated ? "Article mis à jour" : "Article ajouté au catalogue");
     },
     onError: (err) => {
       toast.error(err.message);
@@ -246,7 +304,7 @@ function PricesTab() {
   const updatePrice = trpc.erp.solar.settings.priceCatalog.update.useMutation({
     onSuccess: () => {
       utils.erp.solar.settings.priceCatalog.list.invalidate();
-      toast.success("Prix unitaire mis à jour");
+      toast.success("Article mis à jour");
     },
     onError: (err) => {
       toast.error(err.message);
@@ -256,17 +314,8 @@ function PricesTab() {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editPrice, setEditPrice] = useState("");
-  const [form, setForm] = useState({ itemCode: "", itemName: "", category: "panels", unit: "pcs", unitPrice: "" });
-
-  const categories = [
-    { value: "panels", label: "Panneaux solaires" },
-    { value: "batteries", label: "Batteries" },
-    { value: "inverters", label: "Onduleurs" },
-    { value: "cables", label: "Câbles" },
-    { value: "structures", label: "Structures" },
-    { value: "accessories", label: "Accessoires" },
-    { value: "installation", label: "Installation" },
-  ];
+  const [form, setForm] = useState<PriceForm>(emptyForm);
+  const [filterCategory, setFilterCategory] = useState<string>("all");
 
   const handleCreate = () => {
     if (!form.itemCode || !form.itemName || !form.unitPrice) {
@@ -279,9 +328,43 @@ function PricesTab() {
       category: form.category,
       unit: form.unit,
       unitPrice: parseFloat(form.unitPrice),
+      brand: form.brand || undefined,
+      model: form.model || undefined,
+      qualityLevel: form.qualityLevel || undefined,
+      recommendedUsage: form.recommendedUsage || undefined,
     });
     setOpen(false);
-    setForm({ itemCode: "", itemName: "", category: "panels", unit: "pcs", unitPrice: "" });
+    setForm(emptyForm);
+  };
+
+  const handleEdit = (item: any) => {
+    setForm({
+      itemCode: item.itemCode,
+      itemName: item.itemName,
+      category: item.category,
+      unit: item.unit,
+      unitPrice: String(item.unitPrice),
+      brand: item.brand || "",
+      model: item.model || "",
+      qualityLevel: item.qualityLevel || "bon_rapport",
+      recommendedUsage: item.recommendedUsage || "",
+    });
+    setOpen(true);
+  };
+
+  const handleDuplicate = (item: any) => {
+    setForm({
+      itemCode: item.itemCode + "-COPY",
+      itemName: item.itemName + " (copie)",
+      category: item.category,
+      unit: item.unit,
+      unitPrice: String(item.unitPrice),
+      brand: item.brand || "",
+      model: item.model || "",
+      qualityLevel: item.qualityLevel || "bon_rapport",
+      recommendedUsage: item.recommendedUsage || "",
+    });
+    setOpen(true);
   };
 
   const handleUpdatePrice = (id: number) => {
@@ -291,72 +374,107 @@ function PricesTab() {
     setEditPrice("");
   };
 
+  const filteredPrices = prices?.filter((p: any) => filterCategory === "all" || p.category === filterCategory) || [];
+
   if (isLoading) {
     return <div className="flex items-center justify-center py-12"><div className="h-8 w-8 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" /></div>;
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Catalogue des prix unitaires pour le chiffrage automatique des projets solaires (en XOF).
-        </p>
-        <Dialog open={open} onOpenChange={setOpen}>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-muted-foreground">
+            Catalogue des prix unitaires — {filteredPrices.length} article(s)
+          </p>
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="w-48 h-8 text-xs">
+              <SelectValue placeholder="Filtrer par catégorie" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes les catégories</SelectItem>
+              {SOLAR_CATEGORIES.map((c) => (
+                <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) setForm(emptyForm); }}>
           <DialogTrigger asChild>
             <Button className="bg-orange-500 hover:bg-orange-600 text-white">
               <Plus size={16} className="mr-2" /> Ajouter un article
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>Nouvel article au catalogue</DialogTitle>
+              <DialogTitle>{form.itemCode && !form.itemCode.endsWith("-COPY") && prices?.some((p: any) => p.itemCode === form.itemCode) ? "Modifier l'article" : "Nouvel article au catalogue"}</DialogTitle>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="itemCode">Code article *</Label>
-                  <Input id="itemCode" placeholder="Ex: PNL-400W" value={form.itemCode} onChange={(e) => setForm({ ...form, itemCode: e.target.value })} />
+            <div className="grid gap-3 py-4 max-h-[60vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1">
+                  <Label className="text-xs">Code article *</Label>
+                  <Input placeholder="Ex: PNL-JAS-550W" value={form.itemCode} onChange={(e) => setForm({ ...form, itemCode: e.target.value })} />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="itemName">Nom article *</Label>
-                  <Input id="itemName" placeholder="Ex: Panneau 400Wc mono" value={form.itemName} onChange={(e) => setForm({ ...form, itemName: e.target.value })} />
+                <div className="grid gap-1">
+                  <Label className="text-xs">Nom article *</Label>
+                  <Input placeholder="Ex: Panneau JA Solar 550W" value={form.itemName} onChange={(e) => setForm({ ...form, itemName: e.target.value })} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label>Catégorie</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1">
+                  <Label className="text-xs">Catégorie *</Label>
                   <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {categories.map((c) => (
+                      {SOLAR_CATEGORIES.map((c) => (
                         <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="unit">Unité</Label>
+                <div className="grid gap-1">
+                  <Label className="text-xs">Unité *</Label>
                   <Select value={form.unit} onValueChange={(v) => setForm({ ...form, unit: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pcs">pcs (pièce)</SelectItem>
-                      <SelectItem value="Wc">Wc (Watt-crête)</SelectItem>
-                      <SelectItem value="Wh">Wh (Watt-heure)</SelectItem>
-                      <SelectItem value="Ah">Ah (Ampère-heure)</SelectItem>
-                      <SelectItem value="m">m (mètre)</SelectItem>
-                      <SelectItem value="kg">kg (kilogramme)</SelectItem>
-                      <SelectItem value="fft">fft (forfait)</SelectItem>
+                      {SOLAR_UNITS.map((u) => (
+                        <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="unitPrice">Prix unitaire (XOF) *</Label>
-                <Input id="unitPrice" type="number" min="0" placeholder="Ex: 200000" value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value })} />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1">
+                  <Label className="text-xs">Marque</Label>
+                  <Input placeholder="Ex: JA Solar" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} />
+                </div>
+                <div className="grid gap-1">
+                  <Label className="text-xs">Modèle</Label>
+                  <Input placeholder="Ex: 550W mono PERC" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1">
+                  <Label className="text-xs">Niveau qualité</Label>
+                  <Select value={form.qualityLevel} onValueChange={(v) => setForm({ ...form, qualityLevel: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {QUALITY_LEVELS.map((q) => (
+                        <SelectItem key={q.value} value={q.value}>{q.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-1">
+                  <Label className="text-xs">Usage recommandé</Label>
+                  <Input placeholder="residentiel,commercial" value={form.recommendedUsage} onChange={(e) => setForm({ ...form, recommendedUsage: e.target.value })} />
+                  <p className="text-[10px] text-muted-foreground">Séparer par virgule</p>
+                </div>
+              </div>
+              <div className="grid gap-1">
+                <Label className="text-xs">Prix unitaire (XOF) *</Label>
+                <Input type="number" min="0" placeholder="Ex: 80000" value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value })} />
               </div>
             </div>
             <DialogFooter>
@@ -364,7 +482,7 @@ function PricesTab() {
                 <Button variant="outline">Annuler</Button>
               </DialogClose>
               <Button onClick={handleCreate} disabled={createPrice.isPending} className="bg-orange-500 hover:bg-orange-600 text-white">
-                {createPrice.isPending ? "Ajout..." : "Ajouter l'article"}
+                {createPrice.isPending ? "Enregistrement..." : "Enregistrer"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -372,59 +490,77 @@ function PricesTab() {
       </div>
 
       {/* Table des prix */}
-      {prices && prices.length > 0 ? (
+      {filteredPrices.length > 0 ? (
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-3 text-left font-medium">Code</th>
-                    <th className="px-4 py-3 text-left font-medium">Désignation</th>
-                    <th className="px-4 py-3 text-left font-medium">Catégorie</th>
-                    <th className="px-4 py-3 text-center font-medium">Unité</th>
-                    <th className="px-4 py-3 text-right font-medium">Prix unitaire (XOF)</th>
-                    <th className="px-4 py-3 text-center font-medium">Actions</th>
+                    <th className="px-3 py-3 text-left font-medium">Code</th>
+                    <th className="px-3 py-3 text-left font-medium">Désignation</th>
+                    <th className="px-3 py-3 text-left font-medium">Marque</th>
+                    <th className="px-3 py-3 text-left font-medium">Catégorie</th>
+                    <th className="px-3 py-3 text-center font-medium">Qualité</th>
+                    <th className="px-3 py-3 text-center font-medium">Unité</th>
+                    <th className="px-3 py-3 text-right font-medium">Prix (XOF)</th>
+                    <th className="px-3 py-3 text-center font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {prices.map((item: any) => (
+                  {filteredPrices.map((item: any) => (
                     <tr key={item.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-mono text-xs">{item.itemCode}</td>
-                      <td className="px-4 py-3 font-medium">{item.itemName}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-2 font-mono text-xs">{item.itemCode}</td>
+                      <td className="px-3 py-2">
+                        <div className="font-medium text-sm">{item.itemName}</div>
+                        {item.model && <div className="text-xs text-muted-foreground">{item.model}</div>}
+                      </td>
+                      <td className="px-3 py-2 text-sm">{item.brand || "—"}</td>
+                      <td className="px-3 py-2">
                         <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                          {categories.find((c) => c.value === item.category)?.label || item.category}
+                          {SOLAR_CATEGORIES.find((c) => c.value === item.category)?.label || item.category}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center text-muted-foreground">{item.unit}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-3 py-2 text-center">
+                        {item.qualityLevel && (
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                            item.qualityLevel === "premium" ? "bg-amber-100 text-amber-700" :
+                            item.qualityLevel === "bon_rapport" ? "bg-green-100 text-green-700" :
+                            "bg-gray-100 text-gray-700"
+                          }`}>
+                            {QUALITY_LEVELS.find((q) => q.value === item.qualityLevel)?.label || item.qualityLevel}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-center text-muted-foreground">{item.unit}</td>
+                      <td className="px-3 py-2 text-right">
                         {editingId === item.id ? (
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="flex items-center justify-end gap-1">
                             <Input
                               type="number"
-                              className="w-32 h-8 text-right"
+                              className="w-28 h-7 text-right text-xs"
                               value={editPrice}
                               onChange={(e) => setEditPrice(e.target.value)}
                               onKeyDown={(e) => { if (e.key === "Enter") handleUpdatePrice(item.id); if (e.key === "Escape") setEditingId(null); }}
                               autoFocus
                             />
-                            <Button size="sm" variant="ghost" onClick={() => handleUpdatePrice(item.id)}>OK</Button>
+                            <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => handleUpdatePrice(item.id)}>OK</Button>
                           </div>
                         ) : (
-                          <span className="font-semibold">{Number(item.unitPrice).toLocaleString("fr-FR")}</span>
+                          <span className="font-semibold cursor-pointer hover:text-orange-600" onClick={() => { setEditingId(item.id); setEditPrice(String(item.unitPrice)); }}>
+                            {Number(item.unitPrice).toLocaleString("fr-FR")}
+                          </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => { setEditingId(item.id); setEditPrice(String(item.unitPrice)); }}
-                          title="Modifier le prix"
-                        >
-                          <Pencil size={14} />
-                        </Button>
+                      <td className="px-3 py-2 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(item)} title="Modifier">
+                            <Pencil size={14} />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDuplicate(item)} title="Dupliquer">
+                            <Copy size={14} />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}

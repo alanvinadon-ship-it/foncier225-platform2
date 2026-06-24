@@ -2550,3 +2550,12 @@
 ## Amélioration — Paramètres techniques : modifier et dupliquer
 - [x] Ajouter bouton modifier (dialog avec pré-remplissage, code désactivé en mode édition) pour chaque paramètre technique
 - [x] Ajouter bouton dupliquer (pré-remplissage avec suffixe _COPY) pour chaque paramètre technique
+
+## Sprint Catalogue Articles Solaires
+- [ ] Enrichir schéma DB catalogue prix : colonnes brand, model, qualityLevel, recommendedUsage, isActive
+- [ ] Ajouter les catégories manquantes (batteries_lithium, batteries_plomb, regulateurs, cables_solaires, protections, monitoring, services, maintenance, transport, autres)
+- [ ] Ajouter les unités manquantes (paire, kit, lot, kWc, Wh, Ah, W, forfait)
+- [ ] Seed 30 articles solaires dans le catalogue via script ou procédure
+- [ ] Mettre à jour le formulaire frontend (champs marque, modèle, qualité, usage, actif)
+- [x] Connecter l'IA au catalogue (recommandations selon dimensionnement)
+- [ ] Vérification TypeScript + tests + checkpoint
