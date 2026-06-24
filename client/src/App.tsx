@@ -164,6 +164,12 @@ const ErpAiUsageMonitoring = lazy(() => import("./pages/erp/ErpAiUsageMonitoring
 const ErpAiDocumentExtraction = lazy(() => import("./pages/erp/ErpAiDocumentExtraction"));
 const ErpAiDocumentDetail = lazy(() => import("./pages/erp/ErpAiDocumentDetail"));
 
+// Énergie Solaire
+const ErpSolarDashboard = lazy(() => import("./pages/erp/ErpSolarDashboard"));
+const ErpSolarNewProject = lazy(() => import("./pages/erp/ErpSolarNewProject"));
+const ErpSolarProjectDetail = lazy(() => import("./pages/erp/ErpSolarProjectDetail"));
+const ErpSolarSettings = lazy(() => import("./pages/erp/ErpSolarSettings"));
+
 function RouteFallback() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-6">
@@ -910,6 +916,26 @@ function Router() {
       <Route path="/erp/audit-logs">
         <ErpLayout>
           <ErpAuditLogs />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/solar">
+        <ErpLayout>
+          <ErpSolarDashboard />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/solar/new">
+        <ErpLayout>
+          <ErpSolarNewProject />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/solar/settings">
+        <ErpLayout>
+          <ErpSolarSettings />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/solar/:id">
+        <ErpLayout>
+          <ErpSolarProjectDetail />
         </ErpLayout>
       </Route>
 

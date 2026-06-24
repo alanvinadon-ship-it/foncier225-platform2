@@ -11,7 +11,7 @@ import { ERP_MODULES, ERP_DEFAULT_PERMISSIONS, ERP_ROLE_DEFAULT_PERMISSIONS } fr
 describe("Sprint Industrialisation ERP 1.0", () => {
   describe("RBAC - Modules industrialisation", () => {
     it("devrait avoir 35 modules ERP au total", () => {
-      expect(ERP_MODULES.length).toBe(36);
+      expect(ERP_MODULES.length).toBe(40);
     });
 
     it("devrait inclure le module erp_system_health", () => {

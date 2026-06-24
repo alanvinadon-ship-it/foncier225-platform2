@@ -4903,3 +4903,188 @@ export const erpAiCostLimits = mysqlTable("erp_ai_cost_limits", {
   createdAt: bigint("created_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull().$defaultFn(() => Date.now()),
 });
+
+// ============================================================
+// ERP SOLAR TABLES
+// ============================================================
+export const erpSolarProjects = mysqlTable("erp_solar_projects", {
+  id: int("id").primaryKey().autoincrement(),
+  projectCode: varchar("project_code", { length: 32 }).notNull(),
+  erpProjectId: int("erp_project_id"),
+  name: varchar("name", { length: 255 }).notNull(),
+  clientName: varchar("client_name", { length: 255 }),
+  siteName: varchar("site_name", { length: 255 }),
+  siteLocation: text("site_location"),
+  regionZoneId: int("region_zone_id"),
+  systemType: varchar("system_type", { length: 64 }).notNull().default("autonomous"),
+  status: varchar("status", { length: 64 }).notNull().default("draft"),
+  currency: varchar("currency", { length: 8 }).notNull().default("XOF"),
+  createdBy: varchar("created_by", { length: 64 }).notNull(),
+  validatedBy: varchar("validated_by", { length: 64 }),
+  validatedAt: bigint("validated_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+});
+
+export const erpSolarResourceZones = mysqlTable("erp_solar_resource_zones", {
+  id: int("id").primaryKey().autoincrement(),
+  zoneName: varchar("zone_name", { length: 128 }).notNull(),
+  country: varchar("country", { length: 64 }),
+  region: varchar("region", { length: 128 }),
+  city: varchar("city", { length: 128 }),
+  peakSunHours: decimal("peak_sun_hours", { precision: 4, scale: 2 }).notNull(),
+  source: varchar("source", { length: 255 }),
+  isDefault: boolean("is_default").default(false),
+  isActive: boolean("is_active").default(true),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+
+export const erpSolarTechnicalParameters = mysqlTable("erp_solar_technical_parameters", {
+  id: int("id").primaryKey().autoincrement(),
+  parameterCode: varchar("parameter_code", { length: 64 }).notNull(),
+  parameterName: varchar("parameter_name", { length: 255 }).notNull(),
+  parameterValue: decimal("parameter_value", { precision: 10, scale: 4 }).notNull(),
+  unit: varchar("unit", { length: 32 }),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+
+export const erpSolarPriceCatalog = mysqlTable("erp_solar_price_catalog", {
+  id: int("id").primaryKey().autoincrement(),
+  itemCode: varchar("item_code", { length: 64 }).notNull(),
+  itemName: varchar("item_name", { length: 255 }).notNull(),
+  category: varchar("category", { length: 64 }).notNull(),
+  unit: varchar("unit", { length: 32 }).notNull(),
+  unitPrice: decimal("unit_price", { precision: 14, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 8 }).notNull().default("XOF"),
+  supplierId: int("supplier_id"),
+  validFrom: bigint("valid_from", { mode: "number" }),
+  validTo: bigint("valid_to", { mode: "number" }),
+  isDefault: boolean("is_default").default(false),
+  isActive: boolean("is_active").default(true),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+
+export const erpSolarLoadItems = mysqlTable("erp_solar_load_items", {
+  id: int("id").primaryKey().autoincrement(),
+  solarProjectId: int("solar_project_id").notNull(),
+  equipmentName: varchar("equipment_name", { length: 255 }).notNull(),
+  equipmentCategory: varchar("equipment_category", { length: 64 }),
+  unitPowerW: decimal("unit_power_w", { precision: 10, scale: 2 }).notNull(),
+  quantity: int("quantity").notNull().default(1),
+  totalPowerW: decimal("total_power_w", { precision: 10, scale: 2 }).notNull(),
+  startupFactor: decimal("startup_factor", { precision: 4, scale: 2 }).notNull().default("1.00"),
+  peakPowerW: decimal("peak_power_w", { precision: 10, scale: 2 }).notNull(),
+  usageHoursPerDay: decimal("usage_hours_per_day", { precision: 4, scale: 1 }).notNull(),
+  dailyEnergyWh: decimal("daily_energy_wh", { precision: 12, scale: 2 }).notNull(),
+  isCriticalLoad: boolean("is_critical_load").default(false),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+
+export const erpSolarDesignInputs = mysqlTable("erp_solar_design_inputs", {
+  id: int("id").primaryKey().autoincrement(),
+  solarProjectId: int("solar_project_id").notNull(),
+  nominalVoltageV: int("nominal_voltage_v").notNull().default(48),
+  batteryTechnology: varchar("battery_technology", { length: 32 }).notNull().default("lithium"),
+  autonomyDays: int("autonomy_days").notNull().default(2),
+  peakSunHours: decimal("peak_sun_hours", { precision: 4, scale: 2 }).notNull(),
+  panelUnitPowerWc: int("panel_unit_power_wc").notNull().default(550),
+  panelToInverterCableLengthM: decimal("panel_to_inverter_cable_length_m", { precision: 6, scale: 1 }).notNull().default("10.0"),
+  batteryToInverterCableLengthM: decimal("battery_to_inverter_cable_length_m", { precision: 6, scale: 1 }).notNull().default("3.0"),
+  globalEfficiency: decimal("global_efficiency", { precision: 4, scale: 2 }).notNull().default("0.75"),
+  batteryDischargeRate: decimal("battery_discharge_rate", { precision: 4, scale: 2 }).notNull().default("0.80"),
+  voltageDropTarget: decimal("voltage_drop_target", { precision: 4, scale: 3 }).notNull().default("0.030"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+
+export const erpSolarSizingResults = mysqlTable("erp_solar_sizing_results", {
+  id: int("id").primaryKey().autoincrement(),
+  solarProjectId: int("solar_project_id").notNull(),
+  totalNominalPowerW: decimal("total_nominal_power_w", { precision: 12, scale: 2 }),
+  maxStartupPowerW: decimal("max_startup_power_w", { precision: 12, scale: 2 }),
+  totalDailyEnergyWh: decimal("total_daily_energy_wh", { precision: 12, scale: 2 }),
+  requiredPvPowerWc: decimal("required_pv_power_wc", { precision: 12, scale: 2 }),
+  panelUnitPowerWc: int("panel_unit_power_wc"),
+  panelsCount: int("panels_count"),
+  batteryCapacityAh: decimal("battery_capacity_ah", { precision: 12, scale: 2 }),
+  batteryCapacityWh: decimal("battery_capacity_wh", { precision: 12, scale: 2 }),
+  inverterMinPowerW: decimal("inverter_min_power_w", { precision: 12, scale: 2 }),
+  recommendedInverterPowerW: decimal("recommended_inverter_power_w", { precision: 12, scale: 2 }),
+  confidenceScore: decimal("confidence_score", { precision: 4, scale: 2 }),
+  calculationStatus: varchar("calculation_status", { length: 32 }).notNull().default("pending"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+
+export const erpSolarCableSizing = mysqlTable("erp_solar_cable_sizing", {
+  id: int("id").primaryKey().autoincrement(),
+  solarProjectId: int("solar_project_id").notNull(),
+  cableType: varchar("cable_type", { length: 64 }).notNull(),
+  lineName: varchar("line_name", { length: 128 }).notNull(),
+  lengthM: decimal("length_m", { precision: 8, scale: 2 }).notNull(),
+  currentA: decimal("current_a", { precision: 8, scale: 2 }).notNull(),
+  theoreticalSectionMm2: decimal("theoretical_section_mm2", { precision: 8, scale: 2 }).notNull(),
+  recommendedCommercialSectionMm2: decimal("recommended_commercial_section_mm2", { precision: 6, scale: 1 }).notNull(),
+  voltageDropPercent: decimal("voltage_drop_percent", { precision: 6, scale: 3 }),
+  material: varchar("material", { length: 32 }).notNull().default("copper"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+
+export const erpSolarBudgetLines = mysqlTable("erp_solar_budget_lines", {
+  id: int("id").primaryKey().autoincrement(),
+  solarProjectId: int("solar_project_id").notNull(),
+  lotNumber: int("lot_number").notNull(),
+  lotName: varchar("lot_name", { length: 255 }).notNull(),
+  category: varchar("category", { length: 64 }).notNull(),
+  quantity: decimal("quantity", { precision: 12, scale: 2 }).notNull(),
+  unit: varchar("unit", { length: 32 }).notNull(),
+  unitPrice: decimal("unit_price", { precision: 14, scale: 2 }).notNull(),
+  amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 8 }).notNull().default("XOF"),
+  calculationMethod: varchar("calculation_method", { length: 128 }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+
+export const erpSolarScenarios = mysqlTable("erp_solar_scenarios", {
+  id: int("id").primaryKey().autoincrement(),
+  solarProjectId: int("solar_project_id").notNull(),
+  scenarioName: varchar("scenario_name", { length: 128 }).notNull(),
+  batteryTechnology: varchar("battery_technology", { length: 32 }).notNull(),
+  autonomyDays: int("autonomy_days").notNull(),
+  panelPowerWc: int("panel_power_wc").notNull(),
+  peakSunHours: decimal("peak_sun_hours", { precision: 4, scale: 2 }).notNull(),
+  totalCost: decimal("total_cost", { precision: 14, scale: 2 }),
+  panelsCount: int("panels_count"),
+  batteryCapacityAh: decimal("battery_capacity_ah", { precision: 12, scale: 2 }),
+  inverterPowerW: decimal("inverter_power_w", { precision: 12, scale: 2 }),
+  aiScore: decimal("ai_score", { precision: 4, scale: 2 }),
+  recommendedByAi: boolean("recommended_by_ai").default(false),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+
+export const erpSolarAiRecommendations = mysqlTable("erp_solar_ai_recommendations", {
+  id: int("id").primaryKey().autoincrement(),
+  solarProjectId: int("solar_project_id").notNull(),
+  recommendationType: varchar("recommendation_type", { length: 64 }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  severity: varchar("severity", { length: 16 }).notNull().default("info"),
+  confidenceScore: decimal("confidence_score", { precision: 4, scale: 2 }),
+  expectedImpact: text("expected_impact"),
+  status: varchar("status", { length: 32 }).notNull().default("suggested"),
+  validatedBy: varchar("validated_by", { length: 64 }),
+  validatedAt: bigint("validated_at", { mode: "number" }),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+

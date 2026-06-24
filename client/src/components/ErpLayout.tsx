@@ -58,6 +58,7 @@ import {
   FileSearch,
   Server,
   ArrowRight,
+  Sun,
 } from "lucide-react";
 import { useState } from "react";
 import { NotificationBell } from "@/components/erp/NotificationBell";
@@ -202,6 +203,17 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
       { label: "Diffusion Rapports", href: "/erp/direction-schedules", icon: <Mail size={18} />, module: "erp_budget_integrations" },
       { label: "Qualité Données", href: "/erp/direction-data-quality", icon: <ShieldCheck size={18} />, module: "erp_budget_integrations" },
       { label: "Jobs Intégration", href: "/erp/budget-integrations/jobs", icon: <Activity size={18} />, module: "erp_budget_integrations" },
+    ],
+  },
+
+  // ===== ÉNERGIE SOLAIRE =====
+  {
+    label: "Énergie Solaire",
+    icon: <Sun size={18} />,
+    module: "erp_solar",
+    children: [
+      { label: "Dashboard Solaire", href: "/erp/solar", icon: <Sun size={18} />, module: "erp_solar" },
+      { label: "Paramètres", href: "/erp/solar/settings", icon: <Settings size={18} />, module: "erp_solar" },
     ],
   },
 

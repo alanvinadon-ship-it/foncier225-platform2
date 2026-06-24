@@ -52,6 +52,7 @@ export const ERP_MODULES = [
   "erp_ai_plan_analyzer",
   "erp_ai_assistant",
   "erp_ai_document_extraction",
+  "erp_solar",
 ] as const;
 
 export type ErpModule = (typeof ERP_MODULES)[number];
@@ -355,6 +356,21 @@ export const ERP_DEFAULT_PERMISSIONS: Array<{
   { module: "erp_sales_orders", action: "update", displayName: "Modifier une commande", description: "Modifier les informations d'une commande" },
   { module: "erp_sales_orders", action: "delete", displayName: "Supprimer une commande", description: "Supprimer un bon de commande" },
   { module: "erp_sales_orders", action: "export", displayName: "Exporter les commandes", description: "Exporter la liste des commandes clients" },
+  // AI Plan Analyzer
+  { module: "erp_ai_plan_analyzer", action: "view", displayName: "Voir les métrés IA", description: "Consulter les analyses de plans" },
+  { module: "erp_ai_plan_analyzer", action: "create", displayName: "Lancer une analyse IA", description: "Soumettre un plan à l'analyse IA" },
+  // AI Assistant
+  { module: "erp_ai_assistant", action: "view", displayName: "Voir l'assistant IA", description: "Accéder à l'assistant IA" },
+  { module: "erp_ai_assistant", action: "create", displayName: "Utiliser l'assistant IA", description: "Envoyer des requêtes à l'assistant" },
+  // AI Document Extraction
+  { module: "erp_ai_document_extraction", action: "view", displayName: "Voir les extractions", description: "Consulter les documents extraits" },
+  { module: "erp_ai_document_extraction", action: "create", displayName: "Extraire un document", description: "Soumettre un document à l'extraction IA" },
+  // Solar
+  { module: "erp_solar", action: "view", displayName: "Voir les projets solaires", description: "Consulter les projets solaires" },
+  { module: "erp_solar", action: "create", displayName: "Créer un projet solaire", description: "Créer un nouveau projet solaire" },
+  { module: "erp_solar", action: "update", displayName: "Modifier un projet solaire", description: "Modifier un projet solaire existant" },
+  { module: "erp_solar", action: "delete", displayName: "Supprimer un projet solaire", description: "Supprimer un projet solaire" },
+  { module: "erp_solar", action: "export", displayName: "Exporter les données solaires", description: "Exporter les rapports et données solaires" },
 ];
 
 // ============================================================

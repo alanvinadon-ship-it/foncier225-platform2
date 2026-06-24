@@ -1,0 +1,724 @@
+import { z } from "zod";
+import { eq, and, isNull, desc, sql, asc } from "drizzle-orm";
+import { router, protectedProcedure } from "../_core/trpc";
+import { getDb } from "../db";
+import {
+  erpSolarProjects, erpSolarResourceZones, erpSolarTechnicalParameters,
+  erpSolarPriceCatalog, erpSolarLoadItems, erpSolarDesignInputs,
+  erpSolarSizingResults, erpSolarCableSizing, erpSolarBudgetLines,
+  erpSolarScenarios, erpSolarAiRecommendations,
+} from "../../drizzle/schema";
+import {
+  calculateLoadBalance, calculateFullSizing, calculateBudget,
+  DEFAULT_PRICES, DEFAULT_DESIGN_INPUTS,
+  type LoadItem, type DesignInputs, type PriceCatalog,
+} from "./erp-solar-calculation-engine.service";
+import {
+  generateSolarRecommendations, generateScenarios, solarAiChat,
+  type SolarProjectContext,
+} from "./erp-solar-ai.service";
+
+// ============================================================
+// SOUS-ROUTEURS
+// ============================================================
+
+const projectsRouter = router({
+  list: protectedProcedure
+    .input(z.object({ status: z.string().optional(), limit: z.number().default(50) }))
+    .query(async ({ input }) => {
+      const db = (await getDb())!;
+      const baseWhere = input.status ? and(isNull(erpSolarProjects.deletedAt), eq(erpSolarProjects.status, input.status)) : isNull(erpSolarProjects.deletedAt);
+      const rows = await db.select().from(erpSolarProjects).where(baseWhere).orderBy(desc(erpSolarProjects.createdAt)).limit(input.limit);
+      return rows;
+    }),
+
+  getById: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      const db = (await getDb())!;
+      const [project] = await db.select().from(erpSolarProjects).where(eq(erpSolarProjects.id, input.id));
+      return project || null;
+    }),
+
+  create: protectedProcedure
+    .input(z.object({
+      name: z.string().min(1),
+      clientName: z.string().optional(),
+      siteName: z.string().optional(),
+      siteLocation: z.string().optional(),
+      regionZoneId: z.number().optional(),
+      systemType: z.string().default("autonomous"),
+      erpProjectId: z.number().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = (await getDb())!;
+      const now = Date.now();
+      const code = `SOL-${now.toString(36).toUpperCase()}`;
+      const [result] = await db.insert(erpSolarProjects).values({
+        projectCode: code,
+        name: input.name,
+        clientName: input.clientName || null,
+        siteName: input.siteName || null,
+        siteLocation: input.siteLocation || null,
+        regionZoneId: input.regionZoneId || null,
+        systemType: input.systemType,
+        erpProjectId: input.erpProjectId || null,
+        status: "draft",
+        currency: "XOF",
+        createdBy: ctx.user.openId,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return { id: result.insertId, projectCode: code };
+    }),
+
+  update: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      clientName: z.string().optional(),
+      siteName: z.string().optional(),
+      siteLocation: z.string().optional(),
+      regionZoneId: z.number().optional(),
+      systemType: z.string().optional(),
+      status: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      const { id, ...updates } = input;
+      await db.update(erpSolarProjects).set({ ...updates, updatedAt: Date.now() } as any).where(eq(erpSolarProjects.id, id));
+      return { success: true };
+    }),
+
+  delete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      await db.update(erpSolarProjects).set({ deletedAt: Date.now() }).where(eq(erpSolarProjects.id, input.id));
+      return { success: true };
+    }),
+
+  dashboard: protectedProcedure.query(async () => {
+    const db = (await getDb())!;
+    const projects = await db.select().from(erpSolarProjects).where(isNull(erpSolarProjects.deletedAt));
+    const totalProjects = projects.length;
+    const draftProjects = projects.filter(p => p.status === "draft").length;
+    const studyProjects = projects.filter(p => p.status === "study").length;
+    const validatedProjects = projects.filter(p => p.status === "validated").length;
+
+    // Calcul totaux
+    const sizingResults = await db.select().from(erpSolarSizingResults);
+    const totalPvPowerWc = sizingResults.reduce((sum, r) => sum + Number(r.requiredPvPowerWc || 0), 0);
+    const totalDailyEnergy = sizingResults.reduce((sum, r) => sum + Number(r.totalDailyEnergyWh || 0), 0);
+
+    const budgetLines = await db.select().from(erpSolarBudgetLines);
+    const totalBudget = budgetLines.reduce((sum, l) => sum + Number(l.amount || 0), 0);
+
+    const recommendations = await db.select().from(erpSolarAiRecommendations).where(eq(erpSolarAiRecommendations.severity, "critical"));
+    const criticalRecommendations = recommendations.filter(r => r.status === "suggested").length;
+
+    return {
+      totalProjects,
+      draftProjects,
+      studyProjects,
+      validatedProjects,
+      totalPvPowerWc,
+      totalDailyEnergy,
+      totalBudget,
+      criticalRecommendations,
+    };
+  }),
+});
+
+const loadItemsRouter = router({
+  list: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ input }) => {
+      const db = (await getDb())!;
+      return db.select().from(erpSolarLoadItems).where(eq(erpSolarLoadItems.solarProjectId, input.projectId)).orderBy(asc(erpSolarLoadItems.id));
+    }),
+
+  create: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      equipmentName: z.string().min(1),
+      equipmentCategory: z.string().optional(),
+      unitPowerW: z.number().min(0),
+      quantity: z.number().min(1),
+      startupFactor: z.number().min(1).default(1),
+      usageHoursPerDay: z.number().min(0).max(24),
+      isCriticalLoad: z.boolean().default(false),
+    }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      const now = Date.now();
+      const totalPowerW = input.unitPowerW * input.quantity;
+      const peakPowerW = totalPowerW * input.startupFactor;
+      const dailyEnergyWh = totalPowerW * input.usageHoursPerDay;
+
+      const [result] = await db.insert(erpSolarLoadItems).values({
+        solarProjectId: input.projectId,
+        equipmentName: input.equipmentName,
+        equipmentCategory: input.equipmentCategory || null,
+        unitPowerW: String(input.unitPowerW),
+        quantity: input.quantity,
+        totalPowerW: String(totalPowerW),
+        startupFactor: String(input.startupFactor),
+        peakPowerW: String(peakPowerW),
+        usageHoursPerDay: String(input.usageHoursPerDay),
+        dailyEnergyWh: String(dailyEnergyWh),
+        isCriticalLoad: input.isCriticalLoad,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return { id: result.insertId };
+    }),
+
+  update: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      equipmentName: z.string().optional(),
+      equipmentCategory: z.string().optional(),
+      unitPowerW: z.number().optional(),
+      quantity: z.number().optional(),
+      startupFactor: z.number().optional(),
+      usageHoursPerDay: z.number().optional(),
+      isCriticalLoad: z.boolean().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      const { id, ...updates } = input;
+      // Recalculate if power/qty/factor/hours changed
+      const updateData: any = { ...updates, updatedAt: Date.now() };
+      if (updates.unitPowerW !== undefined || updates.quantity !== undefined || updates.startupFactor !== undefined || updates.usageHoursPerDay !== undefined) {
+        const [existing] = await db.select().from(erpSolarLoadItems).where(eq(erpSolarLoadItems.id, id));
+        if (existing) {
+          const unitP = updates.unitPowerW ?? Number(existing.unitPowerW);
+          const qty = updates.quantity ?? existing.quantity;
+          const sf = updates.startupFactor ?? Number(existing.startupFactor);
+          const hrs = updates.usageHoursPerDay ?? Number(existing.usageHoursPerDay);
+          updateData.totalPowerW = String(unitP * qty);
+          updateData.peakPowerW = String(unitP * qty * sf);
+          updateData.dailyEnergyWh = String(unitP * qty * hrs);
+          if (updates.unitPowerW !== undefined) updateData.unitPowerW = String(updates.unitPowerW);
+          if (updates.startupFactor !== undefined) updateData.startupFactor = String(updates.startupFactor);
+          if (updates.usageHoursPerDay !== undefined) updateData.usageHoursPerDay = String(updates.usageHoursPerDay);
+        }
+      }
+      await db.update(erpSolarLoadItems).set(updateData).where(eq(erpSolarLoadItems.id, id));
+      return { success: true };
+    }),
+
+  delete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      await db.delete(erpSolarLoadItems).where(eq(erpSolarLoadItems.id, input.id));
+      return { success: true };
+    }),
+
+  calculateBalance: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      const items = await db.select().from(erpSolarLoadItems).where(eq(erpSolarLoadItems.solarProjectId, input.projectId));
+      const loadItems: LoadItem[] = items.map(i => ({
+        equipmentName: i.equipmentName,
+        equipmentCategory: i.equipmentCategory || undefined,
+        unitPowerW: Number(i.unitPowerW),
+        quantity: i.quantity,
+        startupFactor: Number(i.startupFactor),
+        usageHoursPerDay: Number(i.usageHoursPerDay),
+        isCriticalLoad: i.isCriticalLoad || false,
+      }));
+      const result = calculateLoadBalance(loadItems);
+      return result;
+    }),
+});
+
+const sizingRouter = router({
+  getDesignInputs: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ input }) => {
+      const db = (await getDb())!;
+      const [existing] = await db.select().from(erpSolarDesignInputs).where(eq(erpSolarDesignInputs.solarProjectId, input.projectId));
+      return existing || null;
+    }),
+
+  saveDesignInputs: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      nominalVoltageV: z.number().default(48),
+      batteryTechnology: z.string().default("lithium"),
+      autonomyDays: z.number().default(2),
+      peakSunHours: z.number(),
+      panelUnitPowerWc: z.number().default(550),
+      panelToInverterCableLengthM: z.number().default(10),
+      batteryToInverterCableLengthM: z.number().default(3),
+      globalEfficiency: z.number().default(0.75),
+      batteryDischargeRate: z.number().default(0.80),
+      voltageDropTarget: z.number().default(0.03),
+    }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      const now = Date.now();
+      const { projectId, ...data } = input;
+      const [existing] = await db.select().from(erpSolarDesignInputs).where(eq(erpSolarDesignInputs.solarProjectId, projectId));
+      if (existing) {
+        await db.update(erpSolarDesignInputs).set({ ...data, updatedAt: now } as any).where(eq(erpSolarDesignInputs.id, existing.id));
+      } else {
+        await db.insert(erpSolarDesignInputs).values({
+          solarProjectId: projectId,
+          ...data,
+          createdAt: now,
+          updatedAt: now,
+        } as any);
+      }
+      return { success: true };
+    }),
+
+  calculate: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+
+      // Get load items
+      const items = await db.select().from(erpSolarLoadItems).where(eq(erpSolarLoadItems.solarProjectId, input.projectId));
+      if (items.length === 0) throw new Error("Aucun équipement dans le bilan de puissance");
+
+      const loadItems: LoadItem[] = items.map(i => ({
+        equipmentName: i.equipmentName,
+        unitPowerW: Number(i.unitPowerW),
+        quantity: i.quantity,
+        startupFactor: Number(i.startupFactor),
+        usageHoursPerDay: Number(i.usageHoursPerDay),
+        isCriticalLoad: i.isCriticalLoad || false,
+      }));
+      const loadBalance = calculateLoadBalance(loadItems);
+
+      // Get design inputs
+      const [designRow] = await db.select().from(erpSolarDesignInputs).where(eq(erpSolarDesignInputs.solarProjectId, input.projectId));
+      const designInputs: DesignInputs = designRow ? {
+        nominalVoltageV: designRow.nominalVoltageV,
+        batteryTechnology: designRow.batteryTechnology as "lithium" | "plomb",
+        autonomyDays: designRow.autonomyDays,
+        peakSunHours: Number(designRow.peakSunHours),
+        panelUnitPowerWc: designRow.panelUnitPowerWc,
+        panelToInverterCableLengthM: Number(designRow.panelToInverterCableLengthM),
+        batteryToInverterCableLengthM: Number(designRow.batteryToInverterCableLengthM),
+        globalEfficiency: Number(designRow.globalEfficiency),
+        batteryDischargeRate: Number(designRow.batteryDischargeRate),
+        voltageDropTarget: Number(designRow.voltageDropTarget),
+      } : DEFAULT_DESIGN_INPUTS;
+
+      // Calculate full sizing
+      const sizing = calculateFullSizing(loadBalance, designInputs);
+      const now = Date.now();
+
+      // Save sizing results
+      const [existingSizing] = await db.select().from(erpSolarSizingResults).where(eq(erpSolarSizingResults.solarProjectId, input.projectId));
+      const sizingData = {
+        solarProjectId: input.projectId,
+        totalNominalPowerW: String(loadBalance.totalNominalPowerW),
+        maxStartupPowerW: String(loadBalance.maxStartupPowerW),
+        totalDailyEnergyWh: String(loadBalance.totalDailyEnergyWh),
+        requiredPvPowerWc: String(sizing.pv.requiredPvPowerWc),
+        panelUnitPowerWc: sizing.pv.panelUnitPowerWc,
+        panelsCount: sizing.pv.panelsCount,
+        batteryCapacityAh: String(sizing.battery.capacityAh),
+        batteryCapacityWh: String(sizing.battery.capacityWh),
+        inverterMinPowerW: String(sizing.inverter.minPowerW),
+        recommendedInverterPowerW: String(sizing.inverter.recommendedPowerW),
+        calculationStatus: "completed",
+        updatedAt: now,
+      };
+
+      if (existingSizing) {
+        await db.update(erpSolarSizingResults).set(sizingData as any).where(eq(erpSolarSizingResults.id, existingSizing.id));
+      } else {
+        await db.insert(erpSolarSizingResults).values({ ...sizingData, createdAt: now } as any);
+      }
+
+      // Save cable sizing
+      await db.delete(erpSolarCableSizing).where(eq(erpSolarCableSizing.solarProjectId, input.projectId));
+      for (const cable of sizing.cables) {
+        await db.insert(erpSolarCableSizing).values({
+          solarProjectId: input.projectId,
+          cableType: cable.cableType,
+          lineName: cable.lineName,
+          lengthM: String(cable.lengthM),
+          currentA: String(cable.currentA),
+          theoreticalSectionMm2: String(cable.theoreticalSectionMm2),
+          recommendedCommercialSectionMm2: String(cable.recommendedCommercialSectionMm2),
+          voltageDropPercent: String(cable.voltageDropPercent),
+          material: cable.material,
+          createdAt: now,
+          updatedAt: now,
+        } as any);
+      }
+
+      // Update project status
+      await db.update(erpSolarProjects).set({ status: "study", updatedAt: now }).where(eq(erpSolarProjects.id, input.projectId));
+
+      return { sizing, loadBalance };
+    }),
+
+  getResults: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ input }) => {
+      const db = (await getDb())!;
+      const [sizing] = await db.select().from(erpSolarSizingResults).where(eq(erpSolarSizingResults.solarProjectId, input.projectId));
+      const cables = await db.select().from(erpSolarCableSizing).where(eq(erpSolarCableSizing.solarProjectId, input.projectId));
+      return { sizing: sizing || null, cables };
+    }),
+});
+
+const budgetRouter = router({
+  calculate: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+
+      // Get sizing
+      const [sizingRow] = await db.select().from(erpSolarSizingResults).where(eq(erpSolarSizingResults.solarProjectId, input.projectId));
+      if (!sizingRow || sizingRow.calculationStatus !== "completed") throw new Error("Dimensionnement non calculé");
+
+      const [designRow] = await db.select().from(erpSolarDesignInputs).where(eq(erpSolarDesignInputs.solarProjectId, input.projectId));
+      const cables = await db.select().from(erpSolarCableSizing).where(eq(erpSolarCableSizing.solarProjectId, input.projectId));
+
+      // Get prices from catalog or use defaults
+      const catalogItems = await db.select().from(erpSolarPriceCatalog).where(eq(erpSolarPriceCatalog.isActive, true));
+      const prices: PriceCatalog = { ...DEFAULT_PRICES };
+      for (const item of catalogItems) {
+        if (item.category === "panels") prices.pricePerWcPanel = Number(item.unitPrice);
+        if (item.category === "batteries_lithium") prices.pricePerWhLithium = Number(item.unitPrice);
+        if (item.category === "batteries_plomb") prices.pricePerAhPlomb = Number(item.unitPrice);
+        if (item.category === "inverter") prices.pricePerWInverter = Number(item.unitPrice);
+        if (item.category === "cables") prices.pricePerMeterCable = Number(item.unitPrice);
+      }
+
+      const sizing = {
+        pv: {
+          requiredPvPowerWc: Number(sizingRow.requiredPvPowerWc),
+          panelUnitPowerWc: sizingRow.panelUnitPowerWc || 550,
+          panelsCount: sizingRow.panelsCount || 0,
+          totalInstalledPowerWc: (sizingRow.panelsCount || 0) * (sizingRow.panelUnitPowerWc || 550),
+        },
+        battery: {
+          capacityAh: Number(sizingRow.batteryCapacityAh),
+          capacityWh: Number(sizingRow.batteryCapacityWh),
+          technology: designRow?.batteryTechnology || "lithium",
+          autonomyDays: designRow?.autonomyDays || 2,
+          nominalVoltageV: designRow?.nominalVoltageV || 48,
+          dischargeRate: Number(designRow?.batteryDischargeRate || 0.8),
+        },
+        inverter: {
+          minPowerW: Number(sizingRow.inverterMinPowerW),
+          recommendedPowerW: Number(sizingRow.recommendedInverterPowerW),
+          safetyMargin: 1.25,
+          coversStartup: true,
+        },
+        cables: cables.map(c => ({
+          cableType: c.cableType,
+          lineName: c.lineName,
+          lengthM: Number(c.lengthM),
+          currentA: Number(c.currentA),
+          theoreticalSectionMm2: Number(c.theoreticalSectionMm2),
+          recommendedCommercialSectionMm2: Number(c.recommendedCommercialSectionMm2),
+          voltageDropPercent: Number(c.voltageDropPercent),
+          material: c.material,
+        })),
+      };
+
+      const budget = calculateBudget(sizing, prices);
+      const now = Date.now();
+
+      // Save budget lines
+      await db.delete(erpSolarBudgetLines).where(eq(erpSolarBudgetLines.solarProjectId, input.projectId));
+      for (const line of budget.lines) {
+        await db.insert(erpSolarBudgetLines).values({
+          solarProjectId: input.projectId,
+          lotNumber: line.lotNumber,
+          lotName: line.lotName,
+          category: line.category,
+          quantity: String(line.quantity),
+          unit: line.unit,
+          unitPrice: String(line.unitPrice),
+          amount: String(line.amount),
+          currency: budget.currency,
+          calculationMethod: line.calculationMethod,
+          createdAt: now,
+          updatedAt: now,
+        } as any);
+      }
+
+      return budget;
+    }),
+
+  getLines: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ input }) => {
+      const db = (await getDb())!;
+      return db.select().from(erpSolarBudgetLines).where(eq(erpSolarBudgetLines.solarProjectId, input.projectId)).orderBy(asc(erpSolarBudgetLines.lotNumber));
+    }),
+});
+
+const scenariosRouter = router({
+  list: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ input }) => {
+      const db = (await getDb())!;
+      return db.select().from(erpSolarScenarios).where(eq(erpSolarScenarios.solarProjectId, input.projectId));
+    }),
+
+  generate: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+
+      const items = await db.select().from(erpSolarLoadItems).where(eq(erpSolarLoadItems.solarProjectId, input.projectId));
+      if (items.length === 0) throw new Error("Aucun équipement dans le bilan de puissance");
+
+      const loadItems: LoadItem[] = items.map(i => ({
+        equipmentName: i.equipmentName,
+        unitPowerW: Number(i.unitPowerW),
+        quantity: i.quantity,
+        startupFactor: Number(i.startupFactor),
+        usageHoursPerDay: Number(i.usageHoursPerDay),
+        isCriticalLoad: i.isCriticalLoad || false,
+      }));
+      const loadBalance = calculateLoadBalance(loadItems);
+
+      const [designRow] = await db.select().from(erpSolarDesignInputs).where(eq(erpSolarDesignInputs.solarProjectId, input.projectId));
+      const designInputs: DesignInputs = designRow ? {
+        nominalVoltageV: designRow.nominalVoltageV,
+        batteryTechnology: designRow.batteryTechnology as "lithium" | "plomb",
+        autonomyDays: designRow.autonomyDays,
+        peakSunHours: Number(designRow.peakSunHours),
+        panelUnitPowerWc: designRow.panelUnitPowerWc,
+        panelToInverterCableLengthM: Number(designRow.panelToInverterCableLengthM),
+        batteryToInverterCableLengthM: Number(designRow.batteryToInverterCableLengthM),
+        globalEfficiency: Number(designRow.globalEfficiency),
+        batteryDischargeRate: Number(designRow.batteryDischargeRate),
+        voltageDropTarget: Number(designRow.voltageDropTarget),
+      } : DEFAULT_DESIGN_INPUTS;
+
+      const scenarios = generateScenarios(loadBalance, designInputs);
+      const now = Date.now();
+
+      // Clear existing scenarios
+      await db.delete(erpSolarScenarios).where(eq(erpSolarScenarios.solarProjectId, input.projectId));
+
+      // Save new scenarios
+      for (const s of scenarios) {
+        await db.insert(erpSolarScenarios).values({
+          solarProjectId: input.projectId,
+          scenarioName: s.scenarioName,
+          batteryTechnology: s.batteryTechnology,
+          autonomyDays: s.autonomyDays,
+          panelPowerWc: s.panelPowerWc,
+          peakSunHours: String(s.peakSunHours),
+          totalCost: String(s.totalCost),
+          panelsCount: s.panelsCount,
+          batteryCapacityAh: String(s.batteryCapacityAh),
+          inverterPowerW: String(s.inverterPowerW),
+          aiScore: String(s.aiScore),
+          recommendedByAi: s.recommendedByAi,
+          createdAt: now,
+          updatedAt: now,
+        } as any);
+      }
+
+      return scenarios;
+    }),
+});
+
+const aiRouter = router({
+  generateRecommendations: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      const context = await buildProjectContext(db, input.projectId);
+      if (!context) throw new Error("Projet non trouvé ou dimensionnement non calculé");
+
+      const recommendations = await generateSolarRecommendations(context);
+      const now = Date.now();
+
+      // Save recommendations
+      await db.delete(erpSolarAiRecommendations).where(eq(erpSolarAiRecommendations.solarProjectId, input.projectId));
+      for (const rec of recommendations) {
+        await db.insert(erpSolarAiRecommendations).values({
+          solarProjectId: input.projectId,
+          recommendationType: rec.recommendationType,
+          title: rec.title,
+          description: rec.description,
+          severity: rec.severity,
+          confidenceScore: String(rec.confidenceScore),
+          expectedImpact: rec.expectedImpact,
+          status: "suggested",
+          createdAt: now,
+          updatedAt: now,
+        } as any);
+      }
+
+      return recommendations;
+    }),
+
+  getRecommendations: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ input }) => {
+      const db = (await getDb())!;
+      return db.select().from(erpSolarAiRecommendations).where(eq(erpSolarAiRecommendations.solarProjectId, input.projectId)).orderBy(desc(erpSolarAiRecommendations.createdAt));
+    }),
+
+  chat: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      question: z.string().min(1),
+      history: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string() })).default([]),
+    }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      const context = await buildProjectContext(db, input.projectId);
+      if (!context) throw new Error("Projet non trouvé ou dimensionnement non calculé");
+
+      const answer = await solarAiChat(input.question, context, input.history);
+      return { answer };
+    }),
+
+  validateRecommendation: protectedProcedure
+    .input(z.object({ id: z.number(), action: z.enum(["validate", "reject"]) }))
+    .mutation(async ({ input, ctx }) => {
+      const db = (await getDb())!;
+      const status = input.action === "validate" ? "validated" : "rejected";
+      await db.update(erpSolarAiRecommendations).set({
+        status,
+        validatedBy: ctx.user.openId,
+        validatedAt: Date.now(),
+        updatedAt: Date.now(),
+      }).where(eq(erpSolarAiRecommendations.id, input.id));
+      return { success: true };
+    }),
+});
+
+const settingsRouter = router({
+  zones: router({
+    list: protectedProcedure.query(async () => {
+      const db = (await getDb())!;
+      return db.select().from(erpSolarResourceZones).where(eq(erpSolarResourceZones.isActive, true)).orderBy(asc(erpSolarResourceZones.zoneName));
+    }),
+    create: protectedProcedure
+      .input(z.object({ zoneName: z.string(), country: z.string().optional(), region: z.string().optional(), city: z.string().optional(), peakSunHours: z.number(), source: z.string().optional() }))
+      .mutation(async ({ input }) => {
+        const db = (await getDb())!;
+        const now = Date.now();
+        const [result] = await db.insert(erpSolarResourceZones).values({ ...input, peakSunHours: String(input.peakSunHours), isActive: true, createdAt: now, updatedAt: now } as any);
+        return { id: result.insertId };
+      }),
+  }),
+  parameters: router({
+    list: protectedProcedure.query(async () => {
+      const db = (await getDb())!;
+      return db.select().from(erpSolarTechnicalParameters).where(eq(erpSolarTechnicalParameters.isActive, true));
+    }),
+    upsert: protectedProcedure
+      .input(z.object({ parameterCode: z.string(), parameterName: z.string(), parameterValue: z.number(), unit: z.string().optional(), description: z.string().optional() }))
+      .mutation(async ({ input }) => {
+        const db = (await getDb())!;
+        const now = Date.now();
+        const [existing] = await db.select().from(erpSolarTechnicalParameters).where(eq(erpSolarTechnicalParameters.parameterCode, input.parameterCode));
+        if (existing) {
+          await db.update(erpSolarTechnicalParameters).set({ parameterValue: String(input.parameterValue), parameterName: input.parameterName, unit: input.unit, description: input.description, updatedAt: now } as any).where(eq(erpSolarTechnicalParameters.id, existing.id));
+          return { id: existing.id };
+        }
+        const [result] = await db.insert(erpSolarTechnicalParameters).values({ ...input, parameterValue: String(input.parameterValue), isActive: true, createdAt: now, updatedAt: now } as any);
+        return { id: result.insertId };
+      }),
+  }),
+  priceCatalog: router({
+    list: protectedProcedure.query(async () => {
+      const db = (await getDb())!;
+      return db.select().from(erpSolarPriceCatalog).where(eq(erpSolarPriceCatalog.isActive, true)).orderBy(asc(erpSolarPriceCatalog.category));
+    }),
+    create: protectedProcedure
+      .input(z.object({ itemCode: z.string(), itemName: z.string(), category: z.string(), unit: z.string(), unitPrice: z.number(), supplierId: z.number().optional() }))
+      .mutation(async ({ input }) => {
+        const db = (await getDb())!;
+        const now = Date.now();
+        const [result] = await db.insert(erpSolarPriceCatalog).values({ ...input, unitPrice: String(input.unitPrice), currency: "XOF", isActive: true, createdAt: now, updatedAt: now } as any);
+        return { id: result.insertId };
+      }),
+    update: protectedProcedure
+      .input(z.object({ id: z.number(), unitPrice: z.number().optional(), itemName: z.string().optional(), isActive: z.boolean().optional() }))
+      .mutation(async ({ input }) => {
+        const db = (await getDb())!;
+        const { id, ...updates } = input;
+        const data: any = { ...updates, updatedAt: Date.now() };
+        if (updates.unitPrice !== undefined) data.unitPrice = String(updates.unitPrice);
+        await db.update(erpSolarPriceCatalog).set(data).where(eq(erpSolarPriceCatalog.id, id));
+        return { success: true };
+      }),
+  }),
+});
+
+// ============================================================
+// HELPER: Build project context for AI
+// ============================================================
+
+async function buildProjectContext(db: any, projectId: number): Promise<SolarProjectContext | null> {
+  const [project] = await db.select().from(erpSolarProjects).where(eq(erpSolarProjects.id, projectId));
+  if (!project) return null;
+
+  const items = await db.select().from(erpSolarLoadItems).where(eq(erpSolarLoadItems.solarProjectId, projectId));
+  if (items.length === 0) return null;
+
+  const loadItems: LoadItem[] = items.map((i: any) => ({
+    equipmentName: i.equipmentName,
+    unitPowerW: Number(i.unitPowerW),
+    quantity: i.quantity,
+    startupFactor: Number(i.startupFactor),
+    usageHoursPerDay: Number(i.usageHoursPerDay),
+    isCriticalLoad: i.isCriticalLoad || false,
+  }));
+  const loadBalance = calculateLoadBalance(loadItems);
+
+  const [designRow] = await db.select().from(erpSolarDesignInputs).where(eq(erpSolarDesignInputs.solarProjectId, projectId));
+  const designInputs: DesignInputs = designRow ? {
+    nominalVoltageV: designRow.nominalVoltageV,
+    batteryTechnology: designRow.batteryTechnology as "lithium" | "plomb",
+    autonomyDays: designRow.autonomyDays,
+    peakSunHours: Number(designRow.peakSunHours),
+    panelUnitPowerWc: designRow.panelUnitPowerWc,
+    panelToInverterCableLengthM: Number(designRow.panelToInverterCableLengthM),
+    batteryToInverterCableLengthM: Number(designRow.batteryToInverterCableLengthM),
+    globalEfficiency: Number(designRow.globalEfficiency),
+    batteryDischargeRate: Number(designRow.batteryDischargeRate),
+    voltageDropTarget: Number(designRow.voltageDropTarget),
+  } : DEFAULT_DESIGN_INPUTS;
+
+  const sizing = calculateFullSizing(loadBalance, designInputs);
+  const budget = calculateBudget(sizing, DEFAULT_PRICES);
+
+  return {
+    projectName: project.name,
+    siteName: project.siteName || undefined,
+    loadBalance,
+    designInputs,
+    sizing,
+    budget,
+  };
+}
+
+// ============================================================
+// EXPORT ROUTEUR PRINCIPAL
+// ============================================================
+
+export const solarRouter = router({
+  projects: projectsRouter,
+  loadItems: loadItemsRouter,
+  sizing: sizingRouter,
+  budget: budgetRouter,
+  scenarios: scenariosRouter,
+  ai: aiRouter,
+  settings: settingsRouter,
+});

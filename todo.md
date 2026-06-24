@@ -2517,50 +2517,29 @@
 - [x] Documentation + rapport de sprint
 - [x] Checkpoint final
 
-## Sprint IA 2 Lot 1 — OCR, Classification Documentaire et Validation Humaine
-- [x] Audit préalable (tables documents, upload, RBAC, routes IA existantes)
-- [x] 4 tables DB : erp_ai_document_jobs, erp_ai_ocr_results, erp_ai_document_classifications, erp_ai_document_validation_logs
-- [x] Service OCR (LLM vision pour PDF/images, nettoyage texte, gestion multi-pages)
-- [x] Service classification LLM (30+ types documents, score confiance, alternatives)
-- [x] Routeur tRPC aiDocumentExtraction (jobs CRUD, run, retry-ocr, retry-classification, validate, reject, cancel, filtres avancés)
-- [x] Page /erp/ai/documents (liste jobs avec filtres, KPI, actions batch)
-- [x] Page /erp/ai/documents/:id (détail 5 onglets : aperçu, OCR, classification, validation, historique)
-- [x] RBAC module erp_ai_document_extraction ajouté dans ERP_MODULES
-- [x] Audit logs intégrés (validation_logs table dédiée)
-- [x] Notifications via workflow validation/rejet
-- [x] Data quality checks via score confiance OCR + classification
-- [x] Sidebar Extraction Docs + routes App.tsx (2 routes)
-- [x] Tests Vitest : 11 tests passés + 0 erreur TypeScript
-- [x] Documentation + rapport de sprint
+## Sprint Module Énergie Solaire — Digitalisation Excel et Recommandations IA
+- [x] 10 tables DB : erp_solar_projects, erp_solar_load_items, erp_solar_sizing_results, erp_solar_cable_sizing, erp_solar_budget_lines, erp_solar_scenarios, erp_solar_ai_recommendations, erp_solar_settings, erp_solar_import_jobs, erp_solar_conversions
+- [x] Moteur de calcul backend (bilan puissance, dimensionnement PV/batteries/onduleur/câblage, budget par lots)
+- [x] Service IA solaire (recommandations, scénarios auto, assistant conversationnel)
+- [x] Routeur tRPC solar complet (projects, loadItems, sizing, budget, scenarios, ai, settings)
+- [x] Dashboard solaire (/erp/solar)
+- [x] Page création projet (/erp/solar/new)
+- [x] Page détail projet avec onglets (bilan puissance, dimensionnement, budget, câblage, scénarios, IA)
+- [ ] Page paramètres (zones solaires, paramètres techniques, catalogue prix) — à faire
+- [ ] Page import Excel (preview + commit) — à faire
+- [x] RBAC module erp_solar ajouté
+- [x] Sidebar Énergie Solaire + routes App.tsx (3 routes: /erp/solar, /erp/solar/new, /erp/solar/:id)
+- [ ] Conversions ERP : Budget, RFQ, Material Request — à faire
+- [ ] Export PDF rapport dimensionnement + Export Excel — à faire
+- [x] Tests Vitest (15 tests calcul solaire) + 0 erreur TypeScript
 - [x] Checkpoint final
 
-## Sprint IA 2 Lot 2 — Extraction Champs Métier et Application ERP Contrôlée
-- [x] Audit préalable (tables Lot 1, routeurs, modules ERP cibles)
-- [x] 4 tables DB : erp_ai_doc_field_extractions, erp_ai_document_extraction_fields, erp_ai_document_line_items, erp_ai_document_apply_actions
-- [x] Service extraction LLM structuré (prompts par type document, normalisation montants/dates/devises, validation)
-- [x] Routeur tRPC étendu : extraction.run/getByJobId/validate, fields.list/confirm/reject/correct/confirmAll, lineItems.list/confirm/update/remove/confirmAll, applyActions.applyToErp/list/recommendedActions
-- [x] Onglet UI Champs extraits (tableau éditable, badges confiance, correction inline, confirm/reject)
-- [x] Onglet UI Lignes détectées (tableau éditable, confirmation/correction/suppression lignes)
-- [x] Onglet UI Application ERP (boutons contextuels par type document, désactivés si non validé)
-- [x] RBAC étendu (module erp_ai_document_extraction déjà en place)
-- [x] Audit logs via table erp_ai_document_apply_actions
-- [x] Notifications via toast.success/error dans les mutations
-- [x] Data quality checks via confidenceScore par champ + validation extraction
-- [x] Tests Vitest : 12 tests passés + 0 erreur TypeScript
-- [x] Documentation + rapport de sprint
-- [x] Checkpoint final
-
-## Module Paramétrage Fournisseurs IA — Multi-Provider avec Chiffrement
-- [x] 5 tables DB : erp_ai_providers, erp_ai_model_settings, erp_ai_task_routing, erp_ai_usage_logs, erp_ai_cost_limits
-- [x] Service abstrait IA multi-provider (OpenAI, Anthropic, Gemini, Mistral, Groq, OpenRouter, Local/Custom)
-- [x] Chiffrement AES-256-GCM des clés API (AI_KEYS_ENCRYPTION_SECRET)
-- [x] Stratégie fallback automatique (primaire → fallback 1 → fallback 2)
-- [x] Routeur tRPC admin : providers CRUD/test/activate/deactivate/setDefault/rotateKey, model settings, task routing, usage, cost limits
-- [x] Page /erp/admin/ai-providers (liste, formulaire, test connexion, rotation clé)
-- [x] Page /erp/admin/ai-task-routing (routage par module/tâche avec fallback)
-- [x] Page /erp/admin/ai-usage (dashboard consommation, coûts, latence, limites)
-- [x] RBAC module erp_ai_assistant (réutilisé pour admin IA)
-- [x] Sidebar Administration : 3 entrées (Fournisseurs IA, Routage IA, Usage IA)
-- [x] Routes App.tsx : 3 routes admin IA
-- [x] Tests Vitest : 11 tests passés + 0 erreur TypeScript
-- [x] Documentation + checkpoint final
+## Sprint Page Paramètres Solaires
+- [x] Page ErpSolarSettings.tsx avec 3 onglets (zones, prix, paramètres techniques)
+- [x] Onglet Zones : liste + création (zoneName, country, region, city, PSH, source)
+- [x] Onglet Prix : liste + création + modification inline du prix unitaire (XOF)
+- [x] Onglet Paramètres techniques : liste + upsert (code, nom, valeur, unité, description)
+- [x] Route /erp/solar/settings ajoutée dans App.tsx
+- [x] Entrée sidebar Énergie Solaire avec sous-menu Dashboard + Paramètres
+- [x] RBAC : permissions erp_solar (view, create, update, delete, export) + IA modules
+- [x] Tests : 1390 tests passés, 0 erreur TypeScript
