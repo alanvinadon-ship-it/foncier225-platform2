@@ -347,3 +347,261 @@ Règles :
   const content = response.choices?.[0]?.message?.content;
   return typeof content === "string" ? content : "Je n'ai pas pu générer une réponse. Veuillez réessayer.";
 }
+
+
+// ============================================================
+// 4. SUGGESTIONS DE CHARGES IA
+// ============================================================
+
+export interface LoadSuggestion {
+  name: string;
+  domain: string;
+  category: string;
+  powerW: number;
+  quantity: number;
+  hoursPerDay: number;
+  simultaneityCoeff: number;
+  startupFactor: number;
+  isCritical: boolean;
+  reason: string;
+}
+
+/**
+ * Suggère des charges manquantes basées sur le type de projet et les charges existantes
+ */
+export async function suggestMissingLoads(
+  projectType: string,
+  existingLoads: Array<{ name: string; powerW: number; category: string }>,
+  siteDescription?: string
+): Promise<LoadSuggestion[]> {
+  const prompt = `Analyse ce projet solaire et suggère les charges électriques manquantes.
+
+Type de projet : ${projectType}
+Description du site : ${siteDescription || "Non spécifié"}
+
+Charges existantes :
+${existingLoads.map(l => `- ${l.name} (${l.powerW}W, catégorie: ${l.category})`).join("\n")}
+
+Suggère les équipements manquants qui seraient typiquement nécessaires pour ce type de site. 
+Pour chaque suggestion, indique la raison et si c'est une charge critique.
+Limite-toi à 5-8 suggestions pertinentes.`;
+
+  const response = await invokeLLM({
+    messages: [
+      {
+        role: "system",
+        content: `Tu es un ingénieur solaire expert. Tu analyses les bilans de puissance et identifies les charges manquantes. Réponds UNIQUEMENT en JSON valide.`,
+      },
+      { role: "user", content: prompt },
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "load_suggestions",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            suggestions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  domain: { type: "string" },
+                  category: { type: "string" },
+                  powerW: { type: "number" },
+                  quantity: { type: "number" },
+                  hoursPerDay: { type: "number" },
+                  simultaneityCoeff: { type: "number" },
+                  startupFactor: { type: "number" },
+                  isCritical: { type: "boolean" },
+                  reason: { type: "string" },
+                },
+                required: ["name", "domain", "category", "powerW", "quantity", "hoursPerDay", "simultaneityCoeff", "startupFactor", "isCritical", "reason"],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ["suggestions"],
+          additionalProperties: false,
+        },
+      },
+    },
+  });
+
+  try {
+    const content = response.choices?.[0]?.message?.content;
+    const parsed = JSON.parse(typeof content === "string" ? content : "{}");
+    return parsed.suggestions || [];
+  } catch {
+    return [];
+  }
+}
+
+// ============================================================
+// 5. BILANS TYPES IA
+// ============================================================
+
+export interface TypicalLoadProfile {
+  profileName: string;
+  description: string;
+  loads: Array<{
+    name: string;
+    category: string;
+    powerW: number;
+    quantity: number;
+    hoursPerDay: number;
+    simultaneityCoeff: number;
+    startupFactor: number;
+    isCritical: boolean;
+  }>;
+  totalPowerW: number;
+  totalEnergyWhPerDay: number;
+}
+
+/**
+ * Génère un bilan type complet pour un profil donné
+ */
+export async function generateTypicalProfile(
+  profileType: string
+): Promise<TypicalLoadProfile> {
+  const prompt = `Génère un bilan de puissance type complet pour le profil suivant : "${profileType}"
+
+Ce bilan doit être réaliste pour un site en Afrique de l'Ouest (Côte d'Ivoire).
+Inclus toutes les charges typiques avec leurs puissances réelles, quantités, heures d'utilisation, coefficients de simultanéité et facteurs de démarrage.
+Marque les charges critiques (qui ne doivent jamais être coupées).`;
+
+  const response = await invokeLLM({
+    messages: [
+      {
+        role: "system",
+        content: `Tu es un ingénieur solaire expert en dimensionnement de systèmes photovoltaïques en Afrique de l'Ouest. Tu génères des bilans de puissance types réalistes. Réponds UNIQUEMENT en JSON valide.`,
+      },
+      { role: "user", content: prompt },
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "typical_profile",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            profileName: { type: "string" },
+            description: { type: "string" },
+            loads: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  category: { type: "string" },
+                  powerW: { type: "number" },
+                  quantity: { type: "number" },
+                  hoursPerDay: { type: "number" },
+                  simultaneityCoeff: { type: "number" },
+                  startupFactor: { type: "number" },
+                  isCritical: { type: "boolean" },
+                },
+                required: ["name", "category", "powerW", "quantity", "hoursPerDay", "simultaneityCoeff", "startupFactor", "isCritical"],
+                additionalProperties: false,
+              },
+            },
+            totalPowerW: { type: "number" },
+            totalEnergyWhPerDay: { type: "number" },
+          },
+          required: ["profileName", "description", "loads", "totalPowerW", "totalEnergyWhPerDay"],
+          additionalProperties: false,
+        },
+      },
+    },
+  });
+
+  try {
+    const content = response.choices?.[0]?.message?.content;
+    return JSON.parse(typeof content === "string" ? content : "{}");
+  } catch {
+    return { profileName: profileType, description: "", loads: [], totalPowerW: 0, totalEnergyWhPerDay: 0 };
+  }
+}
+
+// ============================================================
+// 6. DÉTECTION D'ANOMALIES
+// ============================================================
+
+export interface LoadAnomaly {
+  loadName: string;
+  anomalyType: "overuse" | "underuse" | "missing_startup" | "wrong_simultaneity" | "excessive_hours" | "unusual_power";
+  severity: "critical" | "warning" | "info";
+  message: string;
+  suggestion: string;
+}
+
+/**
+ * Détecte les anomalies dans un bilan de puissance
+ */
+export function detectLoadAnomalies(
+  loads: Array<{ equipmentName: string; unitPowerW: number; quantity: number; usageHoursPerDay: number; startupFactor: number; equipmentCategory?: string }>
+): LoadAnomaly[] {
+  const anomalies: LoadAnomaly[] = [];
+
+  for (const load of loads) {
+    // Moteurs/compresseurs sans facteur de démarrage
+    if ((load.equipmentCategory === "motor" || load.equipmentCategory === "pump" || load.equipmentCategory === "industrial") && load.startupFactor < 2) {
+      anomalies.push({
+        loadName: load.equipmentName,
+        anomalyType: "missing_startup",
+        severity: "warning",
+        message: `Le facteur de démarrage (${load.startupFactor}) semble faible pour un ${load.equipmentCategory}.`,
+        suggestion: "Les moteurs et compresseurs ont typiquement un facteur de démarrage de 3-4x.",
+      });
+    }
+
+    // Climatiseurs sans facteur de démarrage
+    if (load.equipmentCategory === "cooling" && load.unitPowerW > 500 && load.startupFactor < 2) {
+      anomalies.push({
+        loadName: load.equipmentName,
+        anomalyType: "missing_startup",
+        severity: "warning",
+        message: `Le facteur de démarrage (${load.startupFactor}) semble faible pour un climatiseur.`,
+        suggestion: "Les climatiseurs ont typiquement un facteur de démarrage de 3x.",
+      });
+    }
+
+    // Heures d'utilisation excessives pour certains équipements
+    if (load.equipmentCategory === "heating" && load.usageHoursPerDay > 6) {
+      anomalies.push({
+        loadName: load.equipmentName,
+        anomalyType: "excessive_hours",
+        severity: "info",
+        message: `${load.usageHoursPerDay}h/j semble élevé pour un appareil de chauffage.`,
+        suggestion: "Vérifiez si l'utilisation est réaliste (chauffe-eau: 1-3h, fer: 0.5-1h).",
+      });
+    }
+
+    // Puissance anormalement élevée pour l'éclairage
+    if (load.equipmentCategory === "lighting" && load.unitPowerW > 100) {
+      anomalies.push({
+        loadName: load.equipmentName,
+        anomalyType: "unusual_power",
+        severity: "info",
+        message: `${load.unitPowerW}W semble élevé pour un éclairage LED.`,
+        suggestion: "Les ampoules LED modernes consomment 5-20W. Vérifiez s'il s'agit d'un projecteur.",
+      });
+    }
+
+    // Quantité excessive
+    if (load.quantity > 50) {
+      anomalies.push({
+        loadName: load.equipmentName,
+        anomalyType: "overuse",
+        severity: "warning",
+        message: `Quantité élevée (${load.quantity} unités).`,
+        suggestion: "Vérifiez que la quantité est correcte et considérez un coefficient de simultanéité.",
+      });
+    }
+  }
+
+  return anomalies;
+}

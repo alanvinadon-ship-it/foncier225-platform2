@@ -1,0 +1,23 @@
+CREATE TABLE `erp_solar_load_catalog` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`item_code` varchar(64) NOT NULL,
+	`name` varchar(255) NOT NULL,
+	`domain` varchar(64) NOT NULL,
+	`category` varchar(64) NOT NULL,
+	`default_power_w` decimal(10,2) NOT NULL,
+	`min_power_w` decimal(10,2),
+	`max_power_w` decimal(10,2),
+	`default_quantity` int NOT NULL DEFAULT 1,
+	`default_hours_per_day` decimal(4,1) NOT NULL,
+	`default_simultaneity_coeff` decimal(4,2) NOT NULL DEFAULT '1.00',
+	`startup_factor` decimal(4,2) NOT NULL DEFAULT '1.00',
+	`is_critical_default` boolean DEFAULT false,
+	`description` text,
+	`usage_notes` text,
+	`is_active` boolean DEFAULT true,
+	`created_by` int,
+	`created_at` bigint NOT NULL,
+	`updated_at` bigint NOT NULL,
+	`deleted_at` bigint,
+	CONSTRAINT `erp_solar_load_catalog_id` PRIMARY KEY(`id`)
+);

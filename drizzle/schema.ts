@@ -4987,6 +4987,10 @@ export const erpSolarLoadItems = mysqlTable("erp_solar_load_items", {
   usageHoursPerDay: decimal("usage_hours_per_day", { precision: 4, scale: 1 }).notNull(),
   dailyEnergyWh: decimal("daily_energy_wh", { precision: 12, scale: 2 }).notNull(),
   isCriticalLoad: boolean("is_critical_load").default(false),
+  catalogItemId: int("catalog_item_id"),
+  domain: varchar("domain", { length: 64 }),
+  isCustom: boolean("is_custom").default(true),
+  simultaneityCoeff: decimal("simultaneity_coeff", { precision: 4, scale: 2 }).notNull().default("1.00"),
   createdAt: bigint("created_at", { mode: "number" }).notNull(),
   updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
 });
@@ -5092,3 +5096,28 @@ export const erpSolarAiRecommendations = mysqlTable("erp_solar_ai_recommendation
   updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
 });
 
+
+
+// ===== Bibliothèque standard des charges électriques =====
+export const erpSolarLoadCatalog = mysqlTable("erp_solar_load_catalog", {
+  id: int("id").primaryKey().autoincrement(),
+  itemCode: varchar("item_code", { length: 64 }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  domain: varchar("domain", { length: 64 }).notNull(),
+  category: varchar("category", { length: 64 }).notNull(),
+  defaultPowerW: decimal("default_power_w", { precision: 10, scale: 2 }).notNull(),
+  minPowerW: decimal("min_power_w", { precision: 10, scale: 2 }),
+  maxPowerW: decimal("max_power_w", { precision: 10, scale: 2 }),
+  defaultQuantity: int("default_quantity").notNull().default(1),
+  defaultHoursPerDay: decimal("default_hours_per_day", { precision: 4, scale: 1 }).notNull(),
+  defaultSimultaneityCoeff: decimal("default_simultaneity_coeff", { precision: 4, scale: 2 }).notNull().default("1.00"),
+  startupFactor: decimal("startup_factor", { precision: 4, scale: 2 }).notNull().default("1.00"),
+  isCriticalDefault: boolean("is_critical_default").default(false),
+  description: text("description"),
+  usageNotes: text("usage_notes"),
+  isActive: boolean("is_active").default(true),
+  createdBy: int("created_by"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+  deletedAt: bigint("deleted_at", { mode: "number" }),
+});

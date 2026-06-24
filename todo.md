@@ -2552,10 +2552,22 @@
 - [x] Ajouter bouton dupliquer (pré-remplissage avec suffixe _COPY) pour chaque paramètre technique
 
 ## Sprint Catalogue Articles Solaires
-- [ ] Enrichir schéma DB catalogue prix : colonnes brand, model, qualityLevel, recommendedUsage, isActive
-- [ ] Ajouter les catégories manquantes (batteries_lithium, batteries_plomb, regulateurs, cables_solaires, protections, monitoring, services, maintenance, transport, autres)
-- [ ] Ajouter les unités manquantes (paire, kit, lot, kWc, Wh, Ah, W, forfait)
-- [ ] Seed 30 articles solaires dans le catalogue via script ou procédure
-- [ ] Mettre à jour le formulaire frontend (champs marque, modèle, qualité, usage, actif)
+- [x] Enrichir schéma DB catalogue prix : colonnes brand, model, qualityLevel, recommendedUsage, isActive
+- [x] Ajouter les catégories manquantes (batteries_lithium, batteries_plomb, regulateurs, cables_solaires, protections, monitoring, services, maintenance, transport, autres)
+- [x] Ajouter les unités manquantes (paire, kit, lot, kWc, Wh, Ah, W, forfait)
+- [x] Seed 30 articles solaires dans le catalogue via script ou procédure
+- [x] Mettre à jour le formulaire frontend (champs marque, modèle, qualité, usage, actif)
 - [x] Connecter l'IA au catalogue (recommandations selon dimensionnement)
-- [ ] Vérification TypeScript + tests + checkpoint
+- [x] Vérification TypeScript + tests + checkpoint
+
+## Sprint Bibliothèque Charges Électriques
+- [x] Table erp_solar_load_catalog (77 équipements, 13 domaines, 16 catégories)
+- [ ] Adapter table erp_solar_load_items (ajout catalog_item_id, domain, is_custom, is_critical, peak_power_w)
+- [x] Routeur tRPC loadCatalog (list, create, update, delete, search, seedDefaults)
+- [x] Seed 77 équipements standard (idempotent)
+- [ ] UI Bilan : mode bibliothèque (recherche, filtre domaine/catégorie, ajout rapide)
+- [ ] UI Bilan : mode création (nouvel équipement + option sauvegarder en bibliothèque)
+- [ ] UI Bilan : actions lignes (dupliquer, marquer critique, modifier inline)
+- [x] IA suggestions (charges recommandées, anomalies, optimisation)
+- [ ] IA bilans types (Domestique petit/villa, Bureau PME, Télécom, Boutique, Industriel, Santé, Pompage)
+- [ ] Tests Vitest catalogue + calculs + 0 erreur TypeScript

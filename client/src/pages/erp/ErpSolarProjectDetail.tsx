@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useRoute } from "wouter";
 import { Link } from "wouter";
 import { toast } from "sonner";
-import { ArrowLeft, Sun, Zap, Battery, Cable, DollarSign, Cpu, MessageSquare, Plus, Trash2, Play, Download } from "lucide-react";
+import { ArrowLeft, Sun, Zap, Battery, Cable, DollarSign, Cpu, MessageSquare, Plus, Trash2, Play, Download, Search, Copy, BookOpen, AlertTriangle, Edit2, Check, X } from "lucide-react";
 
 export default function ErpSolarProjectDetail() {
   const [, params] = useRoute("/erp/solar/:id");
@@ -106,12 +106,35 @@ export default function ErpSolarProjectDetail() {
 }
 
 function LoadsTab({ projectId, loads }: { projectId: number; loads: any[] | undefined }) {
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", category: "lighting", unitPowerW: "", quantity: "1", usageHoursPerDay: "8", startupFactor: "1" });
+  const [mode, setMode] = useState<"list" | "catalog" | "custom">("list");
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [catalogDomain, setCatalogDomain] = useState("all");
+  const [form, setForm] = useState({ name: "", category: "lighting", unitPowerW: "", quantity: "1", usageHoursPerDay: "8", startupFactor: "1", simultaneityCoeff: "1" });
+  const [editId, setEditId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState<any>(null);
   const utils = trpc.useUtils();
 
+  const catalog = trpc.erp.solar.loadCatalog.list.useQuery(
+    { search: catalogSearch || undefined, domain: catalogDomain === "all" ? undefined : catalogDomain },
+    { enabled: mode === "catalog" }
+  );
+
   const addLoad = trpc.erp.solar.loadItems.create.useMutation({
-    onSuccess: () => { toast.success("Charge ajoutée"); setShowForm(false); setForm({ name: "", category: "lighting", unitPowerW: "", quantity: "1", usageHoursPerDay: "8", startupFactor: "1" }); utils.erp.solar.loadItems.list.invalidate(); },
+    onSuccess: () => { toast.success("Charge ajoutée"); setMode("list"); setForm({ name: "", category: "lighting", unitPowerW: "", quantity: "1", usageHoursPerDay: "8", startupFactor: "1", simultaneityCoeff: "1" }); utils.erp.solar.loadItems.list.invalidate(); },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const addFromCatalog = trpc.erp.solar.loadItems.addFromCatalog.useMutation({
+    onSuccess: () => { toast.success("Charge ajoutée depuis la bibliothèque"); utils.erp.solar.loadItems.list.invalidate(); },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const duplicateLoad = trpc.erp.solar.loadItems.duplicate.useMutation({
+    onSuccess: () => { toast.success("Charge dupliquée"); utils.erp.solar.loadItems.list.invalidate(); },
+  });
+
+  const updateLoad = trpc.erp.solar.loadItems.update.useMutation({
+    onSuccess: () => { toast.success("Charge modifiée"); setEditId(null); setEditForm(null); utils.erp.solar.loadItems.list.invalidate(); },
     onError: (err: any) => toast.error(err.message),
   });
 
@@ -121,10 +144,15 @@ function LoadsTab({ projectId, loads }: { projectId: number; loads: any[] | unde
 
   const totalPower = (loads || []).reduce((s: number, l: any) => s + (Number(l.totalPowerW) || 0), 0);
   const totalEnergy = (loads || []).reduce((s: number, l: any) => s + (Number(l.dailyEnergyWh) || 0), 0);
+  const criticalCount = (loads || []).filter((l: any) => l.isCriticalLoad).length;
+
+  const domains = ["all", "Domestic", "Office", "Telecom IT", "Security", "Commercial", "Hotel Restaurant", "Industrial", "Pumping", "Medical", "Construction Site", "Agriculture", "Public Lighting"];
+  const domainLabels: Record<string, string> = { all: "Tous les domaines", Domestic: "Domestique", Office: "Bureau", "Telecom IT": "Télécom/IT", Security: "Sécurité", Commercial: "Commerce", "Hotel Restaurant": "Hôtellerie", Industrial: "Industriel", Pumping: "Pompage", Medical: "Santé", "Construction Site": "Chantier", Agriculture: "Agriculture", "Public Lighting": "Éclairage public" };
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      {/* KPIs */}
+      <div className="grid grid-cols-3 gap-4">
         <Card><CardContent className="pt-4">
           <p className="text-sm text-muted-foreground">Puissance totale</p>
           <p className="text-2xl font-bold">{(totalPower / 1000).toFixed(2)} kW</p>
@@ -133,17 +161,69 @@ function LoadsTab({ projectId, loads }: { projectId: number; loads: any[] | unde
           <p className="text-sm text-muted-foreground">Énergie journalière</p>
           <p className="text-2xl font-bold">{(totalEnergy / 1000).toFixed(2)} kWh/j</p>
         </CardContent></Card>
+        <Card><CardContent className="pt-4">
+          <p className="text-sm text-muted-foreground">Charges critiques</p>
+          <p className="text-2xl font-bold">{criticalCount} <span className="text-sm font-normal text-muted-foreground">/ {loads?.length || 0}</span></p>
+        </CardContent></Card>
       </div>
 
+      {/* Actions */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Charges électriques</CardTitle>
-          <Button size="sm" onClick={() => setShowForm(!showForm)}><Plus className="h-4 w-4 mr-1" />Ajouter</Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant={mode === "catalog" ? "default" : "outline"} onClick={() => setMode(mode === "catalog" ? "list" : "catalog")}>
+              <BookOpen className="h-4 w-4 mr-1" />Bibliothèque
+            </Button>
+            <Button size="sm" variant={mode === "custom" ? "default" : "outline"} onClick={() => setMode(mode === "custom" ? "list" : "custom")}>
+              <Plus className="h-4 w-4 mr-1" />Créer
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          {showForm && (
+          {/* Mode Bibliothèque */}
+          {mode === "catalog" && (
             <div className="border rounded-lg p-4 mb-4 space-y-3 bg-muted/30">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="flex gap-3 items-center">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input className="pl-9" placeholder="Rechercher un équipement..." value={catalogSearch} onChange={e => setCatalogSearch(e.target.value)} />
+                </div>
+                <Select value={catalogDomain} onValueChange={setCatalogDomain}>
+                  <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {domains.map(d => <SelectItem key={d} value={d}>{domainLabels[d] || d}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {catalog.isLoading ? (
+                <p className="text-center py-4 text-muted-foreground">Chargement...</p>
+              ) : !catalog.data?.length ? (
+                <p className="text-center py-4 text-muted-foreground">Aucun équipement trouvé.</p>
+              ) : (
+                <div className="max-h-64 overflow-y-auto space-y-1">
+                  {catalog.data.map((item: any) => (
+                    <div key={item.id} className="flex items-center justify-between p-2 rounded hover:bg-muted/50 border">
+                      <div className="flex-1">
+                        <span className="font-medium text-sm">{item.name}</span>
+                        <span className="text-xs text-muted-foreground ml-2">{item.domain} • {Number(item.defaultPowerW)}W • {Number(item.defaultHoursPerDay)}h/j</span>
+                        {item.isCriticalDefault && <Badge variant="destructive" className="ml-2 text-xs">Critique</Badge>}
+                      </div>
+                      <Button size="sm" variant="ghost" onClick={() => addFromCatalog.mutate({ projectId, catalogItemId: item.id })} disabled={addFromCatalog.isPending}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Mode Création manuelle */}
+          {mode === "custom" && (
+            <div className="border rounded-lg p-4 mb-4 space-y-3 bg-muted/30">
+              <p className="text-sm font-medium">Nouvel équipement personnalisé</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="space-y-1"><Label className="text-xs">Nom *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Climatiseur" /></div>
                 <div className="space-y-1"><Label className="text-xs">Catégorie</Label>
                   <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
@@ -152,8 +232,18 @@ function LoadsTab({ projectId, loads }: { projectId: number; loads: any[] | unde
                       <SelectItem value="lighting">Éclairage</SelectItem>
                       <SelectItem value="cooling">Climatisation</SelectItem>
                       <SelectItem value="appliances">Électroménager</SelectItem>
-                      <SelectItem value="computing">Informatique</SelectItem>
-                      <SelectItem value="motors">Moteurs</SelectItem>
+                      <SelectItem value="it">Informatique</SelectItem>
+                      <SelectItem value="telecom">Télécom</SelectItem>
+                      <SelectItem value="security">Sécurité</SelectItem>
+                      <SelectItem value="kitchen">Cuisine</SelectItem>
+                      <SelectItem value="motor">Moteurs</SelectItem>
+                      <SelectItem value="pump">Pompage</SelectItem>
+                      <SelectItem value="medical">Médical</SelectItem>
+                      <SelectItem value="heating">Chauffage</SelectItem>
+                      <SelectItem value="industrial">Industriel</SelectItem>
+                      <SelectItem value="construction">Construction</SelectItem>
+                      <SelectItem value="office">Bureau</SelectItem>
+                      <SelectItem value="server">Serveurs</SelectItem>
                       <SelectItem value="other">Autre</SelectItem>
                     </SelectContent>
                   </Select>
@@ -161,35 +251,76 @@ function LoadsTab({ projectId, loads }: { projectId: number; loads: any[] | unde
                 <div className="space-y-1"><Label className="text-xs">Puissance (W) *</Label><Input type="number" value={form.unitPowerW} onChange={e => setForm(f => ({ ...f, unitPowerW: e.target.value }))} placeholder="1500" /></div>
                 <div className="space-y-1"><Label className="text-xs">Quantité</Label><Input type="number" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))} /></div>
                 <div className="space-y-1"><Label className="text-xs">Heures/jour</Label><Input type="number" step="0.5" value={form.usageHoursPerDay} onChange={e => setForm(f => ({ ...f, usageHoursPerDay: e.target.value }))} /></div>
-                <div className="space-y-1"><Label className="text-xs">Coeff. simultanéité</Label><Input type="number" step="0.1" value={form.startupFactor} onChange={e => setForm(f => ({ ...f, startupFactor: e.target.value }))} /></div>
+                <div className="space-y-1"><Label className="text-xs">Coeff. démarrage</Label><Input type="number" step="0.1" value={form.startupFactor} onChange={e => setForm(f => ({ ...f, startupFactor: e.target.value }))} /></div>
+                <div className="space-y-1"><Label className="text-xs">Coeff. simultanéité</Label><Input type="number" step="0.1" min="0" max="1" value={form.simultaneityCoeff} onChange={e => setForm(f => ({ ...f, simultaneityCoeff: e.target.value }))} /></div>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" onClick={() => { if (!form.name || !form.unitPowerW) { toast.error("Nom et puissance requis"); return; } addLoad.mutate({ projectId, equipmentName: form.name, equipmentCategory: form.category, unitPowerW: parseInt(form.unitPowerW), quantity: parseInt(form.quantity), usageHoursPerDay: parseFloat(form.usageHoursPerDay), startupFactor: parseFloat(form.startupFactor) }); }} disabled={addLoad.isPending}>Ajouter</Button>
-                <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
+                <Button size="sm" onClick={() => { if (!form.name || !form.unitPowerW) { toast.error("Nom et puissance requis"); return; } addLoad.mutate({ projectId, equipmentName: form.name, equipmentCategory: form.category, unitPowerW: parseFloat(form.unitPowerW), quantity: parseInt(form.quantity), usageHoursPerDay: parseFloat(form.usageHoursPerDay), startupFactor: parseFloat(form.startupFactor) }); }} disabled={addLoad.isPending}>Ajouter</Button>
+                <Button size="sm" variant="ghost" onClick={() => setMode("list")}>Annuler</Button>
               </div>
             </div>
           )}
 
+          {/* Tableau des charges */}
           {!loads?.length ? (
-            <p className="text-center py-4 text-muted-foreground">Aucune charge définie. Ajoutez les équipements électriques du site.</p>
+            <div className="text-center py-8 text-muted-foreground">
+              <Zap className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>Aucune charge définie.</p>
+              <p className="text-xs mt-1">Utilisez la <strong>Bibliothèque</strong> pour ajouter rapidement des équipements standard ou <strong>Créer</strong> un équipement personnalisé.</p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead><tr className="border-b text-left"><th className="py-2">Nom</th><th>Catégorie</th><th className="text-right">W</th><th className="text-right">Qté</th><th className="text-right">h/j</th><th className="text-right">Coeff</th><th className="text-right">Wh/j</th><th></th></tr></thead>
+                <thead><tr className="border-b text-left"><th className="py-2">Nom</th><th>Domaine</th><th>Catégorie</th><th className="text-right">W</th><th className="text-right">Qté</th><th className="text-right">h/j</th><th className="text-right">Coeff</th><th className="text-right">Wh/j</th><th className="text-center">Actions</th></tr></thead>
                 <tbody>
                   {loads.map((l: any) => (
-                    <tr key={l.id} className="border-b">
-                      <td className="py-2 font-medium">{l.equipmentName}</td>
-                      <td><Badge variant="outline" className="text-xs">{l.equipmentCategory}</Badge></td>
-                      <td className="text-right">{Number(l.unitPowerW).toFixed(2)}</td>
-                      <td className="text-right">{l.quantity}</td>
-                      <td className="text-right">{Number(l.usageHoursPerDay).toFixed(1)}</td>
-                      <td className="text-right">{Number(l.startupFactor).toFixed(2)}</td>
-                      <td className="text-right font-medium">{Number(l.dailyEnergyWh).toLocaleString()}</td>
-                      <td className="text-right"><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteLoad.mutate({ id: l.id })}><Trash2 className="h-3 w-3" /></Button></td>
-                    </tr>
+                    editId === l.id ? (
+                      <tr key={l.id} className="border-b bg-muted/30">
+                        <td className="py-2"><Input className="h-7 text-xs" value={editForm.equipmentName} onChange={e => setEditForm((f: any) => ({ ...f, equipmentName: e.target.value }))} /></td>
+                        <td><span className="text-xs text-muted-foreground">{l.domain || "—"}</span></td>
+                        <td><span className="text-xs">{l.equipmentCategory}</span></td>
+                        <td><Input className="h-7 text-xs w-20 ml-auto" type="number" value={editForm.unitPowerW} onChange={e => setEditForm((f: any) => ({ ...f, unitPowerW: e.target.value }))} /></td>
+                        <td><Input className="h-7 text-xs w-14 ml-auto" type="number" value={editForm.quantity} onChange={e => setEditForm((f: any) => ({ ...f, quantity: e.target.value }))} /></td>
+                        <td><Input className="h-7 text-xs w-14 ml-auto" type="number" step="0.5" value={editForm.usageHoursPerDay} onChange={e => setEditForm((f: any) => ({ ...f, usageHoursPerDay: e.target.value }))} /></td>
+                        <td><Input className="h-7 text-xs w-14 ml-auto" type="number" step="0.1" value={editForm.startupFactor} onChange={e => setEditForm((f: any) => ({ ...f, startupFactor: e.target.value }))} /></td>
+                        <td></td>
+                        <td className="text-center">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { updateLoad.mutate({ id: l.id, equipmentName: editForm.equipmentName, unitPowerW: parseFloat(editForm.unitPowerW), quantity: parseInt(editForm.quantity), usageHoursPerDay: parseFloat(editForm.usageHoursPerDay), startupFactor: parseFloat(editForm.startupFactor) }); }}><Check className="h-3 w-3 text-green-600" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditId(null); setEditForm(null); }}><X className="h-3 w-3 text-red-600" /></Button>
+                        </td>
+                      </tr>
+                    ) : (
+                      <tr key={l.id} className={`border-b ${l.isCriticalLoad ? "bg-orange-50 dark:bg-orange-950/20" : ""}`}>
+                        <td className="py-2 font-medium">
+                          {l.equipmentName}
+                          {l.isCriticalLoad && <AlertTriangle className="inline h-3 w-3 ml-1 text-orange-500" />}
+                          {!l.isCustom && l.catalogItemId && <span title="Depuis bibliothèque"><BookOpen className="inline h-3 w-3 ml-1 text-blue-400" /></span>}
+                        </td>
+                        <td><span className="text-xs text-muted-foreground">{l.domain || "—"}</span></td>
+                        <td><Badge variant="outline" className="text-xs">{l.equipmentCategory || "—"}</Badge></td>
+                        <td className="text-right">{Number(l.unitPowerW).toFixed(0)}</td>
+                        <td className="text-right">{l.quantity}</td>
+                        <td className="text-right">{Number(l.usageHoursPerDay).toFixed(1)}</td>
+                        <td className="text-right">{Number(l.startupFactor).toFixed(2)}</td>
+                        <td className="text-right font-medium">{Number(l.dailyEnergyWh).toLocaleString()}</td>
+                        <td className="text-center whitespace-nowrap">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Modifier" onClick={() => { setEditId(l.id); setEditForm({ equipmentName: l.equipmentName, unitPowerW: String(Number(l.unitPowerW)), quantity: String(l.quantity), usageHoursPerDay: String(Number(l.usageHoursPerDay)), startupFactor: String(Number(l.startupFactor)) }); }}><Edit2 className="h-3 w-3" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Dupliquer" onClick={() => duplicateLoad.mutate({ id: l.id })}><Copy className="h-3 w-3" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Supprimer" onClick={() => deleteLoad.mutate({ id: l.id })}><Trash2 className="h-3 w-3" /></Button>
+                        </td>
+                      </tr>
+                    )
                   ))}
                 </tbody>
+                <tfoot>
+                  <tr className="border-t font-semibold">
+                    <td className="py-2" colSpan={3}>Total ({loads.length} charges)</td>
+                    <td className="text-right">{(totalPower).toLocaleString()}</td>
+                    <td></td><td></td><td></td>
+                    <td className="text-right">{totalEnergy.toLocaleString()}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           )}

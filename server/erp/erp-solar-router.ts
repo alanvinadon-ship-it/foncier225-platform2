@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { eq, and, isNull, desc, sql, asc } from "drizzle-orm";
+import { eq, and, isNull, desc, sql, asc, like, or } from "drizzle-orm";
 import { router, protectedProcedure } from "../_core/trpc";
 import { getDb } from "../db";
 import {
   erpSolarProjects, erpSolarResourceZones, erpSolarTechnicalParameters,
   erpSolarPriceCatalog, erpSolarLoadItems, erpSolarDesignInputs,
   erpSolarSizingResults, erpSolarCableSizing, erpSolarBudgetLines,
-  erpSolarScenarios, erpSolarAiRecommendations,
+  erpSolarScenarios, erpSolarAiRecommendations, erpSolarLoadCatalog,
 } from "../../drizzle/schema";
 import {
   calculateLoadBalance, calculateFullSizing, calculateBudget,
@@ -15,6 +15,7 @@ import {
 } from "./erp-solar-calculation-engine.service";
 import {
   generateSolarRecommendations, generateScenarios, solarAiChat,
+  suggestMissingLoads, generateTypicalProfile, detectLoadAnomalies,
   type SolarProjectContext,
 } from "./erp-solar-ai.service";
 
@@ -217,6 +218,69 @@ const loadItemsRouter = router({
       return { success: true };
     }),
 
+  duplicate: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      const [existing] = await db.select().from(erpSolarLoadItems).where(eq(erpSolarLoadItems.id, input.id));
+      if (!existing) throw new Error("Load item not found");
+      const now = Date.now();
+      const [result] = await db.insert(erpSolarLoadItems).values({
+        ...existing,
+        id: undefined as any,
+        equipmentName: existing.equipmentName + " (copie)",
+        createdAt: now,
+        updatedAt: now,
+      });
+      return { id: result.insertId };
+    }),
+
+  addFromCatalog: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      catalogItemId: z.number(),
+      quantity: z.number().min(1).default(1),
+      unitPowerW: z.number().optional(),
+      usageHoursPerDay: z.number().optional(),
+      simultaneityCoeff: z.number().optional(),
+      startupFactor: z.number().optional(),
+      isCriticalLoad: z.boolean().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      const [catalogItem] = await db.select().from(erpSolarLoadCatalog).where(eq(erpSolarLoadCatalog.id, input.catalogItemId));
+      if (!catalogItem) throw new Error("Catalog item not found");
+      const now = Date.now();
+      const unitP = input.unitPowerW ?? Number(catalogItem.defaultPowerW);
+      const qty = input.quantity;
+      const sf = input.startupFactor ?? Number(catalogItem.startupFactor);
+      const hrs = input.usageHoursPerDay ?? Number(catalogItem.defaultHoursPerDay);
+      const coeff = input.simultaneityCoeff ?? Number(catalogItem.defaultSimultaneityCoeff);
+      const totalPowerW = unitP * qty;
+      const peakPowerW = totalPowerW * sf;
+      const dailyEnergyWh = unitP * qty * hrs * coeff;
+      const [result] = await db.insert(erpSolarLoadItems).values({
+        solarProjectId: input.projectId,
+        equipmentName: catalogItem.name,
+        equipmentCategory: catalogItem.category,
+        unitPowerW: String(unitP),
+        quantity: qty,
+        totalPowerW: String(totalPowerW),
+        startupFactor: String(sf),
+        peakPowerW: String(peakPowerW),
+        usageHoursPerDay: String(hrs),
+        dailyEnergyWh: String(dailyEnergyWh),
+        isCriticalLoad: input.isCriticalLoad ?? catalogItem.isCriticalDefault ?? false,
+        catalogItemId: catalogItem.id,
+        domain: catalogItem.domain,
+        isCustom: false,
+        simultaneityCoeff: String(coeff),
+        createdAt: now,
+        updatedAt: now,
+      });
+      return { id: result.insertId };
+    }),
+
   calculateBalance: protectedProcedure
     .input(z.object({ projectId: z.number() }))
     .mutation(async ({ input }) => {
@@ -233,6 +297,124 @@ const loadItemsRouter = router({
       }));
       const result = calculateLoadBalance(loadItems);
       return result;
+    }),
+});
+
+// ============================================================
+// CATALOGUE CHARGES STANDARD
+// ============================================================
+const loadCatalogRouter = router({
+  list: protectedProcedure
+    .input(z.object({
+      search: z.string().optional(),
+      domain: z.string().optional(),
+      category: z.string().optional(),
+      isActive: z.boolean().default(true),
+      limit: z.number().default(100),
+    }))
+    .query(async ({ input }) => {
+      const db = (await getDb())!;
+      const conditions: any[] = [];
+      if (input.isActive) conditions.push(eq(erpSolarLoadCatalog.isActive, true));
+      conditions.push(isNull(erpSolarLoadCatalog.deletedAt));
+      if (input.domain) conditions.push(eq(erpSolarLoadCatalog.domain, input.domain));
+      if (input.category) conditions.push(eq(erpSolarLoadCatalog.category, input.category));
+      if (input.search) conditions.push(like(erpSolarLoadCatalog.name, `%${input.search}%`));
+      return db.select().from(erpSolarLoadCatalog)
+        .where(and(...conditions))
+        .orderBy(asc(erpSolarLoadCatalog.domain), asc(erpSolarLoadCatalog.name))
+        .limit(input.limit);
+    }),
+
+  create: protectedProcedure
+    .input(z.object({
+      itemCode: z.string().min(1),
+      name: z.string().min(1),
+      domain: z.string().min(1),
+      category: z.string().min(1),
+      defaultPowerW: z.number().min(0),
+      minPowerW: z.number().optional(),
+      maxPowerW: z.number().optional(),
+      defaultQuantity: z.number().min(1).default(1),
+      defaultHoursPerDay: z.number().min(0).max(24),
+      defaultSimultaneityCoeff: z.number().min(0).max(1).default(1),
+      startupFactor: z.number().min(1).default(1),
+      isCriticalDefault: z.boolean().default(false),
+      description: z.string().optional(),
+      usageNotes: z.string().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = (await getDb())!;
+      const now = Date.now();
+      const [result] = await db.insert(erpSolarLoadCatalog).values({
+        itemCode: input.itemCode,
+        name: input.name,
+        domain: input.domain,
+        category: input.category,
+        defaultPowerW: String(input.defaultPowerW),
+        minPowerW: input.minPowerW ? String(input.minPowerW) : null,
+        maxPowerW: input.maxPowerW ? String(input.maxPowerW) : null,
+        defaultQuantity: input.defaultQuantity,
+        defaultHoursPerDay: String(input.defaultHoursPerDay),
+        defaultSimultaneityCoeff: String(input.defaultSimultaneityCoeff),
+        startupFactor: String(input.startupFactor),
+        isCriticalDefault: input.isCriticalDefault,
+        description: input.description || null,
+        usageNotes: input.usageNotes || null,
+        isActive: true,
+        createdBy: ctx.user?.id || null,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return { id: result.insertId };
+    }),
+
+  update: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      domain: z.string().optional(),
+      category: z.string().optional(),
+      defaultPowerW: z.number().optional(),
+      minPowerW: z.number().nullable().optional(),
+      maxPowerW: z.number().nullable().optional(),
+      defaultQuantity: z.number().optional(),
+      defaultHoursPerDay: z.number().optional(),
+      defaultSimultaneityCoeff: z.number().optional(),
+      startupFactor: z.number().optional(),
+      isCriticalDefault: z.boolean().optional(),
+      description: z.string().nullable().optional(),
+      usageNotes: z.string().nullable().optional(),
+      isActive: z.boolean().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      const { id, ...updates } = input;
+      const updateData: any = { updatedAt: Date.now() };
+      if (updates.defaultPowerW !== undefined) updateData.defaultPowerW = String(updates.defaultPowerW);
+      if (updates.minPowerW !== undefined) updateData.minPowerW = updates.minPowerW ? String(updates.minPowerW) : null;
+      if (updates.maxPowerW !== undefined) updateData.maxPowerW = updates.maxPowerW ? String(updates.maxPowerW) : null;
+      if (updates.defaultHoursPerDay !== undefined) updateData.defaultHoursPerDay = String(updates.defaultHoursPerDay);
+      if (updates.defaultSimultaneityCoeff !== undefined) updateData.defaultSimultaneityCoeff = String(updates.defaultSimultaneityCoeff);
+      if (updates.startupFactor !== undefined) updateData.startupFactor = String(updates.startupFactor);
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.domain !== undefined) updateData.domain = updates.domain;
+      if (updates.category !== undefined) updateData.category = updates.category;
+      if (updates.defaultQuantity !== undefined) updateData.defaultQuantity = updates.defaultQuantity;
+      if (updates.isCriticalDefault !== undefined) updateData.isCriticalDefault = updates.isCriticalDefault;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.usageNotes !== undefined) updateData.usageNotes = updates.usageNotes;
+      if (updates.isActive !== undefined) updateData.isActive = updates.isActive;
+      await db.update(erpSolarLoadCatalog).set(updateData).where(eq(erpSolarLoadCatalog.id, id));
+      return { success: true };
+    }),
+
+  delete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      await db.update(erpSolarLoadCatalog).set({ deletedAt: Date.now() }).where(eq(erpSolarLoadCatalog.id, input.id));
+      return { success: true };
     }),
 });
 
@@ -599,6 +781,47 @@ const aiRouter = router({
       }).where(eq(erpSolarAiRecommendations.id, input.id));
       return { success: true };
     }),
+
+  suggestLoads: protectedProcedure
+    .input(z.object({
+      projectId: z.number(),
+      projectType: z.string().default("residential"),
+      siteDescription: z.string().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = (await getDb())!;
+      const loads = await db.select().from(erpSolarLoadItems).where(eq(erpSolarLoadItems.solarProjectId, input.projectId));
+      const existingLoads = loads.map(l => ({
+        name: l.equipmentName,
+        powerW: Number(l.unitPowerW),
+        category: l.equipmentCategory || "other",
+      }));
+      const suggestions = await suggestMissingLoads(input.projectType, existingLoads, input.siteDescription);
+      return suggestions;
+    }),
+
+  typicalProfile: protectedProcedure
+    .input(z.object({ profileType: z.string().min(1) }))
+    .mutation(async ({ input }) => {
+      const profile = await generateTypicalProfile(input.profileType);
+      return profile;
+    }),
+
+  detectAnomalies: protectedProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ input }) => {
+      const db = (await getDb())!;
+      const loads = await db.select().from(erpSolarLoadItems).where(eq(erpSolarLoadItems.solarProjectId, input.projectId));
+      const loadData = loads.map(l => ({
+        equipmentName: l.equipmentName,
+        unitPowerW: Number(l.unitPowerW),
+        quantity: l.quantity,
+        usageHoursPerDay: Number(l.usageHoursPerDay),
+        startupFactor: Number(l.startupFactor),
+        equipmentCategory: l.equipmentCategory || undefined,
+      }));
+      return detectLoadAnomalies(loadData);
+    }),
 });
 
 const settingsRouter = router({
@@ -782,6 +1005,7 @@ async function buildProjectContext(db: any, projectId: number): Promise<SolarPro
 export const solarRouter = router({
   projects: projectsRouter,
   loadItems: loadItemsRouter,
+  loadCatalog: loadCatalogRouter,
   sizing: sizingRouter,
   budget: budgetRouter,
   scenarios: scenariosRouter,
