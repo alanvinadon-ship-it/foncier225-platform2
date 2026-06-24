@@ -2705,3 +2705,8 @@
 - [ ] Tests création et application templates
 - [ ] Tests seed data (domestique + télécom)
 - [x] Tests non-régression (0 erreurs TS)
+
+## Bug Fix — Assistant IA Solaire ne répond pas
+- [x] Diagnostiquer pourquoi l'assistant IA Solaire ne répond pas (routage tRPC, procédure IA)
+- [x] Corriger le backend (invokeLLM, contexte projet)
+- [x] Tester et valider

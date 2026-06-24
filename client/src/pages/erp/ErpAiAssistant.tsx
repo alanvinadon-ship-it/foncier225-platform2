@@ -19,6 +19,7 @@ const AI_MODULES = [
   { value: "inventory", label: "Stock" },
   { value: "real_estate", label: "Immobilier" },
   { value: "safety", label: "Sécurité" },
+  { value: "solar", label: "Solaire" },
   { value: "direction", label: "Direction" },
 ];
 

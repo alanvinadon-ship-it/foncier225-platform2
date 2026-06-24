@@ -27,6 +27,10 @@ import {
   erpRealEstateSales,
   erpSafetyIncidents,
   erpCashFlows,
+  erpSolarProjects,
+  erpSolarLoadItems,
+  erpSolarSizingResults,
+  erpSolarBudgetLines,
 } from "../../drizzle/schema";
 import { eq, desc, sql, and, gte, lte, count } from "drizzle-orm";
 
@@ -195,6 +199,34 @@ async function gatherInventoryContext(): Promise<DataContext> {
   };
 }
 
+async function gatherSolarContext(projectId?: number): Promise<DataContext | null> {
+  const db = (await getDb())!;
+  if (projectId) {
+    // Contexte d'un projet solaire spécifique
+    const [project] = await db.select().from(erpSolarProjects).where(eq(erpSolarProjects.id, projectId)).limit(1);
+    if (!project) return null;
+    const loads = await db.select().from(erpSolarLoadItems).where(eq(erpSolarLoadItems.solarProjectId, projectId));
+    const [sizing] = await db.select().from(erpSolarSizingResults).where(eq(erpSolarSizingResults.solarProjectId, projectId)).orderBy(desc(erpSolarSizingResults.createdAt)).limit(1);
+    const budgetLines = await db.select().from(erpSolarBudgetLines).where(eq(erpSolarBudgetLines.solarProjectId, projectId));
+    const totalBudget = budgetLines.reduce((sum, l) => sum + Number(l.amount || 0), 0);
+    const totalEnergy = loads.reduce((sum, l) => sum + Number(l.dailyEnergyWh || 0), 0);
+    const totalPower = loads.reduce((sum, l) => sum + Number(l.totalPowerW || 0), 0);
+    return {
+      module: "solar",
+      summary: `Projet solaire: ${project.name} | ${project.siteName || ""} | ${project.systemType} | ${loads.length} charges | ${totalPower}W nominal | ${totalEnergy}Wh/j | PV: ${sizing?.pvInstalledPowerWc || "non calculé"}Wc | Batteries: ${sizing?.batteryCapacityAh || "non calculé"}Ah | Budget: ${totalBudget.toLocaleString()} XOF`,
+      data: { project, loadsCount: loads.length, totalPower, totalEnergy, sizing, budgetTotal: totalBudget, budgetLines: budgetLines.length },
+    };
+  } else {
+    // Contexte global solaire (résumé de tous les projets)
+    const projects = await db.select().from(erpSolarProjects).orderBy(desc(erpSolarProjects.createdAt)).limit(10);
+    return {
+      module: "solar",
+      summary: `${projects.length} projets solaires récents | Types: ${[...new Set(projects.map(p => p.systemType))].join(", ")}`,
+      data: { projects: projects.map(p => ({ id: p.id, name: p.name, site: p.siteName, type: p.systemType, status: p.status })) },
+    };
+  }
+}
+
 // ============================================================
 // MAIN CHAT FUNCTION
 // ============================================================
@@ -258,6 +290,10 @@ export async function chatWithAssistant(
     }
     if (input.module === "general" || input.module === "inventory") {
       contexts.push(await gatherInventoryContext());
+    }
+    if (input.module === "solar") {
+      const sc = await gatherSolarContext(input.contextProjectId || undefined);
+      if (sc) contexts.push(sc);
     }
   } catch (err) {
     // Continue with partial context

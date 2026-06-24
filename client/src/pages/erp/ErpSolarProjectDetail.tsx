@@ -609,15 +609,17 @@ function AiTab({ projectId }: { projectId: number }) {
 
   const askAi = trpc.erp.solar.ai.chat.useMutation({
     onSuccess: (data: any) => {
-      setMessages(prev => [...prev, { role: "assistant", content: data.response }]);
+      setMessages(prev => [...prev, { role: "assistant", content: data.answer }]);
     },
     onError: (err: any) => toast.error(err.message),
   });
 
   const handleSend = () => {
     if (!message.trim()) return;
-    setMessages(prev => [...prev, { role: "user", content: message }]);
-    askAi.mutate({ projectId, question: message });
+    const userMsg = message.trim();
+    setMessages(prev => [...prev, { role: "user", content: userMsg }]);
+    const history = messages.map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
+    askAi.mutate({ projectId, question: userMsg, history });
     setMessage("");
   };
 
