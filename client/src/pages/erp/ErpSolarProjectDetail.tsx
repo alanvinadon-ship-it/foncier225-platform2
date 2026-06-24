@@ -106,11 +106,11 @@ export default function ErpSolarProjectDetail() {
 
 function LoadsTab({ projectId, loads }: { projectId: number; loads: any[] | undefined }) {
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", category: "lighting", powerWatts: "", quantity: "1", hoursPerDay: "8", simultaneityFactor: "1" });
+  const [form, setForm] = useState({ name: "", category: "lighting", unitPowerW: "", quantity: "1", usageHoursPerDay: "8", startupFactor: "1" });
   const utils = trpc.useUtils();
 
   const addLoad = trpc.erp.solar.loadItems.create.useMutation({
-    onSuccess: () => { toast.success("Charge ajoutée"); setShowForm(false); setForm({ name: "", category: "lighting", powerWatts: "", quantity: "1", hoursPerDay: "8", simultaneityFactor: "1" }); utils.erp.solar.loadItems.list.invalidate(); },
+    onSuccess: () => { toast.success("Charge ajoutée"); setShowForm(false); setForm({ name: "", category: "lighting", unitPowerW: "", quantity: "1", usageHoursPerDay: "8", startupFactor: "1" }); utils.erp.solar.loadItems.list.invalidate(); },
     onError: (err: any) => toast.error(err.message),
   });
 
@@ -157,13 +157,13 @@ function LoadsTab({ projectId, loads }: { projectId: number; loads: any[] | unde
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1"><Label className="text-xs">Puissance (W) *</Label><Input type="number" value={form.powerWatts} onChange={e => setForm(f => ({ ...f, powerWatts: e.target.value }))} placeholder="1500" /></div>
+                <div className="space-y-1"><Label className="text-xs">Puissance (W) *</Label><Input type="number" value={form.unitPowerW} onChange={e => setForm(f => ({ ...f, unitPowerW: e.target.value }))} placeholder="1500" /></div>
                 <div className="space-y-1"><Label className="text-xs">Quantité</Label><Input type="number" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))} /></div>
-                <div className="space-y-1"><Label className="text-xs">Heures/jour</Label><Input type="number" step="0.5" value={form.hoursPerDay} onChange={e => setForm(f => ({ ...f, hoursPerDay: e.target.value }))} /></div>
-                <div className="space-y-1"><Label className="text-xs">Coeff. simultanéité</Label><Input type="number" step="0.1" value={form.simultaneityFactor} onChange={e => setForm(f => ({ ...f, simultaneityFactor: e.target.value }))} /></div>
+                <div className="space-y-1"><Label className="text-xs">Heures/jour</Label><Input type="number" step="0.5" value={form.usageHoursPerDay} onChange={e => setForm(f => ({ ...f, usageHoursPerDay: e.target.value }))} /></div>
+                <div className="space-y-1"><Label className="text-xs">Coeff. simultanéité</Label><Input type="number" step="0.1" value={form.startupFactor} onChange={e => setForm(f => ({ ...f, startupFactor: e.target.value }))} /></div>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" onClick={() => { if (!form.name || !form.powerWatts) { toast.error("Nom et puissance requis"); return; } addLoad.mutate({ projectId, equipmentName: form.name, equipmentCategory: form.category, unitPowerW: parseInt(form.powerWatts), quantity: parseInt(form.quantity), usageHoursPerDay: parseFloat(form.hoursPerDay), startupFactor: parseFloat(form.simultaneityFactor) }); }} disabled={addLoad.isPending}>Ajouter</Button>
+                <Button size="sm" onClick={() => { if (!form.name || !form.unitPowerW) { toast.error("Nom et puissance requis"); return; } addLoad.mutate({ projectId, equipmentName: form.name, equipmentCategory: form.category, unitPowerW: parseInt(form.unitPowerW), quantity: parseInt(form.quantity), usageHoursPerDay: parseFloat(form.usageHoursPerDay), startupFactor: parseFloat(form.startupFactor) }); }} disabled={addLoad.isPending}>Ajouter</Button>
                 <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
               </div>
             </div>
@@ -178,13 +178,13 @@ function LoadsTab({ projectId, loads }: { projectId: number; loads: any[] | unde
                 <tbody>
                   {loads.map((l: any) => (
                     <tr key={l.id} className="border-b">
-                      <td className="py-2 font-medium">{l.name}</td>
-                      <td><Badge variant="outline" className="text-xs">{l.category}</Badge></td>
-                      <td className="text-right">{l.powerWatts}</td>
+                      <td className="py-2 font-medium">{l.equipmentName}</td>
+                      <td><Badge variant="outline" className="text-xs">{l.equipmentCategory}</Badge></td>
+                      <td className="text-right">{Number(l.unitPowerW).toFixed(2)}</td>
                       <td className="text-right">{l.quantity}</td>
-                      <td className="text-right">{l.hoursPerDay}</td>
-                      <td className="text-right">{l.simultaneityFactor}</td>
-                      <td className="text-right font-medium">{(l.powerWatts * l.quantity * l.hoursPerDay * l.simultaneityFactor).toLocaleString()}</td>
+                      <td className="text-right">{Number(l.usageHoursPerDay).toFixed(1)}</td>
+                      <td className="text-right">{Number(l.startupFactor).toFixed(2)}</td>
+                      <td className="text-right font-medium">{Number(l.dailyEnergyWh).toLocaleString()}</td>
                       <td className="text-right"><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteLoad.mutate({ id: l.id })}><Trash2 className="h-3 w-3" /></Button></td>
                     </tr>
                   ))}

@@ -2543,3 +2543,6 @@
 - [x] Entrée sidebar Énergie Solaire avec sous-menu Dashboard + Paramètres
 - [x] RBAC : permissions erp_solar (view, create, update, delete, export) + IA modules
 - [x] Tests : 1390 tests passés, 0 erreur TypeScript
+
+## Bug Fix — Bilan solaire NaN
+- [x] Corriger l'affichage NaN dans le bilan solaire (puissance totale, énergie journalière, Wh/j par charge)
