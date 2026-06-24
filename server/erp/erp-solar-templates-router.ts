@@ -141,24 +141,35 @@ export const erpSolarTemplatesRouter = router({
         const qty = item.quantity;
         const hours = Number(item.hoursPerDay);
         const simult = Number(item.simultaneityCoefficient);
-        const energyWh = powerW * qty * hours;
+        const totalItemPowerW = powerW * qty;
+        const startupFactor = Number(item.startupFactor) || (item.isMotorLoad ? 3.0 : 1.0);
+        const peakPower = totalItemPowerW * startupFactor;
+        const energyWh = totalItemPowerW * hours;
 
-        totalPowerW += powerW * qty * simult;
+        totalPowerW += totalItemPowerW * simult;
         totalDailyEnergyWh += energyWh;
         if (item.isCriticalLoad) criticalEnergyWh += energyWh;
+
+        const priorityStr = item.priorityLevel === "Essential" ? "critical" : item.priorityLevel === "Important" ? "important" : "comfort";
 
         await db.insert(erpSolarLoadItems).values({
           solarProjectId: input.projectId,
           equipmentName: item.equipmentName,
-          powerW: item.powerW,
+          equipmentCategory: item.category || null,
+          unitPowerW: String(powerW),
           quantity: qty,
-          hoursPerDay: item.hoursPerDay,
-          startTime: "06:00",
-          endTime: hours >= 24 ? "06:00" : `${String(6 + Math.floor(hours)).padStart(2, "0")}:00`,
-          simultaneityCoeff: item.simultaneityCoefficient,
+          totalPowerW: String(totalItemPowerW),
+          startupFactor: String(startupFactor),
+          peakPowerW: String(peakPower),
+          usageHoursPerDay: String(hours),
+          dailyEnergyWh: String(energyWh),
+          isCriticalLoad: item.isCriticalLoad ?? false,
           isNightLoad: item.isNightLoad ?? false,
           isMotorLoad: item.isMotorLoad ?? false,
-          priorityLevel: item.priorityLevel === "Essential" ? 1 : item.priorityLevel === "Important" ? 2 : 3,
+          priorityLevel: priorityStr,
+          domain: item.category || null,
+          isCustom: false,
+          simultaneityCoeff: String(simult),
           createdAt: now,
           updatedAt: now,
         });
@@ -334,18 +345,30 @@ ${input.budgetTarget ? `- Budget cible : ${input.budgetTarget} XOF` : ""}`;
 
       for (const item of input.items) {
         const hours = item.hoursPerDay;
+        const totalPowerW = item.powerW * item.quantity;
+        const startupFactor = item.startupFactor || (item.isMotor ? 3.0 : 1.0);
+        const peakPower = totalPowerW * startupFactor;
+        const energyWh = totalPowerW * hours;
+        const priorityStr = item.priority === "Essential" ? "critical" : item.priority === "Important" ? "important" : "comfort";
+
         await db.insert(erpSolarLoadItems).values({
           solarProjectId: input.projectId,
           equipmentName: item.name,
-          powerW: String(item.powerW),
+          equipmentCategory: item.category || null,
+          unitPowerW: String(item.powerW),
           quantity: item.quantity,
-          hoursPerDay: String(hours),
-          startTime: "06:00",
-          endTime: hours >= 24 ? "06:00" : `${String(6 + Math.floor(hours)).padStart(2, "0")}:00`,
-          simultaneityCoeff: String(item.simultaneityCoefficient),
+          totalPowerW: String(totalPowerW),
+          startupFactor: String(startupFactor),
+          peakPowerW: String(peakPower),
+          usageHoursPerDay: String(hours),
+          dailyEnergyWh: String(energyWh),
+          isCriticalLoad: item.isCritical,
           isNightLoad: item.isNight,
           isMotorLoad: item.isMotor,
-          priorityLevel: item.priority === "Essential" ? 1 : item.priority === "Important" ? 2 : 3,
+          priorityLevel: priorityStr,
+          domain: item.category || null,
+          isCustom: false,
+          simultaneityCoeff: String(item.simultaneityCoefficient),
           createdAt: now,
           updatedAt: now,
         });
