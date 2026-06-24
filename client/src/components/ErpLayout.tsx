@@ -59,6 +59,8 @@ import {
   Server,
   ArrowRight,
   Sun,
+  Globe,
+  Code,
 } from "lucide-react";
 import { useState } from "react";
 import { NotificationBell } from "@/components/erp/NotificationBell";
@@ -214,6 +216,8 @@ const ERP_NAV_ENTRIES: NavEntry[] = [
     children: [
       { label: "Dashboard Solaire", href: "/erp/solar", icon: <Sun size={18} />, module: "erp_solar" },
       { label: "Paramètres", href: "/erp/solar/settings", icon: <Settings size={18} />, module: "erp_solar" },
+      { label: "Paramétrage Global", href: "/erp/solar/settings/global", icon: <Globe size={18} />, module: "erp_solar" },
+      { label: "Formules", href: "/erp/solar/formulas", icon: <Code size={18} />, module: "erp_solar" },
     ],
   },
 

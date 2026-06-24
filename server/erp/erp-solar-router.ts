@@ -7,6 +7,7 @@ import {
   erpSolarPriceCatalog, erpSolarLoadItems, erpSolarDesignInputs,
   erpSolarSizingResults, erpSolarCableSizing, erpSolarBudgetLines,
   erpSolarScenarios, erpSolarAiRecommendations, erpSolarLoadCatalog,
+  erpSolarGlobalSettings, erpSolarSiteSettings, erpSolarCalculationRuns,
 } from "../../drizzle/schema";
 import {
   calculateLoadBalance, calculateFullSizing, calculateBudget,
@@ -461,8 +462,9 @@ const sizingRouter = router({
 
   calculate: protectedProcedure
     .input(z.object({ projectId: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = (await getDb())!;
+      const startTime = Date.now();
 
       // Get load items
       const items = await db.select().from(erpSolarLoadItems).where(eq(erpSolarLoadItems.solarProjectId, input.projectId));
@@ -478,7 +480,19 @@ const sizingRouter = router({
       }));
       const loadBalance = calculateLoadBalance(loadItems);
 
-      // Get design inputs
+      // Resolve effective parameters: global settings + site overrides
+      const globalSettings = await db.select().from(erpSolarGlobalSettings);
+      const siteOverrides = await db.select().from(erpSolarSiteSettings)
+        .where(eq(erpSolarSiteSettings.solarProjectId, input.projectId));
+      const overrideMap = new Map(siteOverrides.map((o: any) => [o.parameterCode, Number(o.overrideValue)]));
+      
+      function getParam(code: string, fallback: number): number {
+        if (overrideMap.has(code)) return overrideMap.get(code)!;
+        const g = globalSettings.find((s: any) => s.parameterCode === code);
+        return g ? Number(g.parameterValue) : fallback;
+      }
+
+      // Get design inputs from project-specific table or build from global settings
       const [designRow] = await db.select().from(erpSolarDesignInputs).where(eq(erpSolarDesignInputs.solarProjectId, input.projectId));
       const designInputs: DesignInputs = designRow ? {
         nominalVoltageV: designRow.nominalVoltageV,
@@ -491,11 +505,43 @@ const sizingRouter = router({
         globalEfficiency: Number(designRow.globalEfficiency),
         batteryDischargeRate: Number(designRow.batteryDischargeRate),
         voltageDropTarget: Number(designRow.voltageDropTarget),
-      } : DEFAULT_DESIGN_INPUTS;
+      } : {
+        nominalVoltageV: getParam("NOMINAL_VOLTAGE", 48),
+        batteryTechnology: "lithium" as const,
+        autonomyDays: getParam("AUTONOMY_DAYS", 2),
+        peakSunHours: getParam("PSH_DEFAULT", 4.5),
+        panelUnitPowerWc: getParam("PANEL_UNIT_POWER", 550),
+        panelToInverterCableLengthM: 10,
+        batteryToInverterCableLengthM: 3,
+        globalEfficiency: getParam("GLOBAL_EFFICIENCY", 0.80),
+        batteryDischargeRate: getParam("DOD_LITHIUM", 0.80),
+        voltageDropTarget: getParam("VOLTAGE_DROP_DC", 0.03),
+      };
 
       // Calculate full sizing
       const sizing = calculateFullSizing(loadBalance, designInputs);
       const now = Date.now();
+      const durationMs = now - startTime;
+
+      // Build parameters snapshot for audit trail
+      const parametersSnapshot = JSON.stringify({
+        designInputs,
+        globalSettingsUsed: globalSettings.map((s: any) => ({ code: s.parameterCode, value: Number(s.parameterValue) })),
+        siteOverrides: siteOverrides.map((o: any) => ({ code: o.parameterCode, value: Number(o.overrideValue) })),
+      });
+
+      // Save calculation run
+      await db.insert(erpSolarCalculationRuns).values({
+        solarProjectId: input.projectId,
+        runType: "sizing",
+        parametersSnapshot,
+        inputData: JSON.stringify({ loadItems: loadItems.length, totalPowerW: loadBalance.totalNominalPowerW, totalEnergyWh: loadBalance.totalDailyEnergyWh }),
+        outputData: JSON.stringify(sizing),
+        status: "completed",
+        durationMs,
+        createdBy: ctx.user.id,
+        createdAt: now,
+      } as any);
 
       // Save sizing results
       const [existingSizing] = await db.select().from(erpSolarSizingResults).where(eq(erpSolarSizingResults.solarProjectId, input.projectId));
@@ -558,8 +604,9 @@ const sizingRouter = router({
 const budgetRouter = router({
   calculate: protectedProcedure
     .input(z.object({ projectId: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = (await getDb())!;
+      const startTime = Date.now();
 
       // Get sizing
       const [sizingRow] = await db.select().from(erpSolarSizingResults).where(eq(erpSolarSizingResults.solarProjectId, input.projectId));
@@ -567,6 +614,17 @@ const budgetRouter = router({
 
       const [designRow] = await db.select().from(erpSolarDesignInputs).where(eq(erpSolarDesignInputs.solarProjectId, input.projectId));
       const cables = await db.select().from(erpSolarCableSizing).where(eq(erpSolarCableSizing.solarProjectId, input.projectId));
+
+      // Resolve prices: global settings overrides > catalog > defaults
+      const globalSettings = await db.select().from(erpSolarGlobalSettings);
+      const siteOverrides = await db.select().from(erpSolarSiteSettings)
+        .where(eq(erpSolarSiteSettings.solarProjectId, input.projectId));
+      const overrideMap = new Map(siteOverrides.map((o: any) => [o.parameterCode, Number(o.overrideValue)]));
+      function getParam(code: string, fallback: number): number {
+        if (overrideMap.has(code)) return overrideMap.get(code)!;
+        const g = globalSettings.find((s: any) => s.parameterCode === code);
+        return g ? Number(g.parameterValue) : fallback;
+      }
 
       // Get prices from catalog or use defaults
       const catalogItems = await db.select().from(erpSolarPriceCatalog).where(eq(erpSolarPriceCatalog.isActive, true));
@@ -578,6 +636,9 @@ const budgetRouter = router({
         if (item.category === "inverter") prices.pricePerWInverter = Number(item.unitPrice);
         if (item.category === "cables") prices.pricePerMeterCable = Number(item.unitPrice);
       }
+      // Apply global settings overrides for budget percentages
+      prices.structuresCoffretsPercent = getParam("STRUCTURES_PERCENT", prices.structuresCoffretsPercent);
+      prices.installationTransportPercent = getParam("INSTALLATION_PERCENT", prices.installationTransportPercent);
 
       const sizing = {
         pv: {
@@ -633,6 +694,20 @@ const budgetRouter = router({
           updatedAt: now,
         } as any);
       }
+
+      // Save calculation run for budget
+      const durationMs = Date.now() - startTime;
+      await db.insert(erpSolarCalculationRuns).values({
+        solarProjectId: input.projectId,
+        runType: "budget",
+        parametersSnapshot: JSON.stringify({ prices, catalogItemsCount: catalogItems.length }),
+        inputData: JSON.stringify({ sizingRowId: sizingRow.id }),
+        outputData: JSON.stringify({ totalInvestment: budget.totalInvestment, lotsCount: budget.lines.length }),
+        status: "completed",
+        durationMs,
+        createdBy: ctx.user.id,
+        createdAt: Date.now(),
+      } as any);
 
       return budget;
     }),

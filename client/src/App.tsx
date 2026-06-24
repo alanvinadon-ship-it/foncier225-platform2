@@ -169,6 +169,9 @@ const ErpSolarDashboard = lazy(() => import("./pages/erp/ErpSolarDashboard"));
 const ErpSolarNewProject = lazy(() => import("./pages/erp/ErpSolarNewProject"));
 const ErpSolarProjectDetail = lazy(() => import("./pages/erp/ErpSolarProjectDetail"));
 const ErpSolarSettings = lazy(() => import("./pages/erp/ErpSolarSettings"));
+const ErpSolarGlobalSettings = lazy(() => import("./pages/erp/ErpSolarGlobalSettings"));
+const ErpSolarProjectSettings = lazy(() => import("./pages/erp/ErpSolarProjectSettings"));
+const ErpSolarFormulas = lazy(() => import("./pages/erp/ErpSolarFormulas"));
 
 function RouteFallback() {
   return (
@@ -926,6 +929,21 @@ function Router() {
       <Route path="/erp/solar/new">
         <ErpLayout>
           <ErpSolarNewProject />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/solar/settings/global">
+        <ErpLayout>
+          <ErpSolarGlobalSettings />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/solar/:id/settings">
+        <ErpLayout>
+          <ErpSolarProjectSettings />
+        </ErpLayout>
+      </Route>
+      <Route path="/erp/solar/formulas">
+        <ErpLayout>
+          <ErpSolarFormulas />
         </ErpLayout>
       </Route>
       <Route path="/erp/solar/settings">

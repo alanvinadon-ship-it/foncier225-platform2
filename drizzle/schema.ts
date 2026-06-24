@@ -5121,3 +5121,120 @@ export const erpSolarLoadCatalog = mysqlTable("erp_solar_load_catalog", {
   updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
   deletedAt: bigint("deleted_at", { mode: "number" }),
 });
+
+
+// ============================================================
+// PARAMÉTRAGE SOLAIRE — GLOBAL, PROJET, FORMULES
+// ============================================================
+
+/**
+ * Paramètres globaux solaires (12 groupes)
+ * Chaque paramètre a un code unique, un groupe, une valeur par défaut
+ */
+export const erpSolarGlobalSettings = mysqlTable("erp_solar_global_settings", {
+  id: int("id").primaryKey().autoincrement(),
+  parameterCode: varchar("parameter_code", { length: 64 }).notNull().unique(),
+  parameterName: varchar("parameter_name", { length: 255 }).notNull(),
+  parameterGroup: varchar("parameter_group", { length: 64 }).notNull(),
+  parameterValue: decimal("parameter_value", { precision: 14, scale: 6 }).notNull(),
+  unit: varchar("unit", { length: 32 }),
+  description: text("description"),
+  minValue: decimal("min_value", { precision: 14, scale: 6 }),
+  maxValue: decimal("max_value", { precision: 14, scale: 6 }),
+  dataType: varchar("data_type", { length: 16 }).notNull().default("number"),
+  isLocked: boolean("is_locked").default(false),
+  lastModifiedBy: int("last_modified_by"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+
+/**
+ * Paramètres site/projet (overrides des paramètres globaux)
+ * Chaque projet peut surcharger un paramètre global avec justification
+ */
+export const erpSolarSiteSettings = mysqlTable("erp_solar_site_settings", {
+  id: int("id").primaryKey().autoincrement(),
+  solarProjectId: int("solar_project_id").notNull(),
+  parameterCode: varchar("parameter_code", { length: 64 }).notNull(),
+  overrideValue: decimal("override_value", { precision: 14, scale: 6 }).notNull(),
+  justification: text("justification"),
+  source: varchar("source", { length: 128 }),
+  validatedBy: int("validated_by"),
+  validatedAt: bigint("validated_at", { mode: "number" }),
+  createdBy: int("created_by").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+
+/**
+ * Formules de calcul versionnées
+ * Chaque formule a un code, une version, un statut (draft, active, deprecated)
+ */
+export const erpSolarCalculationFormulas = mysqlTable("erp_solar_calculation_formulas", {
+  id: int("id").primaryKey().autoincrement(),
+  formulaCode: varchar("formula_code", { length: 64 }).notNull(),
+  formulaName: varchar("formula_name", { length: 255 }).notNull(),
+  formulaGroup: varchar("formula_group", { length: 64 }).notNull(),
+  version: int("version").notNull().default(1),
+  expression: text("expression").notNull(),
+  description: text("description"),
+  inputParameters: text("input_parameters"),
+  outputUnit: varchar("output_unit", { length: 32 }),
+  status: varchar("status", { length: 16 }).notNull().default("active"),
+  activatedAt: bigint("activated_at", { mode: "number" }),
+  activatedBy: int("activated_by"),
+  createdBy: int("created_by").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+
+/**
+ * Historique des runs de calcul avec snapshots des paramètres utilisés
+ */
+export const erpSolarCalculationRuns = mysqlTable("erp_solar_calculation_runs", {
+  id: int("id").primaryKey().autoincrement(),
+  solarProjectId: int("solar_project_id").notNull(),
+  runType: varchar("run_type", { length: 32 }).notNull(),
+  status: varchar("status", { length: 16 }).notNull().default("completed"),
+  parametersSnapshot: text("parameters_snapshot"),
+  formulasSnapshot: text("formulas_snapshot"),
+  inputData: text("input_data"),
+  outputData: text("output_data"),
+  durationMs: int("duration_ms"),
+  errorMessage: text("error_message"),
+  triggeredBy: int("triggered_by").notNull(),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+});
+
+/**
+ * Paramètres financiers/budget (globaux ou par projet)
+ */
+export const erpSolarBudgetParameters = mysqlTable("erp_solar_budget_parameters", {
+  id: int("id").primaryKey().autoincrement(),
+  solarProjectId: int("solar_project_id"),
+  parameterCode: varchar("parameter_code", { length: 64 }).notNull(),
+  parameterName: varchar("parameter_name", { length: 255 }).notNull(),
+  parameterValue: decimal("parameter_value", { precision: 14, scale: 6 }).notNull(),
+  unit: varchar("unit", { length: 32 }),
+  description: text("description"),
+  isGlobal: boolean("is_global").default(true),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull(),
+});
+
+/**
+ * Audit logs pour les modifications de paramètres solaires
+ */
+export const erpSolarAuditLogs = mysqlTable("erp_solar_audit_logs", {
+  id: int("id").primaryKey().autoincrement(),
+  solarProjectId: int("solar_project_id"),
+  userId: int("user_id").notNull(),
+  action: varchar("action", { length: 64 }).notNull(),
+  module: varchar("module", { length: 64 }).notNull(),
+  parameterCode: varchar("parameter_code", { length: 64 }),
+  oldValue: text("old_value"),
+  newValue: text("new_value"),
+  justification: text("justification"),
+  metadata: text("metadata"),
+  createdAt: bigint("created_at", { mode: "number" }).notNull(),
+});

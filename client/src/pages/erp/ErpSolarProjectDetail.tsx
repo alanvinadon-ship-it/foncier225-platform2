@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useRoute } from "wouter";
 import { Link } from "wouter";
 import { toast } from "sonner";
-import { ArrowLeft, Sun, Zap, Battery, Cable, DollarSign, Cpu, MessageSquare, Plus, Trash2, Play, Download, Search, Copy, BookOpen, AlertTriangle, Edit2, Check, X } from "lucide-react";
+import { ArrowLeft, Sun, Zap, Battery, Cable, DollarSign, Cpu, MessageSquare, Plus, Trash2, Play, Download, Search, Copy, BookOpen, AlertTriangle, Edit2, Check, X, Settings } from "lucide-react";
 
 export default function ErpSolarProjectDetail() {
   const [, params] = useRoute("/erp/solar/:id");
@@ -48,6 +48,11 @@ export default function ErpSolarProjectDetail() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Link href={`/erp/solar/${projectId}/settings`}>
+            <Button variant="outline" size="sm">
+              <Settings className="h-4 w-4 mr-2" />Paramètres
+            </Button>
+          </Link>
           <Button variant="outline" onClick={() => runSizing.mutate({ projectId })} disabled={runSizing.isPending}>
             <Play className="h-4 w-4 mr-2" />{runSizing.isPending ? "Calcul..." : "Dimensionner"}
           </Button>

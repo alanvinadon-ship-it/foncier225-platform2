@@ -2571,3 +2571,26 @@
 - [x] IA suggestions (charges recommandées, anomalies, optimisation)
 - [ ] IA bilans types (Domestique petit/villa, Bureau PME, Télécom, Boutique, Industriel, Santé, Pompage)
 - [ ] Tests Vitest catalogue + calculs + 0 erreur TypeScript
+
+## Sprint Paramétrage Solaire — Global, Projet et Formules
+- [x] Audit préalable (rapport docs/erp/solar-parametrage-audit.md)
+- [x] Table erp_solar_global_settings (12 groupes, 30+ paramètres)
+- [x] Table erp_solar_site_settings (overrides par projet)
+- [x] Table erp_solar_calculation_formulas (versionnées)
+- [x] Table erp_solar_calculation_runs (snapshots)
+- [x] Table erp_solar_budget_parameters (financiers)
+- [x] Seed 30+ paramètres globaux par défaut
+- [x] Routeur tRPC globalSettings (list, upsert, resetDefaults, history)
+- [x] Routeur tRPC siteSettings (list, upsert, resetToGlobal)
+- [x] Routeur tRPC formulas (list, create, activate, duplicate, test)
+- [x] Routeur tRPC calculationRuns (list, getById)
+- [x] Refondre moteur de calcul (lire paramètres DB, snapshots, formules enrichies)
+- [x] UI Paramétrage Global (/erp/solar/settings/global) — onglets par groupe
+- [x] UI Paramétrage Projet (/erp/solar/projects/{id}/settings) — overrides
+- [x] UI Formules (/erp/solar/settings/formulas)
+- [x] RBAC solar_settings (9 permissions)
+- [x] Audit Logs paramètres
+- [x] Notifications paramètres critiques
+- [x] Tests Vitest complets
+- [x] Documentation technique
+- [x] 0 erreur TypeScript
