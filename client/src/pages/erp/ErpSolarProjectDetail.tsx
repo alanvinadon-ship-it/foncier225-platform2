@@ -118,8 +118,8 @@ function LoadsTab({ projectId, loads }: { projectId: number; loads: any[] | unde
     onSuccess: () => { toast.success("Charge supprimée"); utils.erp.solar.loadItems.list.invalidate(); },
   });
 
-  const totalPower = (loads || []).reduce((s: number, l: any) => s + (l.powerWatts * l.quantity * l.simultaneityFactor), 0);
-  const totalEnergy = (loads || []).reduce((s: number, l: any) => s + (l.powerWatts * l.quantity * l.hoursPerDay * l.simultaneityFactor), 0);
+  const totalPower = (loads || []).reduce((s: number, l: any) => s + (Number(l.totalPowerW) || 0), 0);
+  const totalEnergy = (loads || []).reduce((s: number, l: any) => s + (Number(l.dailyEnergyWh) || 0), 0);
 
   return (
     <div className="space-y-4">
