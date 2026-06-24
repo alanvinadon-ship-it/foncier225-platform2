@@ -22,13 +22,14 @@ export default function ErpSolarProjectDetail() {
   const { data: sizing } = trpc.erp.solar.sizing.getResults.useQuery({ projectId });
   const { data: budget } = trpc.erp.solar.budget.getLines.useQuery({ projectId });
 
+  const utils = trpc.useUtils();
   const runSizing = trpc.erp.solar.sizing.calculate.useMutation({
-    onSuccess: () => { toast.success("Dimensionnement calculé avec succès"); },
+    onSuccess: () => { toast.success("Dimensionnement calculé avec succès"); utils.erp.solar.sizing.getResults.invalidate(); },
     onError: (err: any) => toast.error(err.message),
   });
 
   const runBudget = trpc.erp.solar.budget.calculate.useMutation({
-    onSuccess: () => { toast.success("Budget calculé avec succès"); },
+    onSuccess: () => { toast.success("Budget calculé avec succès"); utils.erp.solar.budget.getLines.invalidate(); },
     onError: (err: any) => toast.error(err.message),
   });
 
@@ -74,7 +75,7 @@ export default function ErpSolarProjectDetail() {
 
         {/* Dimensionnement */}
         <TabsContent value="sizing">
-          <SizingTab sizing={sizing} />
+          <SizingTab sizingData={sizing} />
         </TabsContent>
 
         {/* Budget */}
@@ -198,33 +199,65 @@ function LoadsTab({ projectId, loads }: { projectId: number; loads: any[] | unde
   );
 }
 
-function SizingTab({ sizing }: { sizing: any }) {
-  if (!sizing) return (
+function SizingTab({ sizingData }: { sizingData: any }) {
+  // getResults returns { sizing: row | null, cables: [] }
+  const sizing = sizingData?.sizing;
+  if (!sizing || sizing.calculationStatus !== "completed") return (
     <Card><CardContent className="py-8 text-center text-muted-foreground">
       <Sun className="h-12 w-12 mx-auto mb-4 opacity-50" />
       <p>Cliquez sur "Dimensionner" pour calculer la taille optimale du système PV.</p>
     </CardContent></Card>
   );
 
+  const pvPowerKwp = (Number(sizing.requiredPvPowerWc) / 1000).toFixed(2);
+  const batteryCapacityKwh = (Number(sizing.batteryCapacityWh) / 1000).toFixed(2);
+  const inverterPowerKva = (Number(sizing.recommendedInverterPowerW) / 1000).toFixed(2);
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Panneaux PV</p><p className="text-xl font-bold">{sizing.pvPanelsCount}</p><p className="text-xs">{sizing.pvPowerKwp} kWp</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Batteries</p><p className="text-xl font-bold">{sizing.batteryCount}</p><p className="text-xs">{sizing.batteryCapacityKwh} kWh</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Onduleur</p><p className="text-xl font-bold">{sizing.inverterCount}</p><p className="text-xs">{sizing.inverterPowerKva} kVA</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Régulateur</p><p className="text-xl font-bold">{sizing.chargeControllerCount || "-"}</p><p className="text-xs">{sizing.chargeControllerAmps || "-"} A</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Panneaux PV</p><p className="text-xl font-bold">{sizing.panelsCount}</p><p className="text-xs">{pvPowerKwp} kWp</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Batteries</p><p className="text-xl font-bold">{Number(sizing.batteryCapacityAh).toFixed(0)} Ah</p><p className="text-xs">{batteryCapacityKwh} kWh</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Onduleur</p><p className="text-xl font-bold">{inverterPowerKva} kVA</p><p className="text-xs">Min: {(Number(sizing.inverterMinPowerW) / 1000).toFixed(2)} kW</p></CardContent></Card>
+        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Puissance PV</p><p className="text-xl font-bold">{sizing.panelUnitPowerWc} Wc</p><p className="text-xs">par panneau</p></CardContent></Card>
       </div>
       <Card>
         <CardHeader><CardTitle>Détails du dimensionnement</CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <div><span className="text-muted-foreground">Ensoleillement:</span> <span className="font-medium">{sizing.peakSunHours} h/j</span></div>
-            <div><span className="text-muted-foreground">Autonomie batteries:</span> <span className="font-medium">{sizing.autonomyDays} jours</span></div>
-            <div><span className="text-muted-foreground">Profondeur décharge:</span> <span className="font-medium">{sizing.depthOfDischarge}%</span></div>
-            <div><span className="text-muted-foreground">Pertes système:</span> <span className="font-medium">{sizing.systemLosses}%</span></div>
+            <div><span className="text-muted-foreground">Puissance totale installée:</span> <span className="font-medium">{(Number(sizing.totalNominalPowerW) / 1000).toFixed(2)} kW</span></div>
+            <div><span className="text-muted-foreground">Puissance démarrage max:</span> <span className="font-medium">{(Number(sizing.maxStartupPowerW) / 1000).toFixed(2)} kW</span></div>
+            <div><span className="text-muted-foreground">Énergie journalière:</span> <span className="font-medium">{(Number(sizing.totalDailyEnergyWh) / 1000).toFixed(2)} kWh/j</span></div>
+            <div><span className="text-muted-foreground">Score de confiance:</span> <span className="font-medium">{sizing.confidenceScore ? `${Number(sizing.confidenceScore) * 100}%` : "N/A"}</span></div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Câbles */}
+      {sizingData.cables?.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle>Câblage</CardTitle></CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b text-left"><th className="py-2">Ligne</th><th>Type</th><th className="text-right">Longueur (m)</th><th className="text-right">Courant (A)</th><th className="text-right">Section (mm²)</th><th className="text-right">Chute (%)</th></tr></thead>
+                <tbody>
+                  {sizingData.cables.map((c: any) => (
+                    <tr key={c.id} className="border-b">
+                      <td className="py-2 font-medium">{c.lineName}</td>
+                      <td>{c.cableType}</td>
+                      <td className="text-right">{Number(c.lengthM).toFixed(1)}</td>
+                      <td className="text-right">{Number(c.currentA).toFixed(1)}</td>
+                      <td className="text-right">{Number(c.recommendedCommercialSectionMm2).toFixed(1)}</td>
+                      <td className="text-right">{c.voltageDropPercent ? Number(c.voltageDropPercent).toFixed(2) : "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
