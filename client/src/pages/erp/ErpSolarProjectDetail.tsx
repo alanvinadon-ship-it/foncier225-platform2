@@ -263,32 +263,41 @@ function SizingTab({ sizingData }: { sizingData: any }) {
 }
 
 function BudgetTab({ budget }: { budget: any }) {
-  if (!budget || !budget.lines?.length) return (
+  // budget is a direct array from getLines (not an object with .lines)
+  const lines = Array.isArray(budget) ? budget : budget?.lines || [];
+  if (!lines.length) return (
     <Card><CardContent className="py-8 text-center text-muted-foreground">
       <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
       <p>Cliquez sur "Budgétiser" pour calculer le budget détaillé par lots.</p>
     </CardContent></Card>
   );
 
-  const totalHT = budget.lines.reduce((s: number, l: any) => s + (l.totalHt || 0), 0);
+  const totalHT = lines.reduce((s: number, l: any) => s + Number(l.amount || 0), 0);
+  const currency = lines[0]?.currency || "XOF";
 
   return (
     <div className="space-y-4">
       <Card><CardContent className="pt-4">
         <p className="text-sm text-muted-foreground">Budget total HT</p>
-        <p className="text-3xl font-bold">{totalHT.toLocaleString()} FCFA</p>
+        <p className="text-3xl font-bold">{totalHT.toLocaleString("fr-FR")} {currency}</p>
       </CardContent></Card>
       <Card>
         <CardHeader><CardTitle>Détail par lots</CardTitle></CardHeader>
         <CardContent>
           <table className="w-full text-sm">
-            <thead><tr className="border-b text-left"><th className="py-2">Lot</th><th>Désignation</th><th className="text-right">Qté</th><th className="text-right">PU</th><th className="text-right">Total HT</th></tr></thead>
+            <thead><tr className="border-b text-left"><th className="py-2">Lot</th><th>Désignation</th><th className="text-right">Qté</th><th className="text-right">PU ({currency})</th><th className="text-right">Total HT ({currency})</th></tr></thead>
             <tbody>
-              {budget.lines.map((l: any, i: number) => (
-                <tr key={i} className="border-b"><td className="py-2">{l.lot}</td><td>{l.designation}</td><td className="text-right">{l.quantity}</td><td className="text-right">{l.unitPrice?.toLocaleString()}</td><td className="text-right font-medium">{l.totalHt?.toLocaleString()}</td></tr>
+              {lines.map((l: any, i: number) => (
+                <tr key={i} className="border-b">
+                  <td className="py-2 font-mono text-xs">{l.lotNumber}</td>
+                  <td>{l.lotName}</td>
+                  <td className="text-right">{Number(l.quantity).toLocaleString("fr-FR")}</td>
+                  <td className="text-right">{Number(l.unitPrice).toLocaleString("fr-FR")}</td>
+                  <td className="text-right font-medium">{Number(l.amount).toLocaleString("fr-FR")}</td>
+                </tr>
               ))}
             </tbody>
-            <tfoot><tr className="font-bold"><td colSpan={4} className="py-2 text-right">TOTAL HT</td><td className="text-right">{totalHT.toLocaleString()} FCFA</td></tr></tfoot>
+            <tfoot><tr className="font-bold border-t"><td colSpan={4} className="py-2 text-right">TOTAL HT</td><td className="text-right">{totalHT.toLocaleString("fr-FR")} {currency}</td></tr></tfoot>
           </table>
         </CardContent>
       </Card>
