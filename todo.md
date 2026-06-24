@@ -2606,3 +2606,68 @@
 - [x] Refactorer PriceCatalog : pricePerUnitLithium + lithiumUnitCapacityWh au lieu de pricePerWhLithium
 - [x] Adapter le mapping catalogue → PriceCatalog dans le router (extraction capacité depuis le nom)
 - [x] Vérifier les résultats avec des valeurs réalistes (15 tests passés)
+
+## Sprint Finalisation Technique Solaire — Pertes, Charges Critiques, Validation Ingénieur
+
+### Phase 1 : Schéma DB
+- [x] Ajouter colonnes is_night_load, is_motor_load, priority_level à erp_solar_load_items
+- [x] Ajouter colonnes battery_sizing_mode, hybrid_backup_percent, pv_string_voltage_v, battery_ageing_factor, battery_temperature_factor, battery_reserve_margin_percent, power_factor, inverter_surge_margin à erp_solar_design_inputs
+- [x] Ajouter colonnes voltage_v, power_w, resistance_ohm, power_loss_w, energy_loss_wh_day, loss_percent, ampacity_limit_a, ampacity_status, from_equipment, to_equipment à erp_solar_cable_sizing
+- [x] Créer table erp_solar_cable_ampacity (référence intensités admissibles)
+- [x] Ajouter paramètres globaux pertes (PV_DERATING_FACTOR, MPPT_EFFICIENCY, DC_CABLE_LOSS, AC_CABLE_LOSS, MISC_LOSS)
+- [x] Migrer le schéma (pnpm db:push)
+
+### Phase 2 : Moteur de calcul — Bilan et pertes
+- [x] Intégrer simultaneityCoeff dans calculateLoadBalance (énergie = P x Q x H x coeff_simult)
+- [x] Ajouter calcul énergie nocturne et puissance critique séparée
+- [x] Créer fonction calculateDetailedEfficiency (pertes détaillées)
+- [x] Créer modes batterie (total_load, critical_load, night_load, hybrid_backup)
+- [x] Ajouter facteurs vieillissement et température batterie
+- [x] Calculer puissance pointe réaliste (simultanée + plus grand démarrage)
+
+### Phase 3 : Moteur de calcul — Câbles et onduleur
+- [x] Ajouter tension chaîne PV dans le calcul courant PV
+- [x] Calculer pertes câbles en W, Wh/j et %
+- [x] Vérifier ampacité câbles (courant vs intensité admissible)
+- [x] Calculer onduleur surge requis (puissance pointe réaliste x marge)
+- [x] Ajouter conversion kW → kVA avec facteur de puissance
+- [x] Créer lignes câbles détaillées (PV→MPPT, Batt→Onduleur, Onduleur→AC, etc.)
+
+### Phase 4 : Budget détaillé
+- [x] Lots détaillés : panneaux, batteries, onduleur, câblage, protections, prestations
+- [x] Intégrer impact pertes sur coût
+- [ ] Ajouter lignes protections (coffrets DC/AC, disjoncteurs, parafoudres)
+- [ ] Ajouter contingence et ingénierie
+
+### Phase 5 : Alertes techniques et IA
+- [ ] Créer système d'alertes automatiques (charges, PV, batterie, onduleur, câbles)
+- [ ] Intégrer alertes dans recommandations IA
+- [ ] Ajouter validation ingénieur (engineering_status sur câbles et sizing)
+
+### Phase 6 : Routeurs tRPC
+- [x] Mettre à jour sizing.calculate avec pertes détaillées et modes batterie
+- [x] Mettre à jour loadItems.calculate avec simultanéité
+- [ ] Ajouter procédure alerts.generate
+- [x] Mettre à jour budget.calculate avec lots détaillés
+
+### Phase 7 : UI
+- [ ] Onglet Bilan : colonnes simultanéité, nuit, moteur, priorité + KPI critiques
+- [x] Onglet Dimensionnement : pertes détaillées, modes batterie, surge onduleur
+- [x] Onglet Câblage : pertes W/Wh, ampacité, statut sécurité
+- [x] Onglet Budget : lots détaillés avec protections
+- [ ] Onglet IA : alertes techniques
+
+### Phase 8 : Tests
+- [x] Tests simultanéité dans bilan
+- [x] Tests pertes détaillées
+- [x] Tests modes batterie (total, critical, night, hybrid)
+- [x] Tests ampacité câbles
+- [x] Tests onduleur surge/kVA
+- [ ] Tests alertes techniques
+- [x] Tests non-régression
+
+### Phase 9 : Documentation
+- [ ] Créer docs/erp/solar-critical-loads.md
+- [ ] Créer docs/erp/solar-system-losses.md
+- [ ] Créer docs/erp/solar-cable-losses.md
+- [ ] Créer docs/erp/solar-battery-sizing-modes.md

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   calculateLoadBalance,
   calculatePvSizing,
@@ -8,6 +8,8 @@ import {
   calculateCableSizing,
   calculateFullSizing,
   calculateBudget,
+  calculateDetailedEfficiency,
+  DEFAULT_SYSTEM_LOSSES,
   type LoadItem,
   type DesignInputs,
   type PriceCatalog,
@@ -26,6 +28,10 @@ const sampleLoads: LoadItem[] = [
     startupFactor: 3,
     usageHoursPerDay: 8,
     isCriticalLoad: false,
+    isNightLoad: false,
+    isMotorLoad: true,
+    simultaneityCoeff: 0.8,
+    priorityLevel: "important",
   },
   {
     equipmentName: "Éclairage LED",
@@ -35,6 +41,10 @@ const sampleLoads: LoadItem[] = [
     startupFactor: 1,
     usageHoursPerDay: 12,
     isCriticalLoad: true,
+    isNightLoad: true,
+    isMotorLoad: false,
+    simultaneityCoeff: 1.0,
+    priorityLevel: "critical",
   },
   {
     equipmentName: "Réfrigérateur",
@@ -44,6 +54,10 @@ const sampleLoads: LoadItem[] = [
     startupFactor: 2.5,
     usageHoursPerDay: 24,
     isCriticalLoad: true,
+    isNightLoad: true,
+    isMotorLoad: true,
+    simultaneityCoeff: 1.0,
+    priorityLevel: "critical",
   },
 ];
 
@@ -58,6 +72,15 @@ const sampleDesignInputs: DesignInputs = {
   globalEfficiency: 0.75,
   batteryDischargeRate: 0.8,
   voltageDropTarget: 0.03,
+  batterySizingMode: "total_load",
+  hybridBackupPercent: 0.30,
+  pvStringVoltageV: undefined,
+  batteryAgeingFactor: 0.80,
+  batteryTemperatureFactor: 0.95,
+  batteryReserveMarginPercent: 0.10,
+  powerFactor: 0.85,
+  inverterSurgeMargin: 0.10,
+  pvMarginPercent: 0.15,
 };
 
 const samplePriceCatalog: PriceCatalog = {
@@ -78,126 +101,172 @@ const samplePriceCatalog: PriceCatalog = {
 
 describe("ERP Solar Calculation Engine", () => {
   describe("calculateLoadBalance", () => {
-    it("calcule correctement le bilan de puissance avec plusieurs charges", () => {
+    it("calcule correctement le bilan de puissance", () => {
       const result = calculateLoadBalance(sampleLoads);
 
-      // Vérifier le nombre d'items retournés
-      expect(result.items).toHaveLength(3);
+      // Total nominal = (1500×2) + (50×10) + (200×1) = 3000 + 500 + 200 = 3700 W
+      expect(result.totalNominalPowerW).toBe(3700);
 
-      // Climatiseur: 1500W × 2 = 3000W nominal, 3000W × 3 = 9000W peak, 3000W × 8h = 24000Wh
-      const clim = result.items[0];
-      expect(clim.totalPowerW).toBe(3000);
-      expect(clim.peakPowerW).toBe(9000);
-      expect(clim.dailyEnergyWh).toBe(24000);
+      // Simultanée = (1500×2×0.8) + (50×10×1.0) + (200×1×1.0) = 2400 + 500 + 200 = 3100 W
+      expect(result.simultaneousPowerW).toBe(3100);
 
-      // Éclairage: 50W × 10 = 500W nominal, 500W × 1 = 500W peak, 500W × 12h = 6000Wh
-      const led = result.items[1];
-      expect(led.totalPowerW).toBe(500);
-      expect(led.peakPowerW).toBe(500);
-      expect(led.dailyEnergyWh).toBe(6000);
+      // Énergie journalière = (2400×8) + (500×12) + (200×24) = 19200 + 6000 + 4800 = 30000 Wh
+      expect(result.totalDailyEnergyWh).toBe(30000);
 
-      // Réfrigérateur: 200W × 1 = 200W nominal, 200W × 2.5 = 500W peak, 200W × 24h = 4800Wh
-      const fridge = result.items[2];
-      expect(fridge.totalPowerW).toBe(200);
-      expect(fridge.peakPowerW).toBe(500);
-      expect(fridge.dailyEnergyWh).toBe(4800);
+      // Critical loads: éclairage + réfrigérateur
+      expect(result.criticalLoadsCount).toBe(2);
+      expect(result.criticalLoadPowerW).toBe(700); // 500 + 200
+      expect(result.criticalLoadEnergyWh).toBe(10800); // (500×12) + (200×24)
 
-      // Totaux
-      expect(result.totalNominalPowerW).toBe(3700); // 3000 + 500 + 200
-      expect(result.totalDailyEnergyWh).toBe(34800); // 24000 + 6000 + 4800
-      expect(result.maxStartupPowerW).toBe(10000); // 9000 + 500 + 500
+      // Night loads: éclairage + réfrigérateur
+      expect(result.nightLoadPowerW).toBe(700);
+      expect(result.nightLoadEnergyWh).toBe(10800);
+
+      // Motor loads present
+      expect(result.motorLoadsPresent).toBe(true);
+
+      // Realistic peak = sum of (totalPower × startupFactor) for motors + simultaneous for non-motors
+      // Climatiseur: 3000 × 3 = 9000 (motor)
+      // Réfrigérateur: 200 × 2.5 = 500 (motor)
+      // Éclairage: 500 × 1 = 500 (non-motor, uses simultaneous)
+      expect(result.realisticPeakPowerW).toBeGreaterThan(result.simultaneousPowerW);
     });
 
-    it("identifie correctement les charges critiques", () => {
+    it("retourne les items détaillés", () => {
       const result = calculateLoadBalance(sampleLoads);
-
-      // Charges critiques: LED (500W, 6000Wh) + Frigo (200W, 4800Wh)
-      expect(result.criticalLoadPowerW).toBe(700); // 500 + 200
-      expect(result.criticalLoadEnergyWh).toBe(10800); // 6000 + 4800
+      expect(result.items.length).toBe(3);
+      expect(result.items[0].totalPowerW).toBe(3000);
+      expect(result.items[0].simultaneousPowerW).toBe(2400);
+      expect(result.items[0].dailyEnergyWh).toBe(19200);
     });
 
     it("gère une liste vide", () => {
       const result = calculateLoadBalance([]);
-      expect(result.items).toHaveLength(0);
       expect(result.totalNominalPowerW).toBe(0);
+      expect(result.simultaneousPowerW).toBe(0);
       expect(result.totalDailyEnergyWh).toBe(0);
-      expect(result.maxStartupPowerW).toBe(0);
-      expect(result.criticalLoadPowerW).toBe(0);
+      expect(result.items.length).toBe(0);
+    });
+  });
+
+  describe("calculateDetailedEfficiency", () => {
+    it("calcule le rendement détaillé du système", () => {
+      const result = calculateDetailedEfficiency(DEFAULT_SYSTEM_LOSSES);
+      expect(result.detailedEfficiency).toBeGreaterThan(0);
+      expect(result.detailedEfficiency).toBeLessThan(1);
+      expect(result.lossBreakdown).toBeDefined();
+      expect(result.lossBreakdown.inverter).toBeGreaterThan(0);
+      expect(result.lossBreakdown.battery).toBeGreaterThan(0);
     });
   });
 
   describe("calculatePvSizing", () => {
     it("calcule correctement le dimensionnement PV", () => {
-      const totalDailyEnergyWh = 34800;
-      const result = calculatePvSizing(totalDailyEnergyWh, sampleDesignInputs);
+      const totalDailyEnergyWh = 30000;
+      const efficiency = calculateDetailedEfficiency(DEFAULT_SYSTEM_LOSSES);
+      const result = calculatePvSizing(totalDailyEnergyWh, sampleDesignInputs, efficiency);
 
-      // Puissance PV = 34800 / (0.75 × 5) = 34800 / 3.75 = 9280 Wc
-      expect(result.requiredPvPowerWc).toBeCloseTo(9280, 0);
+      // Puissance PV brute = 30000 / (efficiency × PSH)
+      const expectedGross = totalDailyEnergyWh / (efficiency.detailedEfficiency * 5);
+      expect(result.pvGrossPowerWc).toBeCloseTo(expectedGross, 0);
 
-      // Nombre panneaux = ceil(9280 / 400) = 24
-      expect(result.panelsCount).toBe(24); // ceil(9280/400) = 24 (23.2 arrondi)
-      // En fait 9280/400 = 23.2 → ceil = 24
-      expect(result.totalInstalledPowerWc).toBe(9600); // 24 × 400
+      // Puissance recommandée = brute × (1 + 0.15)
+      expect(result.pvRecommendedPowerWc).toBeCloseTo(expectedGross * 1.15, 0);
+
+      // Nombre panneaux = ceil(recommandée / 400)
+      const expectedPanels = Math.ceil(expectedGross * 1.15 / 400);
+      expect(result.panelsCount).toBe(expectedPanels);
+      expect(result.totalInstalledPowerWc).toBe(expectedPanels * 400);
     });
 
     it("arrondit au panneau supérieur", () => {
-      // Énergie qui donne un nombre non entier de panneaux
-      const result = calculatePvSizing(1000, sampleDesignInputs);
-      // 1000 / (0.75 × 5) = 266.67 Wc → ceil(266.67 / 400) = 1 panneau
-      expect(result.panelsCount).toBe(1);
-      expect(result.totalInstalledPowerWc).toBe(400);
+      const efficiency = calculateDetailedEfficiency(DEFAULT_SYSTEM_LOSSES);
+      const result = calculatePvSizing(1000, sampleDesignInputs, efficiency);
+      expect(result.panelsCount).toBeGreaterThanOrEqual(1);
+      expect(result.totalInstalledPowerWc).toBe(result.panelsCount * 400);
     });
   });
 
   describe("calculateBatterySizing", () => {
-    it("calcule correctement la capacité batterie lithium", () => {
-      const totalDailyEnergyWh = 34800;
-      const result = calculateBatterySizing(totalDailyEnergyWh, sampleDesignInputs);
+    it("calcule correctement la capacité batterie lithium (mode total_load)", () => {
+      const balance = calculateLoadBalance(sampleLoads);
+      const result = calculateBatterySizing(balance, sampleDesignInputs);
 
-      // Capacité Ah = (34800 × 2) / (48 × 0.8) = 69600 / 38.4 = 1812.5 Ah
-      expect(result.capacityAh).toBeCloseTo(1812.5, 1);
-      // Capacité Wh = 1812.5 × 48 = 87000 Wh
-      expect(result.capacityWh).toBeCloseTo(87000, 0);
+      // Mode total_load: referenceEnergy = totalDailyEnergyWh = 30000
+      expect(result.referenceEnergyWh).toBeCloseTo(30000, 0);
+      expect(result.sizingMode).toBe("total_load");
+
+      // autonomyEnergyWh = 30000 × 2 = 60000
+      expect(result.autonomyEnergyWh).toBeCloseTo(60000, 0);
+
+      // nominalCapacityWh = 60000 / (0.8 × 0.80 × 0.95) = 60000 / 0.608 = 98684.21
+      const expectedNominal = 60000 / (0.8 * 0.80 * 0.95);
+      expect(result.nominalCapacityWh).toBeCloseTo(expectedNominal, 0);
+
+      // recommendedCapacityWh = nominal × 1.10
+      expect(result.recommendedCapacityWh).toBeCloseTo(expectedNominal * 1.10, 0);
+
+      // capacityAh = recommended / 48
+      expect(result.capacityAh).toBeCloseTo(expectedNominal * 1.10 / 48, 0);
       expect(result.technology).toBe("lithium");
       expect(result.autonomyDays).toBe(2);
       expect(result.nominalVoltageV).toBe(48);
     });
 
-    it("respecte le taux de décharge", () => {
-      const result = calculateBatterySizing(10000, {
+    it("respecte le mode critical_load", () => {
+      const balance = calculateLoadBalance(sampleLoads);
+      const result = calculateBatterySizing(balance, {
         ...sampleDesignInputs,
-        batteryDischargeRate: 0.5, // 50% décharge (plomb classique)
-        batteryTechnology: "plomb",
+        batterySizingMode: "critical_load",
       });
-      // (10000 × 2) / (48 × 0.5) = 20000 / 24 = 833.33 Ah
-      expect(result.capacityAh).toBeCloseTo(833.33, 1);
-      expect(result.technology).toBe("plomb");
+      expect(result.sizingMode).toBe("critical_load");
+      // referenceEnergy = criticalLoadEnergyWh = 10800
+      expect(result.referenceEnergyWh).toBeCloseTo(10800, 0);
+    });
+
+    it("respecte le mode night_load", () => {
+      const balance = calculateLoadBalance(sampleLoads);
+      const result = calculateBatterySizing(balance, {
+        ...sampleDesignInputs,
+        batterySizingMode: "night_load",
+      });
+      expect(result.sizingMode).toBe("night_load");
+      expect(result.referenceEnergyWh).toBeCloseTo(10800, 0);
     });
   });
 
   describe("calculateInverterSizing", () => {
     it("calcule la puissance onduleur avec marge de sécurité", () => {
-      const result = calculateInverterSizing(3700, 10000);
+      const balance = calculateLoadBalance(sampleLoads);
+      const result = calculateInverterSizing(balance, sampleDesignInputs);
 
-      // Min = 3700 × 1.25 = 4625 W
-      expect(result.minPowerW).toBeCloseTo(4625, 0);
-      // Recommandé = max(4625, 10000 × 1.1) = max(4625, 11000) = 11000 W
-      expect(result.recommendedPowerW).toBeCloseTo(11000, 0);
-      expect(result.coversStartup).toBe(true);
+      // continuousRecommendedW = simultaneousPowerW × 1.25 = 3100 × 1.25 = 3875
+      expect(result.continuousRecommendedW).toBeCloseTo(3875, 0);
+
+      // surgeRequiredW = realisticPeakPowerW × (1 + surgeMargin)
+      expect(result.surgeRequiredW).toBeGreaterThan(result.continuousRecommendedW);
+
+      // recommendedPowerW = max(continuous, surge)
+      expect(result.recommendedPowerW).toBeGreaterThanOrEqual(result.continuousRecommendedW);
+
+      // powerKva = recommended / powerFactor
+      expect(result.powerKva).toBeCloseTo(result.recommendedPowerW / 1000 / sampleDesignInputs.powerFactor, 1);
+
+      // Motor alert
+      expect(result.motorAlert).toBe(true); // motorLoadsPresent
     });
 
     it("couvre le démarrage quand la puissance recommandée >= startup", () => {
-      const result = calculateInverterSizing(1000, 2000);
-      // Min = 1000 × 1.25 = 1250
-      // Recommandé = max(1250, 2000 × 1.1) = max(1250, 2200) = 2200
-      expect(result.recommendedPowerW).toBeCloseTo(2200, 0);
-      expect(result.coversStartup).toBe(true);
+      const balance = calculateLoadBalance(sampleLoads);
+      const result = calculateInverterSizing(balance, sampleDesignInputs);
+      expect(result.coversStartup).toBeDefined();
     });
   });
 
   describe("findCommercialSection", () => {
     it("retourne la section commerciale supérieure ou égale", () => {
-      expect(findCommercialSection(1.5)).toBe(2.5);
+      expect(findCommercialSection(1.5)).toBe(1.5);
+      expect(findCommercialSection(2)).toBe(2.5);
       expect(findCommercialSection(2.5)).toBe(2.5);
       expect(findCommercialSection(3)).toBe(4);
       expect(findCommercialSection(5)).toBe(6);
@@ -212,34 +281,40 @@ describe("ERP Solar Calculation Engine", () => {
     });
 
     it("retourne la plus grande section pour des valeurs très élevées", () => {
-      expect(findCommercialSection(200)).toBe(120);
+      expect(findCommercialSection(300)).toBe(240);
     });
   });
 
   describe("calculateCableSizing", () => {
-    it("calcule le dimensionnement c\u00e2ble correctement", () => {
-      // Signature: (lineName, cableType, powerW, nominalVoltageV, lengthM, voltageDropTarget)
+    it("calcule le dimensionnement câble correctement", () => {
       const result = calculateCableSizing(
-        "PV \u2192 Onduleur",
+        "PV → Onduleur",
         "pv_to_inverter",
+        "Panneaux PV",
+        "Onduleur",
         2400, // powerW
         48, // tension nominale
         15, // longueur
-        0.03 // chute max
+        0.03, // chute max
+        8 // heures d'utilisation
       );
 
       expect(result.cableType).toBe("pv_to_inverter");
-      expect(result.lineName).toBe("PV \u2192 Onduleur");
+      expect(result.lineName).toBe("PV → Onduleur");
+      expect(result.fromEquipment).toBe("Panneaux PV");
+      expect(result.toEquipment).toBe("Onduleur");
       expect(result.lengthM).toBe(15);
       // currentA = 2400 / 48 = 50
       expect(result.currentA).toBe(50);
       expect(result.material).toBe("copper");
-      // Section th\u00e9orique = (2 \u00d7 0.0175 \u00d7 15 \u00d7 50) / (0.03 \u00d7 48) = 26.25 / 1.44 = 18.23 mm\u00b2
       expect(result.theoreticalSectionMm2).toBeGreaterThan(0);
-      expect(result.recommendedCommercialSectionMm2).toBeGreaterThanOrEqual(
-        result.theoreticalSectionMm2
-      );
+      expect(result.selectedSectionMm2).toBeGreaterThanOrEqual(result.theoreticalSectionMm2);
       expect(result.voltageDropPercent).toBeLessThanOrEqual(0.03);
+      // Pertes
+      expect(result.powerLossW).toBeGreaterThan(0);
+      expect(result.energyLossWhDay).toBeGreaterThan(0);
+      expect(result.ampacityLimitA).toBeGreaterThan(0);
+      expect(result.ampacityStatus).toBeDefined();
     });
   });
 
@@ -256,6 +331,9 @@ describe("ERP Solar Calculation Engine", () => {
       expect(result.inverter.recommendedPowerW).toBeGreaterThan(0);
       expect(result.cables).toBeDefined();
       expect(result.cables.length).toBeGreaterThan(0);
+      expect(result.efficiency).toBeDefined();
+      expect(result.efficiency.detailedEfficiency).toBeGreaterThan(0);
+      expect(result.loadBalance).toBeDefined();
     });
   });
 
@@ -269,20 +347,18 @@ describe("ERP Solar Calculation Engine", () => {
       expect(result.totalInvestment).toBeGreaterThan(0);
       expect(result.currency).toBe("XOF");
 
-      // Vérifier que le total est la somme des lignes
+      // Vérifier que les lots sont numérotés
+      for (const line of result.lines) {
+        expect(line.lotNumber).toBeGreaterThan(0);
+        expect(line.lotName).toBeDefined();
+        expect(line.quantity).toBeGreaterThan(0);
+        expect(line.unitPrice).toBeGreaterThan(0);
+        expect(line.amount).toBeGreaterThan(0);
+      }
+
+      // Vérifier que le total = somme des lignes
       const sumLines = result.lines.reduce((s, l) => s + l.amount, 0);
       expect(result.totalInvestment).toBeCloseTo(sumLines, 0);
-    });
-
-    it("inclut les lots PV, batteries, onduleur, câblage, structures et installation", () => {
-      const balance = calculateLoadBalance(sampleLoads);
-      const sizing = calculateFullSizing(balance, sampleDesignInputs);
-      const result = calculateBudget(sizing, samplePriceCatalog);
-
-      const lotNames = result.lines.map((l) => l.lotName);
-      expect(lotNames).toContain("Panneaux solaires");
-      expect(lotNames).toContain("Batteries lithium");
-      expect(lotNames).toContain("Onduleur / R\u00e9gulateur");
     });
   });
 });

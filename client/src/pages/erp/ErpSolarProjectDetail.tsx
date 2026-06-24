@@ -90,10 +90,7 @@ export default function ErpSolarProjectDetail() {
 
         {/* Câblage */}
         <TabsContent value="cables">
-          <Card><CardContent className="py-8 text-center text-muted-foreground">
-            <Cable className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Le dimensionnement câblage sera calculé automatiquement après le dimensionnement PV/batteries.</p>
-          </CardContent></Card>
+          <CablesTab sizingData={sizing} />
         </TabsContent>
 
         {/* Scénarios */}
@@ -336,7 +333,6 @@ function LoadsTab({ projectId, loads }: { projectId: number; loads: any[] | unde
 }
 
 function SizingTab({ sizingData }: { sizingData: any }) {
-  // getResults returns { sizing: row | null, cables: [] }
   const sizing = sizingData?.sizing;
   if (!sizing || sizing.calculationStatus !== "completed") return (
     <Card><CardContent className="py-8 text-center text-muted-foreground">
@@ -345,55 +341,97 @@ function SizingTab({ sizingData }: { sizingData: any }) {
     </CardContent></Card>
   );
 
-  const pvPowerKwp = (Number(sizing.requiredPvPowerWc) / 1000).toFixed(2);
+  const pvInstalledKwp = sizing.pvInstalledPowerWc ? (Number(sizing.pvInstalledPowerWc) / 1000).toFixed(2) : (Number(sizing.requiredPvPowerWc) / 1000).toFixed(2);
   const batteryCapacityKwh = (Number(sizing.batteryCapacityWh) / 1000).toFixed(2);
-  const inverterPowerKva = (Number(sizing.recommendedInverterPowerW) / 1000).toFixed(2);
+  const inverterPowerKva = sizing.inverterPowerKva ? Number(sizing.inverterPowerKva).toFixed(2) : (Number(sizing.recommendedInverterPowerW) / 1000).toFixed(2);
+  const efficiency = sizing.detailedEfficiency ? (Number(sizing.detailedEfficiency) * 100).toFixed(1) : null;
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Panneaux PV</p><p className="text-xl font-bold">{sizing.panelsCount}</p><p className="text-xs">{pvPowerKwp} kWp</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Batteries</p><p className="text-xl font-bold">{Number(sizing.batteryCapacityAh).toFixed(0)} Ah</p><p className="text-xs">{batteryCapacityKwh} kWh</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Onduleur</p><p className="text-xl font-bold">{inverterPowerKva} kVA</p><p className="text-xs">Min: {(Number(sizing.inverterMinPowerW) / 1000).toFixed(2)} kW</p></CardContent></Card>
-        <Card><CardContent className="pt-4"><p className="text-xs text-muted-foreground">Puissance PV</p><p className="text-xl font-bold">{sizing.panelUnitPowerWc} Wc</p><p className="text-xs">par panneau</p></CardContent></Card>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <Card><CardContent className="pt-4">
+          <p className="text-xs text-muted-foreground">Panneaux PV</p>
+          <p className="text-xl font-bold">{sizing.panelsCount}</p>
+          <p className="text-xs">{pvInstalledKwp} kWp installés</p>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4">
+          <p className="text-xs text-muted-foreground">Batteries</p>
+          <p className="text-xl font-bold">{batteryCapacityKwh} kWh</p>
+          <p className="text-xs">{sizing.batteryModulesCount || "-"} modules • {Number(sizing.batteryCapacityAh).toFixed(0)} Ah</p>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4">
+          <p className="text-xs text-muted-foreground">Onduleur</p>
+          <p className="text-xl font-bold">{inverterPowerKva} kVA</p>
+          <p className="text-xs">Surge: {sizing.inverterSurgeRequiredW ? (Number(sizing.inverterSurgeRequiredW) / 1000).toFixed(1) + " kW" : "N/A"}</p>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4">
+          <p className="text-xs text-muted-foreground">Rendement système</p>
+          <p className="text-xl font-bold">{efficiency ? efficiency + "%" : "N/A"}</p>
+          <p className="text-xs">Pertes détaillées</p>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4">
+          <p className="text-xs text-muted-foreground">Pertes câbles</p>
+          <p className="text-xl font-bold">{sizing.totalCableLossW ? Number(sizing.totalCableLossW).toFixed(0) + " W" : "N/A"}</p>
+          <p className="text-xs">{sizing.totalCableLossWhDay ? (Number(sizing.totalCableLossWhDay) / 1000).toFixed(2) + " kWh/j" : ""}</p>
+        </CardContent></Card>
       </div>
+
+      {/* Détails Bilan */}
       <Card>
-        <CardHeader><CardTitle>Détails du dimensionnement</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Bilan de puissance</CardTitle></CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div><span className="text-muted-foreground">Puissance totale installée:</span> <span className="font-medium">{(Number(sizing.totalNominalPowerW) / 1000).toFixed(2)} kW</span></div>
-            <div><span className="text-muted-foreground">Puissance démarrage max:</span> <span className="font-medium">{(Number(sizing.maxStartupPowerW) / 1000).toFixed(2)} kW</span></div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+            <div><span className="text-muted-foreground">Puissance nominale:</span> <span className="font-medium">{(Number(sizing.totalNominalPowerW) / 1000).toFixed(2)} kW</span></div>
+            <div><span className="text-muted-foreground">Puissance simultanée:</span> <span className="font-medium">{sizing.simultaneousPowerW ? (Number(sizing.simultaneousPowerW) / 1000).toFixed(2) + " kW" : "N/A"}</span></div>
+            <div><span className="text-muted-foreground">Pointe réaliste:</span> <span className="font-medium">{sizing.realisticPeakPowerW ? (Number(sizing.realisticPeakPowerW) / 1000).toFixed(2) + " kW" : (Number(sizing.maxStartupPowerW) / 1000).toFixed(2) + " kW"}</span></div>
             <div><span className="text-muted-foreground">Énergie journalière:</span> <span className="font-medium">{(Number(sizing.totalDailyEnergyWh) / 1000).toFixed(2)} kWh/j</span></div>
-            <div><span className="text-muted-foreground">Score de confiance:</span> <span className="font-medium">{sizing.confidenceScore ? `${Number(sizing.confidenceScore) * 100}%` : "N/A"}</span></div>
+            <div><span className="text-muted-foreground">Énergie critique:</span> <span className="font-medium">{sizing.criticalDailyEnergyWh ? (Number(sizing.criticalDailyEnergyWh) / 1000).toFixed(2) + " kWh/j" : "N/A"}</span></div>
+            <div><span className="text-muted-foreground">Énergie nocturne:</span> <span className="font-medium">{sizing.nightDailyEnergyWh ? (Number(sizing.nightDailyEnergyWh) / 1000).toFixed(2) + " kWh/j" : "N/A"}</span></div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Câbles */}
-      {sizingData.cables?.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle>Câblage</CardTitle></CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="border-b text-left"><th className="py-2">Ligne</th><th>Type</th><th className="text-right">Longueur (m)</th><th className="text-right">Courant (A)</th><th className="text-right">Section (mm²)</th><th className="text-right">Chute (%)</th></tr></thead>
-                <tbody>
-                  {sizingData.cables.map((c: any) => (
-                    <tr key={c.id} className="border-b">
-                      <td className="py-2 font-medium">{c.lineName}</td>
-                      <td>{c.cableType}</td>
-                      <td className="text-right">{Number(c.lengthM).toFixed(1)}</td>
-                      <td className="text-right">{Number(c.currentA).toFixed(1)}</td>
-                      <td className="text-right">{Number(c.recommendedCommercialSectionMm2).toFixed(1)}</td>
-                      <td className="text-right">{c.voltageDropPercent ? Number(c.voltageDropPercent).toFixed(2) : "-"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Détails PV */}
+      <Card>
+        <CardHeader><CardTitle>Dimensionnement PV</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+            <div><span className="text-muted-foreground">PV brut requis:</span> <span className="font-medium">{sizing.pvGrossPowerWc ? (Number(sizing.pvGrossPowerWc) / 1000).toFixed(2) + " kWp" : "N/A"}</span></div>
+            <div><span className="text-muted-foreground">PV recommandé (+marge):</span> <span className="font-medium">{sizing.pvRecommendedPowerWc ? (Number(sizing.pvRecommendedPowerWc) / 1000).toFixed(2) + " kWp" : "N/A"}</span></div>
+            <div><span className="text-muted-foreground">PV installé:</span> <span className="font-medium">{pvInstalledKwp} kWp ({sizing.panelsCount} × {sizing.panelUnitPowerWc} Wc)</span></div>
+            <div><span className="text-muted-foreground">Marge réelle:</span> <span className="font-medium">{sizing.pvRealMarginPercent ? (Number(sizing.pvRealMarginPercent) * 100).toFixed(1) + "%" : "N/A"}</span></div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Détails Batterie */}
+      <Card>
+        <CardHeader><CardTitle>Dimensionnement Batterie</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+            <div><span className="text-muted-foreground">Mode:</span> <span className="font-medium">{sizing.batterySizingMode || "total_load"}</span></div>
+            <div><span className="text-muted-foreground">Énergie référence:</span> <span className="font-medium">{sizing.batteryReferenceEnergyWh ? (Number(sizing.batteryReferenceEnergyWh) / 1000).toFixed(2) + " kWh" : "N/A"}</span></div>
+            <div><span className="text-muted-foreground">Capacité nominale:</span> <span className="font-medium">{sizing.batteryNominalCapacityWh ? (Number(sizing.batteryNominalCapacityWh) / 1000).toFixed(2) + " kWh" : "N/A"}</span></div>
+            <div><span className="text-muted-foreground">Capacité recommandée:</span> <span className="font-medium">{sizing.batteryRecommendedCapacityWh ? (Number(sizing.batteryRecommendedCapacityWh) / 1000).toFixed(2) + " kWh" : batteryCapacityKwh + " kWh"}</span></div>
+            <div><span className="text-muted-foreground">Modules:</span> <span className="font-medium">{sizing.batteryModulesCount || "N/A"}</span></div>
+            <div><span className="text-muted-foreground">Autonomie réelle:</span> <span className="font-medium">{sizing.batteryRealAutonomyDays ? Number(sizing.batteryRealAutonomyDays).toFixed(1) + " jours" : "N/A"}</span></div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Détails Onduleur */}
+      <Card>
+        <CardHeader><CardTitle>Dimensionnement Onduleur</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+            <div><span className="text-muted-foreground">Continu recommandé:</span> <span className="font-medium">{sizing.inverterContinuousRecommendedW ? (Number(sizing.inverterContinuousRecommendedW) / 1000).toFixed(2) + " kW" : "N/A"}</span></div>
+            <div><span className="text-muted-foreground">Surge requis:</span> <span className="font-medium">{sizing.inverterSurgeRequiredW ? (Number(sizing.inverterSurgeRequiredW) / 1000).toFixed(2) + " kW" : "N/A"}</span></div>
+            <div><span className="text-muted-foreground">Puissance kVA:</span> <span className="font-medium">{inverterPowerKva} kVA</span></div>
+            <div><span className="text-muted-foreground">Recommandé final:</span> <span className="font-medium">{(Number(sizing.recommendedInverterPowerW) / 1000).toFixed(2)} kW</span></div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -435,6 +473,84 @@ function BudgetTab({ budget }: { budget: any }) {
             </tbody>
             <tfoot><tr className="font-bold border-t"><td colSpan={4} className="py-2 text-right">TOTAL HT</td><td className="text-right">{totalHT.toLocaleString("fr-FR")} {currency}</td></tr></tfoot>
           </table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function CablesTab({ sizingData }: { sizingData: any }) {
+  const cables = sizingData?.cables || [];
+  if (!cables.length) return (
+    <Card><CardContent className="py-8 text-center text-muted-foreground">
+      <Cable className="h-12 w-12 mx-auto mb-4 opacity-50" />
+      <p>Le dimensionnement câblage sera calculé automatiquement après le dimensionnement PV/batteries.</p>
+    </CardContent></Card>
+  );
+
+  const totalLossW = cables.reduce((s: number, c: any) => s + (Number(c.powerLossW) || 0), 0);
+  const totalLossWhDay = cables.reduce((s: number, c: any) => s + (Number(c.energyLossWhDay) || 0), 0);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <Card><CardContent className="pt-4">
+          <p className="text-xs text-muted-foreground">Lignes de câbles</p>
+          <p className="text-xl font-bold">{cables.length}</p>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4">
+          <p className="text-xs text-muted-foreground">Pertes totales</p>
+          <p className="text-xl font-bold">{totalLossW.toFixed(0)} W</p>
+          <p className="text-xs">{(totalLossWhDay / 1000).toFixed(2)} kWh/j</p>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4">
+          <p className="text-xs text-muted-foreground">Alertes ampacité</p>
+          <p className="text-xl font-bold">{cables.filter((c: any) => c.ampacityStatus === "Critical" || c.ampacityStatus === "Warning").length}</p>
+        </CardContent></Card>
+      </div>
+
+      <Card>
+        <CardHeader><CardTitle>Détail des lignes de câbles</CardTitle></CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b text-left">
+                <th className="py-2">Ligne</th>
+                <th>De → Vers</th>
+                <th className="text-right">L (m)</th>
+                <th className="text-right">I (A)</th>
+                <th className="text-right">Section (mm²)</th>
+                <th className="text-right">ΔV (%)</th>
+                <th className="text-right">Pertes (W)</th>
+                <th className="text-right">Ampacité</th>
+                <th className="text-center">Statut</th>
+              </tr></thead>
+              <tbody>
+                {cables.map((c: any, i: number) => (
+                  <tr key={c.id || i} className="border-b">
+                    <td className="py-2 font-medium">{c.lineName}</td>
+                    <td className="text-xs text-muted-foreground">{c.fromEquipment || "-"} → {c.toEquipment || "-"}</td>
+                    <td className="text-right">{Number(c.lengthM).toFixed(1)}</td>
+                    <td className="text-right">{Number(c.currentA).toFixed(1)}</td>
+                    <td className="text-right font-medium">{Number(c.recommendedCommercialSectionMm2 || c.selectedSectionMm2).toFixed(1)}</td>
+                    <td className="text-right">{c.voltageDropPercent ? (Number(c.voltageDropPercent) * 100).toFixed(2) : "-"}</td>
+                    <td className="text-right">{c.powerLossW ? Number(c.powerLossW).toFixed(1) : "-"}</td>
+                    <td className="text-right">{c.ampacityLimitA ? Number(c.ampacityLimitA).toFixed(0) + " A" : "-"}</td>
+                    <td className="text-center">
+                      {c.ampacityStatus === "Critical" && <Badge variant="destructive" className="text-xs">Critique</Badge>}
+                      {c.ampacityStatus === "Warning" && <Badge className="bg-orange-100 text-orange-700 text-xs">Attention</Badge>}
+                      {(c.ampacityStatus === "OK" || !c.ampacityStatus) && <Badge variant="outline" className="text-xs">OK</Badge>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot><tr className="font-semibold border-t">
+                <td className="py-2" colSpan={6}>Total pertes</td>
+                <td className="text-right">{totalLossW.toFixed(0)} W</td>
+                <td colSpan={2}></td>
+              </tr></tfoot>
+            </table>
+          </div>
         </CardContent>
       </Card>
     </div>

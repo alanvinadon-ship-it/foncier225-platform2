@@ -365,6 +365,13 @@
       "when": 1782301886299,
       "tag": "0051_left_shape",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "5",
+      "when": 1782308873172,
+      "tag": "0052_flashy_spirit",
+      "breakpoints": true
     }
   ]
 }

@@ -12,7 +12,7 @@ import {
 import {
   calculateLoadBalance, calculateFullSizing, calculateBudget,
   DEFAULT_PRICES, DEFAULT_DESIGN_INPUTS,
-  type LoadItem, type DesignInputs, type PriceCatalog,
+  type LoadItem, type DesignInputs, type PriceCatalog, type BatterySizingMode,
 } from "./erp-solar-calculation-engine.service";
 import {
   generateSolarRecommendations, generateScenarios, solarAiChat,
@@ -287,7 +287,7 @@ const loadItemsRouter = router({
     .mutation(async ({ input }) => {
       const db = (await getDb())!;
       const items = await db.select().from(erpSolarLoadItems).where(eq(erpSolarLoadItems.solarProjectId, input.projectId));
-      const loadItems: LoadItem[] = items.map(i => ({
+      const loadItems: LoadItem[] = items.map((i: any) => ({
         equipmentName: i.equipmentName,
         equipmentCategory: i.equipmentCategory || undefined,
         unitPowerW: Number(i.unitPowerW),
@@ -295,6 +295,10 @@ const loadItemsRouter = router({
         startupFactor: Number(i.startupFactor),
         usageHoursPerDay: Number(i.usageHoursPerDay),
         isCriticalLoad: i.isCriticalLoad || false,
+        isNightLoad: i.isNightLoad || false,
+        isMotorLoad: i.isMotorLoad || false,
+        simultaneityCoeff: i.simultaneityCoeff ? Number(i.simultaneityCoeff) : 1.0,
+        priorityLevel: (i.priorityLevel || "important") as LoadItem["priorityLevel"],
       }));
       const result = calculateLoadBalance(loadItems);
       return result;
@@ -467,19 +471,21 @@ const sizingRouter = router({
       const startTime = Date.now();
 
       // Get load items
-      const items = await db.select().from(erpSolarLoadItems).where(eq(erpSolarLoadItems.solarProjectId, input.projectId));
+            const items = await db.select().from(erpSolarLoadItems).where(eq(erpSolarLoadItems.solarProjectId, input.projectId));
       if (items.length === 0) throw new Error("Aucun équipement dans le bilan de puissance");
-
-      const loadItems: LoadItem[] = items.map(i => ({
+      const loadItems: LoadItem[] = items.map((i: any) => ({
         equipmentName: i.equipmentName,
         unitPowerW: Number(i.unitPowerW),
         quantity: i.quantity,
         startupFactor: Number(i.startupFactor),
         usageHoursPerDay: Number(i.usageHoursPerDay),
         isCriticalLoad: i.isCriticalLoad || false,
+        isNightLoad: i.isNightLoad || false,
+        isMotorLoad: i.isMotorLoad || false,
+        simultaneityCoeff: i.simultaneityCoeff ? Number(i.simultaneityCoeff) : 1.0,
+        priorityLevel: (i.priorityLevel || "important") as LoadItem["priorityLevel"],
       }));
       const loadBalance = calculateLoadBalance(loadItems);
-
       // Resolve effective parameters: global settings + site overrides
       const globalSettings = await db.select().from(erpSolarGlobalSettings);
       const siteOverrides = await db.select().from(erpSolarSiteSettings)
@@ -494,7 +500,7 @@ const sizingRouter = router({
 
       // Get design inputs from project-specific table or build from global settings
       const [designRow] = await db.select().from(erpSolarDesignInputs).where(eq(erpSolarDesignInputs.solarProjectId, input.projectId));
-      const designInputs: DesignInputs = designRow ? {
+      const baseDesign = designRow ? {
         nominalVoltageV: designRow.nominalVoltageV,
         batteryTechnology: designRow.batteryTechnology as "lithium" | "plomb",
         autonomyDays: designRow.autonomyDays,
@@ -516,6 +522,18 @@ const sizingRouter = router({
         globalEfficiency: getParam("GLOBAL_EFFICIENCY", 0.80),
         batteryDischargeRate: getParam("DOD_LITHIUM", 0.80),
         voltageDropTarget: getParam("VOLTAGE_DROP_DC", 0.03),
+      };
+      const designInputs: DesignInputs = {
+        ...baseDesign,
+        batterySizingMode: (designRow?.batterySizingMode as any) || getParam("BATTERY_SIZING_MODE", 0) ? "total_load" : "total_load",
+        hybridBackupPercent: designRow?.hybridBackupPercent ? Number(designRow.hybridBackupPercent) : getParam("HYBRID_BACKUP_PERCENT", 0.30),
+        pvStringVoltageV: designRow?.pvStringVoltageV || undefined,
+        batteryAgeingFactor: designRow?.batteryAgeingFactor ? Number(designRow.batteryAgeingFactor) : getParam("BATTERY_AGEING_FACTOR", 0.80),
+        batteryTemperatureFactor: designRow?.batteryTemperatureFactor ? Number(designRow.batteryTemperatureFactor) : getParam("BATTERY_TEMPERATURE_FACTOR", 0.95),
+        batteryReserveMarginPercent: designRow?.batteryReserveMarginPercent ? Number(designRow.batteryReserveMarginPercent) : getParam("BATTERY_RESERVE_MARGIN", 0.10),
+        powerFactor: designRow?.powerFactor ? Number(designRow.powerFactor) : getParam("POWER_FACTOR", 0.85),
+        inverterSurgeMargin: designRow?.inverterSurgeMargin ? Number(designRow.inverterSurgeMargin) : 0.10,
+        pvMarginPercent: designRow?.pvMarginPercent ? Number(designRow.pvMarginPercent) : getParam("PV_MARGIN_PERCENT", 0.15),
       };
 
       // Calculate full sizing
@@ -547,16 +565,42 @@ const sizingRouter = router({
       const [existingSizing] = await db.select().from(erpSolarSizingResults).where(eq(erpSolarSizingResults.solarProjectId, input.projectId));
       const sizingData = {
         solarProjectId: input.projectId,
+        // Bilan de puissance
         totalNominalPowerW: String(loadBalance.totalNominalPowerW),
+        simultaneousPowerW: String(loadBalance.simultaneousPowerW),
         maxStartupPowerW: String(loadBalance.maxStartupPowerW),
+        realisticPeakPowerW: String(loadBalance.realisticPeakPowerW),
         totalDailyEnergyWh: String(loadBalance.totalDailyEnergyWh),
+        criticalDailyEnergyWh: String(loadBalance.criticalLoadEnergyWh),
+        nightDailyEnergyWh: String(loadBalance.nightLoadEnergyWh),
+        // PV
+        detailedEfficiency: String(sizing.efficiency.detailedEfficiency),
+        pvGrossPowerWc: String(sizing.pv.pvGrossPowerWc),
+        pvRecommendedPowerWc: String(sizing.pv.pvRecommendedPowerWc),
         requiredPvPowerWc: String(sizing.pv.requiredPvPowerWc),
         panelUnitPowerWc: sizing.pv.panelUnitPowerWc,
         panelsCount: sizing.pv.panelsCount,
+        pvInstalledPowerWc: String(sizing.pv.totalInstalledPowerWc),
+        pvRealMarginPercent: String(sizing.pv.pvRealMarginPercent),
+        // Batterie
+        batterySizingMode: sizing.battery.sizingMode,
+        batteryReferenceEnergyWh: String(sizing.battery.referenceEnergyWh),
+        batteryNominalCapacityWh: String(sizing.battery.nominalCapacityWh),
+        batteryRecommendedCapacityWh: String(sizing.battery.recommendedCapacityWh),
         batteryCapacityAh: String(sizing.battery.capacityAh),
         batteryCapacityWh: String(sizing.battery.capacityWh),
+        batteryModulesCount: sizing.battery.modulesCount,
+        batteryRealAutonomyDays: String(sizing.battery.realAutonomyDays),
+        // Onduleur
         inverterMinPowerW: String(sizing.inverter.minPowerW),
+        inverterContinuousRecommendedW: String(sizing.inverter.continuousRecommendedW),
+        inverterSurgeRequiredW: String(sizing.inverter.surgeRequiredW),
+        inverterPowerKva: String(sizing.inverter.powerKva),
         recommendedInverterPowerW: String(sizing.inverter.recommendedPowerW),
+        // Pertes câbles
+        totalCableLossW: String(sizing.cables.reduce((s, c) => s + c.powerLossW, 0)),
+        totalCableLossWhDay: String(sizing.cables.reduce((s, c) => s + c.energyLossWhDay, 0)),
+        // Meta
         calculationStatus: "completed",
         updatedAt: now,
       };
@@ -574,11 +618,25 @@ const sizingRouter = router({
           solarProjectId: input.projectId,
           cableType: cable.cableType,
           lineName: cable.lineName,
+          fromEquipment: cable.fromEquipment,
+          toEquipment: cable.toEquipment,
+          voltageV: String(cable.voltageV),
+          powerW: String(cable.powerW),
           lengthM: String(cable.lengthM),
           currentA: String(cable.currentA),
           theoreticalSectionMm2: String(cable.theoreticalSectionMm2),
+          selectedSectionMm2: String(cable.selectedSectionMm2),
           recommendedCommercialSectionMm2: String(cable.recommendedCommercialSectionMm2),
+          voltageDropV: String(cable.voltageDropV),
           voltageDropPercent: String(cable.voltageDropPercent),
+          resistanceOhm: String(cable.resistanceOhm),
+          powerLossW: String(cable.powerLossW),
+          energyLossWhDay: String(cable.energyLossWhDay),
+          lossPercent: String(cable.lossPercent),
+          ampacityLimitA: String(cable.ampacityLimitA),
+          ampacityStatus: cable.ampacityStatus,
+          protectionRecommendation: cable.protectionRecommendation,
+          engineeringStatus: "Draft",
           material: cable.material,
           createdAt: now,
           updatedAt: now,
@@ -665,37 +723,78 @@ const budgetRouter = router({
       prices.structuresCoffretsPercent = getParam("STRUCTURES_PERCENT", prices.structuresCoffretsPercent);
       prices.installationTransportPercent = getParam("INSTALLATION_PERCENT", prices.installationTransportPercent);
 
-      const sizing = {
+      const sizing: any = {
         pv: {
+          pvGrossPowerWc: Number(sizingRow.pvGrossPowerWc || sizingRow.requiredPvPowerWc),
+          pvRecommendedPowerWc: Number(sizingRow.pvRecommendedPowerWc || sizingRow.requiredPvPowerWc),
           requiredPvPowerWc: Number(sizingRow.requiredPvPowerWc),
           panelUnitPowerWc: sizingRow.panelUnitPowerWc || 550,
           panelsCount: sizingRow.panelsCount || 0,
           totalInstalledPowerWc: (sizingRow.panelsCount || 0) * (sizingRow.panelUnitPowerWc || 550),
+          pvRealMarginPercent: Number(sizingRow.pvRealMarginPercent || 0.15),
         },
         battery: {
+          sizingMode: sizingRow.batterySizingMode || "total_load",
+          referenceEnergyWh: Number(sizingRow.batteryReferenceEnergyWh || 0),
+          autonomyEnergyWh: Number(sizingRow.batteryCapacityWh || 0),
+          nominalCapacityWh: Number(sizingRow.batteryNominalCapacityWh || sizingRow.batteryCapacityWh || 0),
+          recommendedCapacityWh: Number(sizingRow.batteryRecommendedCapacityWh || sizingRow.batteryCapacityWh || 0),
           capacityAh: Number(sizingRow.batteryCapacityAh),
           capacityWh: Number(sizingRow.batteryCapacityWh),
+          modulesCount: sizingRow.batteryModulesCount || 0,
+          realAutonomyDays: Number(sizingRow.batteryRealAutonomyDays || designRow?.autonomyDays || 2),
           technology: designRow?.batteryTechnology || "lithium",
           autonomyDays: designRow?.autonomyDays || 2,
           nominalVoltageV: designRow?.nominalVoltageV || 48,
           dischargeRate: Number(designRow?.batteryDischargeRate || 0.8),
         },
         inverter: {
+          simultaneousPowerW: Number(sizingRow.simultaneousPowerW || 0),
+          realisticPeakPowerW: Number(sizingRow.realisticPeakPowerW || 0),
           minPowerW: Number(sizingRow.inverterMinPowerW),
+          continuousRecommendedW: Number(sizingRow.inverterContinuousRecommendedW || sizingRow.inverterMinPowerW),
+          surgeRequiredW: Number(sizingRow.inverterSurgeRequiredW || 0),
+          powerKva: Number(sizingRow.inverterPowerKva || 0),
           recommendedPowerW: Number(sizingRow.recommendedInverterPowerW),
           safetyMargin: 1.25,
           coversStartup: true,
+          motorAlert: false,
         },
         cables: cables.map(c => ({
           cableType: c.cableType,
           lineName: c.lineName,
+          fromEquipment: c.fromEquipment || "",
+          toEquipment: c.toEquipment || "",
+          voltageV: Number(c.voltageV || 48),
+          powerW: Number(c.powerW || 0),
           lengthM: Number(c.lengthM),
           currentA: Number(c.currentA),
           theoreticalSectionMm2: Number(c.theoreticalSectionMm2),
+          selectedSectionMm2: Number(c.selectedSectionMm2 || c.recommendedCommercialSectionMm2),
           recommendedCommercialSectionMm2: Number(c.recommendedCommercialSectionMm2),
+          voltageDropV: Number(c.voltageDropV || 0),
           voltageDropPercent: Number(c.voltageDropPercent),
+          resistanceOhm: Number(c.resistanceOhm || 0),
+          powerLossW: Number(c.powerLossW || 0),
+          energyLossWhDay: Number(c.energyLossWhDay || 0),
+          lossPercent: Number(c.lossPercent || 0),
+          ampacityLimitA: Number(c.ampacityLimitA || 0),
+          ampacityStatus: c.ampacityStatus || "OK",
+          protectionRecommendation: c.protectionRecommendation || "",
           material: c.material,
         })),
+        efficiency: {
+          detailedEfficiency: Number(sizingRow.detailedEfficiency || 0.75),
+          lossBreakdown: {},
+        },
+        loadBalance: {
+          totalNominalPowerW: Number(sizingRow.totalNominalPowerW || 0),
+          simultaneousPowerW: Number(sizingRow.simultaneousPowerW || 0),
+          totalDailyEnergyWh: Number(sizingRow.totalDailyEnergyWh || 0),
+          criticalDailyEnergyWh: Number(sizingRow.criticalDailyEnergyWh || 0),
+          nightDailyEnergyWh: Number(sizingRow.nightDailyEnergyWh || 0),
+          realisticPeakPowerW: Number(sizingRow.realisticPeakPowerW || 0),
+        },
       };
 
       const budget = calculateBudget(sizing, prices);
@@ -761,18 +860,23 @@ const scenariosRouter = router({
       const items = await db.select().from(erpSolarLoadItems).where(eq(erpSolarLoadItems.solarProjectId, input.projectId));
       if (items.length === 0) throw new Error("Aucun équipement dans le bilan de puissance");
 
-      const loadItems: LoadItem[] = items.map(i => ({
+      const loadItems: LoadItem[] = items.map((i: any) => ({
         equipmentName: i.equipmentName,
         unitPowerW: Number(i.unitPowerW),
         quantity: i.quantity,
         startupFactor: Number(i.startupFactor),
         usageHoursPerDay: Number(i.usageHoursPerDay),
         isCriticalLoad: i.isCriticalLoad || false,
+        isNightLoad: i.isNightLoad || false,
+        isMotorLoad: i.isMotorLoad || false,
+        simultaneityCoeff: i.simultaneityCoeff ? Number(i.simultaneityCoeff) : 1.0,
+        priorityLevel: (i.priorityLevel || "important") as LoadItem["priorityLevel"],
       }));
       const loadBalance = calculateLoadBalance(loadItems);
 
       const [designRow] = await db.select().from(erpSolarDesignInputs).where(eq(erpSolarDesignInputs.solarProjectId, input.projectId));
       const designInputs: DesignInputs = designRow ? {
+        ...DEFAULT_DESIGN_INPUTS,
         nominalVoltageV: designRow.nominalVoltageV,
         batteryTechnology: designRow.batteryTechnology as "lithium" | "plomb",
         autonomyDays: designRow.autonomyDays,
@@ -783,6 +887,15 @@ const scenariosRouter = router({
         globalEfficiency: Number(designRow.globalEfficiency),
         batteryDischargeRate: Number(designRow.batteryDischargeRate),
         voltageDropTarget: Number(designRow.voltageDropTarget),
+        batterySizingMode: (designRow.batterySizingMode as BatterySizingMode) || "total_load",
+        hybridBackupPercent: designRow.hybridBackupPercent ? Number(designRow.hybridBackupPercent) : 0.30,
+        pvStringVoltageV: designRow.pvStringVoltageV || undefined,
+        batteryAgeingFactor: designRow.batteryAgeingFactor ? Number(designRow.batteryAgeingFactor) : 0.80,
+        batteryTemperatureFactor: designRow.batteryTemperatureFactor ? Number(designRow.batteryTemperatureFactor) : 0.95,
+        batteryReserveMarginPercent: designRow.batteryReserveMarginPercent ? Number(designRow.batteryReserveMarginPercent) : 0.10,
+        powerFactor: designRow.powerFactor ? Number(designRow.powerFactor) : 0.85,
+        inverterSurgeMargin: designRow.inverterSurgeMargin ? Number(designRow.inverterSurgeMargin) : 0.10,
+        pvMarginPercent: designRow.pvMarginPercent ? Number(designRow.pvMarginPercent) : 0.15,
       } : DEFAULT_DESIGN_INPUTS;
 
       const scenarios = generateScenarios(loadBalance, designInputs);
@@ -1053,11 +1166,16 @@ async function buildProjectContext(db: any, projectId: number): Promise<SolarPro
     startupFactor: Number(i.startupFactor),
     usageHoursPerDay: Number(i.usageHoursPerDay),
     isCriticalLoad: i.isCriticalLoad || false,
+    isNightLoad: i.isNightLoad || false,
+    isMotorLoad: i.isMotorLoad || false,
+    simultaneityCoeff: i.simultaneityCoeff ? Number(i.simultaneityCoeff) : 1.0,
+    priorityLevel: (i.priorityLevel || "important") as LoadItem["priorityLevel"],
   }));
   const loadBalance = calculateLoadBalance(loadItems);
 
   const [designRow] = await db.select().from(erpSolarDesignInputs).where(eq(erpSolarDesignInputs.solarProjectId, projectId));
   const designInputs: DesignInputs = designRow ? {
+    ...DEFAULT_DESIGN_INPUTS,
     nominalVoltageV: designRow.nominalVoltageV,
     batteryTechnology: designRow.batteryTechnology as "lithium" | "plomb",
     autonomyDays: designRow.autonomyDays,
@@ -1068,6 +1186,15 @@ async function buildProjectContext(db: any, projectId: number): Promise<SolarPro
     globalEfficiency: Number(designRow.globalEfficiency),
     batteryDischargeRate: Number(designRow.batteryDischargeRate),
     voltageDropTarget: Number(designRow.voltageDropTarget),
+    batterySizingMode: (designRow.batterySizingMode as BatterySizingMode) || "total_load",
+    hybridBackupPercent: designRow.hybridBackupPercent ? Number(designRow.hybridBackupPercent) : 0.30,
+    pvStringVoltageV: designRow.pvStringVoltageV || undefined,
+    batteryAgeingFactor: designRow.batteryAgeingFactor ? Number(designRow.batteryAgeingFactor) : 0.80,
+    batteryTemperatureFactor: designRow.batteryTemperatureFactor ? Number(designRow.batteryTemperatureFactor) : 0.95,
+    batteryReserveMarginPercent: designRow.batteryReserveMarginPercent ? Number(designRow.batteryReserveMarginPercent) : 0.10,
+    powerFactor: designRow.powerFactor ? Number(designRow.powerFactor) : 0.85,
+    inverterSurgeMargin: designRow.inverterSurgeMargin ? Number(designRow.inverterSurgeMargin) : 0.10,
+    pvMarginPercent: designRow.pvMarginPercent ? Number(designRow.pvMarginPercent) : 0.15,
   } : DEFAULT_DESIGN_INPUTS;
 
   const sizing = calculateFullSizing(loadBalance, designInputs);
