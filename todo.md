@@ -2546,3 +2546,7 @@
 
 ## Bug Fix — Bilan solaire NaN
 - [x] Corriger l'affichage NaN dans le bilan solaire (puissance totale, énergie journalière, Wh/j par charge)
+
+## Amélioration — Paramètres techniques : modifier et dupliquer
+- [x] Ajouter bouton modifier (dialog avec pré-remplissage, code désactivé en mode édition) pour chaque paramètre technique
+- [x] Ajouter bouton dupliquer (pré-remplissage avec suffixe _COPY) pour chaque paramètre technique

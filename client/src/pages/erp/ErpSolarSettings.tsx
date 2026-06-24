@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Sun, Plus, MapPin, DollarSign, Settings, Pencil } from "lucide-react";
+import { ArrowLeft, Sun, Plus, MapPin, DollarSign, Settings, Pencil, Copy } from "lucide-react";
 
 type Tab = "zones" | "prices" | "parameters";
 
@@ -464,6 +464,7 @@ function ParametersTab() {
   });
 
   const [open, setOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState({ parameterCode: "", parameterName: "", parameterValue: "", unit: "", description: "" });
 
   const handleUpsert = () => {
@@ -479,7 +480,38 @@ function ParametersTab() {
       description: form.description || undefined,
     });
     setOpen(false);
+    setEditMode(false);
     setForm({ parameterCode: "", parameterName: "", parameterValue: "", unit: "", description: "" });
+  };
+
+  const handleEdit = (p: any) => {
+    setForm({
+      parameterCode: p.parameterCode,
+      parameterName: p.parameterName,
+      parameterValue: String(p.parameterValue),
+      unit: p.unit || "",
+      description: p.description || "",
+    });
+    setEditMode(true);
+    setOpen(true);
+  };
+
+  const handleDuplicate = (p: any) => {
+    setForm({
+      parameterCode: p.parameterCode + "_COPY",
+      parameterName: p.parameterName + " (copie)",
+      parameterValue: String(p.parameterValue),
+      unit: p.unit || "",
+      description: p.description || "",
+    });
+    setEditMode(false);
+    setOpen(true);
+  };
+
+  const handleOpenNew = () => {
+    setForm({ parameterCode: "", parameterName: "", parameterValue: "", unit: "", description: "" });
+    setEditMode(false);
+    setOpen(true);
   };
 
   if (isLoading) {
@@ -492,53 +524,53 @@ function ParametersTab() {
         <p className="text-sm text-muted-foreground">
           Paramètres techniques par défaut utilisés dans les calculs de dimensionnement.
         </p>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-              <Plus size={16} className="mr-2" /> Ajouter / Modifier
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Paramètre technique</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="paramCode">Code paramètre *</Label>
-                  <Input id="paramCode" placeholder="Ex: GLOBAL_EFFICIENCY" value={form.parameterCode} onChange={(e) => setForm({ ...form, parameterCode: e.target.value })} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="paramName">Nom *</Label>
-                  <Input id="paramName" placeholder="Ex: Rendement global" value={form.parameterName} onChange={(e) => setForm({ ...form, parameterName: e.target.value })} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="paramValue">Valeur *</Label>
-                  <Input id="paramValue" type="number" step="0.01" placeholder="Ex: 0.75" value={form.parameterValue} onChange={(e) => setForm({ ...form, parameterValue: e.target.value })} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="paramUnit">Unité</Label>
-                  <Input id="paramUnit" placeholder="Ex: %, V, h" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
-                </div>
+        <Button onClick={handleOpenNew} className="bg-orange-500 hover:bg-orange-600 text-white">
+          <Plus size={16} className="mr-2" /> Ajouter un paramètre
+        </Button>
+      </div>
+
+      {/* Dialog création / modification */}
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditMode(false); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editMode ? "Modifier le paramètre" : "Nouveau paramètre technique"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="paramCode">Code paramètre *</Label>
+                <Input id="paramCode" placeholder="Ex: GLOBAL_EFFICIENCY" value={form.parameterCode} onChange={(e) => setForm({ ...form, parameterCode: e.target.value })} disabled={editMode} />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="paramDesc">Description</Label>
-                <Input id="paramDesc" placeholder="Ex: Ratio entre énergie produite et énergie utile" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                <Label htmlFor="paramName">Nom *</Label>
+                <Input id="paramName" placeholder="Ex: Rendement global" value={form.parameterName} onChange={(e) => setForm({ ...form, parameterName: e.target.value })} />
               </div>
             </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Annuler</Button>
-              </DialogClose>
-              <Button onClick={handleUpsert} disabled={upsertParam.isPending} className="bg-orange-500 hover:bg-orange-600 text-white">
-                {upsertParam.isPending ? "Enregistrement..." : "Enregistrer"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="paramValue">Valeur *</Label>
+                <Input id="paramValue" type="number" step="0.0001" placeholder="Ex: 0.75" value={form.parameterValue} onChange={(e) => setForm({ ...form, parameterValue: e.target.value })} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="paramUnit">Unité</Label>
+                <Input id="paramUnit" placeholder="Ex: %, V, h, m" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="paramDesc">Description</Label>
+              <Input id="paramDesc" placeholder="Ex: Ratio entre énergie produite et énergie utile" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Annuler</Button>
+            </DialogClose>
+            <Button onClick={handleUpsert} disabled={upsertParam.isPending} className="bg-orange-500 hover:bg-orange-600 text-white">
+              {upsertParam.isPending ? "Enregistrement..." : editMode ? "Mettre à jour" : "Enregistrer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Table des paramètres */}
       {params && params.length > 0 ? (
@@ -553,6 +585,7 @@ function ParametersTab() {
                     <th className="px-4 py-3 text-center font-medium">Valeur</th>
                     <th className="px-4 py-3 text-center font-medium">Unité</th>
                     <th className="px-4 py-3 text-left font-medium">Description</th>
+                    <th className="px-4 py-3 text-center font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -567,6 +600,16 @@ function ParametersTab() {
                       </td>
                       <td className="px-4 py-3 text-center text-muted-foreground">{p.unit || "—"}</td>
                       <td className="px-4 py-3 text-muted-foreground text-xs">{p.description || "—"}</td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-orange-600" title="Modifier" onClick={() => handleEdit(p)}>
+                            <Pencil size={14} />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-blue-600" title="Dupliquer" onClick={() => handleDuplicate(p)}>
+                            <Copy size={14} />
+                          </Button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
